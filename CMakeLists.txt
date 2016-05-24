@@ -62,34 +62,49 @@ include_directories(${Qt5DBus_INCLUDE_DIRS})
 ##  Global build options
 ##
 
-# set the compiler warnings
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  add_compile_options(
-    -Weverythiing
-    -Wno-c++98-compat
-    -Wno-padded
-  )
-elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-  add_compile_options(
-    -Wall
-    -pedantic
-    -Wextra
-    -Wcast-align
-    -Wcast-qual
-    -Wformat
-    -Wredundant-decls
-    -Wswitch-default
-    -Wnon-virtual-dtor
-    -Wctor-dtor-privacy
-    -Wold-style-cast
-  )
-endif()
+set(C_OPTIONS
+  -fPIC
+  -fvisibility=hidden
+  -g
+)
+set(CXX_OPTIONS
+  ${C_OPTIONS}
+  -std=c++14
+)
+
+set(CLANG_C_WARNINGS
+  -Weverything
+  -Wno-padded
+)
+set(CLANG_CXX_WARNINGS
+  ${CLANG_C_WARNINGS}
+  -Wno-c++98-compat
+)
+
+set(GNU_C_WARNINGS
+  -Wall
+  -pedantic
+  -Wextra
+  -Wcast-align
+  -Wcast-qual
+  -Wformat
+  -Wredundant-decls
+  -Wswitch-default
+)
+set(GNU_CXX_WARNINGS
+  ${GNU_C_WARNINGS}
+  -Wnon-virtual-dtor
+  -Wctor-dtor-privacy
+  -Wold-style-cast
+)
 
 add_compile_options(
-  -std=c++14
-  -fPIC
-  -g
-  -fvisibility=hidden
+  "$<$<COMPILE_LANGUAGE:C>:${C_OPTIONS}>"
+  "$<$<COMPILE_LANGUAGE:CXX>:${CXX_OPTIONS}>"
+  "$<$<AND:$<COMPILE_LANGUAGE:C>,$<CXX_COMPILER_ID:GNU>>:${GNU_C_WARNINGS}>"
+  "$<$<AND:$<COMPILE_LANGUAGE:C>,$<CXX_COMPILER_ID:Clang>>:${CLANG_C_WARNINGS}>"
+  "$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:GNU>>:${GNU_CXX_WARNINGS}>"
+  "$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang>>:${CLANG_CXX_WARNINGS}>"
 )
 
 # If warnings are errors, don't error on deprecated declarations.

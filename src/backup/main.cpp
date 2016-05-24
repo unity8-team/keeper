@@ -19,7 +19,7 @@ main(int argc, char **argv)
     QCoreApplication app(argc, argv);
 //    DBusTypes::registerMetaTypes();
 //    Variant::registerMetaTypes();
-    std::srand(std::time(0));
+    std::srand(unsigned(std::time(0)));
 
 #if 0
     util::UnixSignalHandler handler([]{
