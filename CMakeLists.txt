@@ -47,15 +47,17 @@ set(CMAKE_INSTALL_FULL_PKGLIBEXECDIR "${CMAKE_INSTALL_FULL_LIBEXECDIR}/${CMAKE_P
 
 find_package(Threads REQUIRED)
 
+set(CMAKE_AUTOMOC ON)
+
 add_definitions(
   -DQT_NO_KEYWORDS=1
 )
 
 find_package(Qt5Core REQUIRED)
-include_directories(${Qt5Core_INCLUDE_DIRS})
+include_directories(SYSTEM ${Qt5Core_INCLUDE_DIRS})
 
 find_package(Qt5DBus COMPONENTS Qt5DBusMacros REQUIRED)
-include_directories(${Qt5DBus_INCLUDE_DIRS})
+include_directories(SYSTEM ${Qt5DBus_INCLUDE_DIRS})
 
 
 ##
