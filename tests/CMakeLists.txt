@@ -2,7 +2,7 @@
 # The warnings are suppressed so we get a noise-free build for gtest and gmock.
 
 set(old_cxx_flags ${CMAKE_CXX_FLAGS})
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wno-old-style-cast -Wno-missing-field-initializers")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -w")
 find_package(GMock)
 set(CMAKE_CXX_FLAGS ${old_cxx_flags})
 
