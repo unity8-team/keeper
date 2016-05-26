@@ -1,4 +1,3 @@
-//#include <util/unix-signal-handler.h>
 #include <dbus-types.h>
 
 #include <QCoreApplication>
@@ -8,11 +7,6 @@
 #include <cstdlib>
 #include <ctime>
 
-//#include <glib.h>
-
-//#include <config.h>
-
-
 int
 main(int argc, char **argv)
 {
@@ -21,13 +15,7 @@ main(int argc, char **argv)
 //    Variant::registerMetaTypes();
     std::srand(unsigned(std::time(0)));
 
-#if 0
-    util::UnixSignalHandler handler([]{
-        QCoreApplication::exit(0);
-    });
-    handler.setupUnixSignalHandlers();
-#endif
-
+    // boilerplate locale
     bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
     setlocale(LC_ALL, "");
     bindtextdomain(GETTEXT_PACKAGE, LOCALE_DIR);

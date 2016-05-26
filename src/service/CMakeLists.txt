@@ -1,20 +1,21 @@
-set(BACKUP_EXEC "keeper-backup")
+set(SERVICE_EXEC "keeper-service")
 
 include_directories("${CMAKE_SOURCE_DIR}/src")
 include_directories("${CMAKE_BINARY_DIR}/src/qdbus-stubs")
 include_directories("${CMAKE_SOURCE_DIR}/src/qdbus-stubs")
 
-set(BACKUP_SOURCES
+set(SERVICE_SOURCES
   main.cpp
 )
 
 add_executable(
-  ${BACKUP_EXEC}
-  ${BACKUP_SOURCES}
+  ${SERVICE_EXEC}
+  ${SERVICE_SOURCES}
 )
 
 target_link_libraries(
-  ${BACKUP_EXEC}
+  ${SERVICE_EXEC}
+  util
   Qt5::Core
   Qt5::DBus
   Threads::Threads
@@ -22,6 +23,6 @@ target_link_libraries(
 
 install(
   TARGETS
-    ${BACKUP_EXEC}
+    ${SERVICE_EXEC}
   RUNTIME DESTINATION ${CMAKE_INSTALL_FULL_PKGLIBEXECDIR}
 )
