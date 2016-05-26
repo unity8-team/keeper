@@ -6,6 +6,7 @@ Build-Depends: cmake,
                dbus,
                debhelper (>= 9), 
 # for building the code:
+               libarchive-dev (>= 3.1.2),
                libproperties-cpp-dev,
                libubuntu-app-launch2-dev (>= 0.9),
                qt5-default,

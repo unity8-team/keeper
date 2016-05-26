@@ -13,9 +13,14 @@ add_executable(
   ${SERVICE_SOURCES}
 )
 
+link_directories(
+  ${SERVICE_DEPS_LIBRARY_DIRS}
+)
+
 target_link_libraries(
   ${SERVICE_EXEC}
   util
+  ${SERVICE_DEPS_LIBRARIES}
   Qt5::Core
   Qt5::DBus
   Threads::Threads

@@ -50,7 +50,7 @@ find_package(Threads REQUIRED)
 set(CMAKE_AUTOMOC ON)
 
 add_definitions(
-  -DQT_NO_KEYWORDS=1
+    -DQT_NO_KEYWORDS=1
 )
 
 find_package(Qt5Core REQUIRED)
@@ -58,6 +58,13 @@ include_directories(SYSTEM ${Qt5Core_INCLUDE_DIRS})
 
 find_package(Qt5DBus COMPONENTS Qt5DBusMacros REQUIRED)
 include_directories(SYSTEM ${Qt5DBus_INCLUDE_DIRS})
+
+find_package(PkgConfig REQUIRED)
+
+pkg_check_modules(SERVICE_DEPS REQUIRED
+    libarchive>=3.1.2
+)
+include_directories (SYSTEM ${SERVICE_DEPS_INCLUDE_DIRS})
 
 
 ##
