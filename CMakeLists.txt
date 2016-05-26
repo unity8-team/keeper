@@ -121,7 +121,6 @@ add_definitions(
   -DLOCALE_DIR="${CMAKE_INSTALL_FULL_DATADIR}/locale"
 )
 
-
 ##
 ##
 ##

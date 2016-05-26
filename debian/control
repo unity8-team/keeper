@@ -1,0 +1,34 @@
+Source: keeper
+Section: misc
+Priority: optional
+Maintainer: Unity API Team <unityapiteam@lists.canonical.com>
+Build-Depends: cmake,
+               dbus,
+               debhelper (>= 9), 
+# for building the code:
+               libproperties-cpp-dev,
+               libubuntu-app-launch2-dev (>= 0.9),
+               qt5-default,
+               qtbase5-dev,
+               qtbase5-dev-tools,
+               qtdeclarative5-dev,
+               qtdeclarative5-dev-tools,
+# for the test harness:
+               python3-dbusmock (>= 0.16.3),
+               libqtdbusmock1-dev (>= 0.4),
+               libqtdbustest1-dev,
+Standards-Version: 3.9.5
+Homepage: https://launchpad.net/keeper
+# If you aren't a member of ~indicator-applet-developers but need to upload
+# packaging changes, just go ahead.  ~indicator-applet-developers will notice
+# and sync up the code again.
+Vcs-Bzr: https://code.launchpad.net/keeper/trunk
+Vcs-Browser: https://bazaar.launchpad.net/keeper/trunk/files
+
+Package: keeper
+Architecture: any
+Depends: ${shlibs:Depends}, 
+         ${misc:Depends},
+         systemd | systemd-shim,
+Description: Backup Tool
+ A backup/restore utility for Ubuntu
