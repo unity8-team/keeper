@@ -29,31 +29,31 @@ class UnixSignalHandler: public QObject {
 Q_OBJECT
 
 public:
-	UnixSignalHandler(const std::function<void()>& f, QObject *parent = 0);
+    UnixSignalHandler(const std::function<void()>& f, QObject *parent = 0);
 
-	~UnixSignalHandler() = default;
+    ~UnixSignalHandler() = default;
 
-	static int setupUnixSignalHandlers();
+    static int setupUnixSignalHandlers();
 
 protected Q_SLOTS:
-	void handleSigInt();
+    void handleSigInt();
 
-	void handleSigTerm();
+    void handleSigTerm();
 
 protected:
-	static void intSignalHandler(int unused);
+    static void intSignalHandler(int unused);
 
-	static void termSignalHandler(int unused);
+    static void termSignalHandler(int unused);
 
-	static int sigintFd[2];
+    static int sigintFd[2];
 
-	static int sigtermFd[2];
+    static int sigtermFd[2];
 
-	std::function<void()> m_func;
+    std::function<void()> m_func;
 
-	QSocketNotifier *m_socketNotifierInt;
+    QSocketNotifier *m_socketNotifierInt;
 
-	QSocketNotifier *m_socketNotifierTerm;
+    QSocketNotifier *m_socketNotifierTerm;
 };
 
 }
