@@ -1,4 +1,5 @@
 #include <dbus-types.h>
+#include <util/logging.h>
 
 #include <QCoreApplication>
 #include <QDBusConnection>
@@ -10,6 +11,8 @@
 int
 main(int argc, char **argv)
 {
+    qInstallMessageHandler(util::loggingFunction);
+
     QCoreApplication app(argc, argv);
 //    DBusTypes::registerMetaTypes();
 //    Variant::registerMetaTypes();

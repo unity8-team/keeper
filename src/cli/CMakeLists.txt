@@ -15,6 +15,7 @@ add_executable(
 
 target_link_libraries(
   ${CLI_EXEC}
+  util
   Qt5::Core
   Qt5::DBus
   Threads::Threads

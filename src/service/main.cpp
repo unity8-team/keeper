@@ -1,3 +1,4 @@
+#include <util/logging.h>
 #include <util/unix-signal-handler.h>
 #include <dbus-types.h>
 
@@ -11,6 +12,8 @@
 int
 main(int argc, char **argv)
 {
+    qInstallMessageHandler(util::loggingFunction);
+
     QCoreApplication app(argc, argv);
 //    DBusTypes::registerMetaTypes();
 //    Variant::registerMetaTypes();
