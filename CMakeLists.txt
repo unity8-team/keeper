@@ -64,7 +64,7 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(SERVICE_DEPS REQUIRED
     libarchive>=3.1.2
 )
-include_directories (SYSTEM ${SERVICE_DEPS_INCLUDE_DIRS})
+include_directories(SYSTEM ${SERVICE_DEPS_INCLUDE_DIRS})
 
 
 ##
@@ -96,14 +96,44 @@ set(GNU_C_WARNINGS
   -Wextra
   -Wcast-align
   -Wcast-qual
-  -Wformat
+  -Wconditionally-supported
+  -Wconversion
+  -Wdate-time
+  -Wdouble-promotion
+  -Wfloat-equal
+  -Wformat=2
+  -Winline
+  -Wlogical-op
+  -Wmissing-declarations
+  -Wmissing-include-dirs
+  -Woverlength-strings
+  -Wpacked
   -Wredundant-decls
+  -Wshadow
+  -Wsuggest-attribute=const
+  -Wsuggest-attribute=format
+  -Wsuggest-attribute=noreturn
+  -Wswitch
+  -Wtrampolines
+  -Wundef
+  -Wunused
+  -Wwrite-strings
 )
+
 set(GNU_CXX_WARNINGS
   ${GNU_C_WARNINGS}
-  -Wnon-virtual-dtor
   -Wctor-dtor-privacy
+  -Weffc++
+  -Wnon-virtual-dtor
   -Wold-style-cast
+  -Woverloaded-virtual
+  -Wsign-promo
+  -Wsized-deallocation
+  -Wstrict-null-sentinel
+  -Wsuggest-attribute=pure
+  -Wsuggest-final-methods
+  -Wsuggest-final-types
+  -Wsuggest-override
 )
 
 add_compile_options(
