@@ -19,6 +19,7 @@
 #pragma once
 
 #include <QObject>
+#include <QSharedPointer>
 #include <QSocketNotifier>
 #include <functional>
 
@@ -29,7 +30,7 @@ class UnixSignalHandler: public QObject {
 Q_OBJECT
 
 public:
-    UnixSignalHandler(const std::function<void()>& f, QObject *parent = 0);
+    UnixSignalHandler(const std::function<void()>& f, QObject *parent = nullptr);
 
     ~UnixSignalHandler() = default;
 
@@ -51,9 +52,9 @@ protected:
 
     std::function<void()> m_func;
 
-    QSocketNotifier *m_socketNotifierInt;
+    QSharedPointer<QSocketNotifier> m_socketNotifierInt {};
 
-    QSocketNotifier *m_socketNotifierTerm;
+    QSharedPointer<QSocketNotifier> m_socketNotifierTerm {};
 };
 
 }

@@ -28,29 +28,29 @@ namespace util
         switch (type)
         {
             case QtMsgType::QtDebugMsg:
-                fprintf (stderr, "Debug: %s (%s:%u, %s)\n",
+                fprintf (stderr, "Debug: %s (%s:%d, %s)\n",
                          localMsg.constData (), context.file, context.line,
                          context.function);
                 break;
 #if QT_VERSION >= QT_VERSION_CHECK(5, 5, 0)
             case QtMsgType::QtInfoMsg:
-                fprintf (stderr, "Info: %s (%s:%u, %s)\n",
+                fprintf (stderr, "Info: %s (%s:%d, %s)\n",
                          localMsg.constData (), context.file, context.line,
                          context.function);
                 break;
 #endif
             case QtMsgType::QtWarningMsg:
-                fprintf (stderr, "Warning: %s (%s:%u, %s)\n",
+                fprintf (stderr, "Warning: %s (%s:%d, %s)\n",
                          localMsg.constData (), context.file, context.line,
                          context.function);
                 break;
             case QtMsgType::QtCriticalMsg:
-                fprintf (stderr, "Critical: %s (%s:%u, %s)\n",
+                fprintf (stderr, "Critical: %s (%s:%d, %s)\n",
                          localMsg.constData (), context.file, context.line,
                          context.function);
                 break;
             case QtMsgType::QtFatalMsg:
-                fprintf (stderr, "Fatal: %s (%s:%u, %s)\n",
+                fprintf (stderr, "Fatal: %s (%s:%d, %s)\n",
                          localMsg.constData (), context.file, context.line,
                          context.function);
                 abort ();

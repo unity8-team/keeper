@@ -42,10 +42,10 @@ UnixSignalHandler::UnixSignalHandler(const std::function<void()>& f, QObject *pa
         qFatal("Couldn't create TERM socketpair");
     }
 
-    m_socketNotifierInt = new QSocketNotifier(sigintFd[1], QSocketNotifier::Read, this);
-    connect(m_socketNotifierInt, &QSocketNotifier::activated, this, &UnixSignalHandler::handleSigInt);
-    m_socketNotifierTerm = new QSocketNotifier(sigtermFd[1], QSocketNotifier::Read, this);
-    connect(m_socketNotifierTerm, &QSocketNotifier::activated, this, &UnixSignalHandler::handleSigTerm);
+    m_socketNotifierInt.reset(new QSocketNotifier(sigintFd[1], QSocketNotifier::Read, this));
+    connect(m_socketNotifierInt.data(), &QSocketNotifier::activated, this, &UnixSignalHandler::handleSigInt);
+    m_socketNotifierTerm.reset(new QSocketNotifier(sigtermFd[1], QSocketNotifier::Read, this));
+    connect(m_socketNotifierTerm.data(), &QSocketNotifier::activated, this, &UnixSignalHandler::handleSigTerm);
 }
 
 void
@@ -72,14 +72,14 @@ UnixSignalHandler::setupUnixSignalHandlers()
     sigint.sa_flags = 0;
     sigint.sa_flags |= SA_RESTART;
 
-    if (sigaction(SIGINT, &sigint, 0) > 0)
+    if (sigaction(SIGINT, &sigint, nullptr) > 0)
         return 1;
 
     sigterm.sa_handler = UnixSignalHandler::termSignalHandler;
     sigemptyset(&sigterm.sa_mask);
     sigterm.sa_flags |= SA_RESTART;
 
-    if (sigaction(SIGTERM, &sigterm, 0) > 0)
+    if (sigaction(SIGTERM, &sigterm, nullptr) > 0)
         return 2;
 
     return 0;

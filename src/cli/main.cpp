@@ -16,7 +16,7 @@ main(int argc, char **argv)
     QCoreApplication app(argc, argv);
 //    DBusTypes::registerMetaTypes();
 //    Variant::registerMetaTypes();
-    std::srand(unsigned(std::time(0)));
+    std::srand(unsigned(std::time(nullptr)));
 
     // boilerplate locale
     bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
