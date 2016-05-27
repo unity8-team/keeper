@@ -98,7 +98,6 @@ set(GNU_C_WARNINGS
   -Wcast-qual
   -Wformat
   -Wredundant-decls
-  -Wswitch-default
 )
 set(GNU_CXX_WARNINGS
   ${GNU_C_WARNINGS}
