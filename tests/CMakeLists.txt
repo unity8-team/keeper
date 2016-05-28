@@ -20,6 +20,7 @@ include_directories(
   ${TEST_DEPENDENCIES_INCLUDE_DIRS}
 )
 
+add_subdirectory(copyright)
 add_subdirectory(unit)
 add_subdirectory(utils)
 add_subdirectory(whitespace)
