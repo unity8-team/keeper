@@ -46,9 +46,9 @@ public:
         }
     }
 
-    QFuture<Storage> getStorage()
+    QFuture<QSharedPointer<Storage>> getStorage()
     {
-        return QFuture<Storage>(); // FIXME
+        return QFuture<QSharedPointer<Storage>>(); // FIXME
     }
 
 private:
@@ -71,7 +71,7 @@ StorageFactory::~StorageFactory()
 {
 }
 
-QFuture<Storage>
+QFuture<QSharedPointer<Storage>>
 StorageFactory::getStorage()
 {
     return impl_->getStorage();

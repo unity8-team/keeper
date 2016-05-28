@@ -37,11 +37,17 @@ struct BackupInfo
 
 class Storage: public QObject
 {
-    QVector<BackupInfo> getBackups();
+public:
 
-    QIODevice* startRestore(const QString& uuid);
+    virtual ~Storage();
 
-    QIODevice* startBackup(const QString& uuid, const QSet<QString>& packages, const QDateTime& timestamp);
+    virtual QVector<BackupInfo> getBackups() =0;
+    virtual QIODevice* startRestore(const QString& uuid) =0;
+    virtual QIODevice* startBackup(const QString& uuid, const QSet<QString>& packages, const QDateTime& timestamp) =0;
+
+protected:
+
+    Storage();
 };
 
 }

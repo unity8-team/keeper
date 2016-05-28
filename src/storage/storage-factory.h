@@ -39,7 +39,7 @@ public:
     StorageFactory(StorageFactory&&) =delete;
     StorageFactory& operator=(StorageFactory&&) =delete;
 
-    QFuture<Storage> getStorage();
+    QFuture<QSharedPointer<Storage>> getStorage();
 
 private:
 

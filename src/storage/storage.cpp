@@ -17,30 +17,19 @@
  *     Charles Kerr <charles.kerr@canonical.com>
  */
 
-#pragma once
+#include "storage/storage.h"
 
 namespace storage
 {
 
-struct BackupInfo
+Storage::Storage()
 {
-    QString uuid;
-    QSet<QString> packages;
-    QDateTime timestamp;
-};
-
-struct Storage: public QObject
-{
-    QVector<BackupInfo> getBackups();
-
-    QIODevice startRestore(const QString& uuid);
-
-    QIODevice startBackup(const QString& uuid, const QSet<QString>& packages, const QDateTime& timestamp);
-};
-
-class StorageFactory: public QObject
-{
-    QFuture<Storage> getStorage();
-};
-
 }
+
+Storage::~Storage()
+{
+}
+
+} // namespace storage
+
+#include "storage.moc"
