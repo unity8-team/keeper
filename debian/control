@@ -15,6 +15,7 @@ Build-Depends: cmake,
                qtdeclarative5-dev,
                qtdeclarative5-dev-tools,
 # for the test harness:
+               cppcheck,
                devscripts,
                libgtest-dev,
                google-mock (>= 1.6.0+svn437),
