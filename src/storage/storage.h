@@ -35,6 +35,7 @@ struct BackupInfo
     QDateTime timestamp;
 };
 
+// NB: this is very much a work in progress
 class Storage
 {
 public:
