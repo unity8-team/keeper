@@ -77,5 +77,4 @@ StorageFactory::getStorage()
     return impl_->getStorage();
 }
 
-
 } // namespace storage

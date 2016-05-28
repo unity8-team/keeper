@@ -35,11 +35,16 @@ struct BackupInfo
     QDateTime timestamp;
 };
 
-class Storage: public QObject
+class Storage
 {
 public:
 
     virtual ~Storage();
+
+    Storage(Storage&&) =delete;
+    Storage(Storage const&) =delete;
+    Storage& operator=(Storage&&) =delete;
+    Storage& operator=(Storage const&) =delete;
 
     virtual QVector<BackupInfo> getBackups() =0;
     virtual QIODevice* startRestore(const QString& uuid) =0;

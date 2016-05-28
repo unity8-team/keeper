@@ -19,11 +19,14 @@
 
 #include "storage/storage.h"
 
+#include <QtDebug>
+
 namespace storage
 {
 
 Storage::Storage()
 {
+    qInfo() << "hello world";
 }
 
 Storage::~Storage()
@@ -31,5 +34,3 @@ Storage::~Storage()
 }
 
 } // namespace storage
-
-#include "storage.moc"

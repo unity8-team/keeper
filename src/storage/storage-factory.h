@@ -27,17 +27,17 @@
 namespace storage
 {
 
-class StorageFactory: public QObject
+class StorageFactory
 {
 public:
 
     StorageFactory();
     ~StorageFactory();
 
-    StorageFactory(StorageFactory const&) =delete;
-    StorageFactory& operator=(StorageFactory const&) =delete;
     StorageFactory(StorageFactory&&) =delete;
+    StorageFactory(StorageFactory const&) =delete;
     StorageFactory& operator=(StorageFactory&&) =delete;
+    StorageFactory& operator=(StorageFactory const&) =delete;
 
     QFuture<QSharedPointer<Storage>> getStorage();
 
