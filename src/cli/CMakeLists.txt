@@ -1,6 +1,5 @@
 set(CLI_EXEC "keeper")
 
-include_directories("${CMAKE_SOURCE_DIR}/src")
 include_directories("${CMAKE_BINARY_DIR}/src/qdbus-stubs")
 include_directories("${CMAKE_SOURCE_DIR}/src/qdbus-stubs")
 
@@ -15,6 +14,7 @@ add_executable(
 
 target_link_libraries(
   ${CLI_EXEC}
+  storage
   util
   Qt5::Core
   Qt5::DBus

@@ -1,5 +1,3 @@
-include_directories("${CMAKE_SOURCE_DIR}/src/")
-
 set(UTIL_SOURCES
     dbus-utils.cpp
     logging.cpp

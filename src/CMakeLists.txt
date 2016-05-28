@@ -1,4 +1,7 @@
+include_directories("${CMAKE_SOURCE_DIR}/src")
+
 add_subdirectory(qdbus-stubs)
+add_subdirectory(storage)
 add_subdirectory(cli)
 add_subdirectory(service)
 add_subdirectory(util)

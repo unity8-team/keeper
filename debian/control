@@ -15,6 +15,8 @@ Build-Depends: cmake,
                qtdeclarative5-dev,
                qtdeclarative5-dev-tools,
 # for the test harness:
+               libgtest-dev,
+               google-mock (>= 1.6.0+svn437),
                python3-dbusmock (>= 0.16.3),
                libqtdbusmock1-dev (>= 0.4),
                libqtdbustest1-dev,
