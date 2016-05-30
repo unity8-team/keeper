@@ -17,8 +17,12 @@
  *     Charles Kerr <charles.kerr@canonical.com>
  */
 
-#include "storage/storage-factory.h"
+#include <storage/storage-factory.h>
+#include <storage/internal/local-storage.h>
 
+#include <QThread>
+
+#include <QtConcurrent>
 #include <QtDebug>
 
 namespace storage
@@ -48,7 +52,17 @@ public:
 
     QFuture<QSharedPointer<Storage>> getStorage()
     {
-        return QFuture<QSharedPointer<Storage>>(); // FIXME
+        QFuture<QSharedPointer<Storage>> ret;
+
+        if (mode_ == Mode::Local)
+        {
+            return QtConcurrent::run([](){
+                return QSharedPointer<Storage>{new internal::LocalStorage{}};
+            });
+        }
+
+        qWarning() << "storage not created";
+        return QFuture<QSharedPointer<Storage>>();
     }
 
 private:

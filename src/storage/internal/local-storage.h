@@ -19,35 +19,39 @@
 
 #pragma once
 
-#include "storage/storage.h"
+#include <storage/storage.h>
 
-#include <QFuture>
-#include <QSharedPointer>
+#include <memory> // unique_ptr
 
 namespace storage
 {
+namespace internal
+{
 
-class StorageFactory
+// TODO: use the Qt pimpl macros
+class LocalStorage final: public Storage
 {
 public:
 
-    StorageFactory();
-    ~StorageFactory();
+    LocalStorage();
+    virtual ~LocalStorage();
 
-    StorageFactory(StorageFactory&&) =delete;
-    StorageFactory(StorageFactory const&) =delete;
-    StorageFactory& operator=(StorageFactory&&) =delete;
-    StorageFactory& operator=(StorageFactory const&) =delete;
+    LocalStorage(LocalStorage&&) =delete;
+    LocalStorage(LocalStorage const&) =delete;
+    LocalStorage& operator=(LocalStorage&&) =delete;
+    LocalStorage& operator=(LocalStorage const&) =delete;
 
-    // TODO: is factory appropriate for this?
-    QFuture<QSharedPointer<Storage>> getStorage();
+    QVector<BackupInfo> getBackups() override;
+    QSharedPointer<QIODevice> startRestore(const QString& uuid) override;
+    QSharedPointer<QIODevice> startBackup(const BackupInfo& info) override;
 
 private:
 
-    // TODO: use the Qt pimpl macros
     class Impl;
     friend class Impl;
-    QSharedPointer<Impl> impl_;
+    std::unique_ptr<Impl> impl_;
 };
 
-}
+} // namespace internal
+
+} // namespace storage

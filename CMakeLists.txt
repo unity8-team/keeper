@@ -56,6 +56,9 @@ add_definitions(
 find_package(Qt5Core REQUIRED)
 include_directories(SYSTEM ${Qt5Core_INCLUDE_DIRS})
 
+find_package(Qt5Concurrent REQUIRED)
+include_directories(SYSTEM ${Qt5Concurrent_INCLUDE_DIRS})
+
 find_package(Qt5DBus COMPONENTS Qt5DBusMacros REQUIRED)
 include_directories(SYSTEM ${Qt5DBus_INCLUDE_DIRS})
 
@@ -80,6 +83,9 @@ set(CXX_OPTIONS
   ${C_OPTIONS}
   -std=c++14
 )
+
+# Throw nearly everything into the compiler warnings.
+# This list isn't set in stone, feel free to disable items when sensible.
 
 set(CLANG_C_WARNINGS
   -Weverything

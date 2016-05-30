@@ -22,20 +22,31 @@
 #include <QDateTime>
 #include <QIODevice>
 #include <QSet>
+#include <QSharedPointer>
 #include <QString>
+#include <QVariant>
 #include <QVector>
 
 namespace storage
 {
 
+// NB: this is an experimental class whose API should and will change
 struct BackupInfo
 {
     QString uuid;
+
+    // TODO: for 1.0 we only need multimedia and everything else; is a packages list needed?
     QSet<QString> packages;
     QDateTime timestamp;
+
+    // TODO: this is an escape hatch for if we need to add more properties in the future.
+    // what are the use cases?
+    QVariantMap properties;
 };
 
-// NB: this is very much a work in progress
+// NB: this is an experimental class whose API should and will change
+// TODO: other than these three functions, is there any other functionality to wrap around the storage framework?
+// TODO: these three give Storage too much responsibility, eg startBackup means Storage needs to know how to launch helpers. We want a middleman to decouple them
 class Storage
 {
 public:
@@ -48,8 +59,11 @@ public:
     Storage& operator=(Storage const&) =delete;
 
     virtual QVector<BackupInfo> getBackups() =0;
-    virtual QIODevice* startRestore(const QString& uuid) =0;
-    virtual QIODevice* startBackup(const QString& uuid, const QSet<QString>& packages, const QDateTime& timestamp) =0;
+
+    virtual QSharedPointer<QIODevice> startRestore(const QString& uuid) =0;
+
+    // TODO: should Storage create the uuid itself?
+    virtual QSharedPointer<QIODevice> startBackup(const BackupInfo& info) =0;
 
 protected:
 

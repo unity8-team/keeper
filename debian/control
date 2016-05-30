@@ -3,6 +3,7 @@ Section: misc
 Priority: optional
 Maintainer: Unity API Team <unityapiteam@lists.canonical.com>
 Build-Depends: cmake,
+               cmake-extras,
                dbus,
                debhelper (>= 9), 
 # for building the code:
