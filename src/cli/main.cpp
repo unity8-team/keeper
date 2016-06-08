@@ -15,10 +15,13 @@
  *
  * Authors:
  *     Charles Kerr <charles.kerr@canonical.com>
+ *     Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
 
 #include <dbus-types.h>
 #include <util/logging.h>
+
+#include "keeper_interface.h"
 
 #include <QCoreApplication>
 #include <QDBusConnection>
@@ -45,8 +48,20 @@ main(int argc, char **argv)
 
     if (argc == 2 && QString("--print-address") == argv[1])
     {
-        qDebug() << QDBusConnection::systemBus().baseService();
+        qDebug() << QDBusConnection::sessionBus().baseService();
     }
+
+    QScopedPointer<DBusInterfaceKeeper> keeperInterface(new DBusInterfaceKeeper(DBusTypes::KEEPER_SERVICE,
+                                                            DBusTypes::KEEPER_SERVICE_PATH,
+                                                            QDBusConnection::sessionBus(), 0));
+
+    QDBusReply<void> userResp = keeperInterface->call(QLatin1String("start"));
+
+    if (!userResp.isValid())
+    {
+        qWarning() << "Error starting backup: " << userResp.error().message();
+    }
+
 
 #if 0
     Factory factory;

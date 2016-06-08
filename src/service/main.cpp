@@ -15,14 +15,19 @@
  *
  * Authors:
  *     Charles Kerr <charles.kerr@canonical.com>
+ *     Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
 
 #include <util/logging.h>
 #include <util/unix-signal-handler.h>
 #include <dbus-types.h>
 
+#include "keeper.h"
+#include "KeeperAdaptor.h"
+
 #include <QCoreApplication>
 #include <QDBusConnection>
+#include <QDBusConnectionInterface>
 
 #include <libintl.h>
 #include <cstdlib>
@@ -51,10 +56,34 @@ main(int argc, char **argv)
 
     if (argc == 2 && QString("--print-address") == argv[1])
     {
-        qDebug() << QDBusConnection::systemBus().baseService();
+        qDebug() << QDBusConnection::sessionBus().baseService();
     }
 
-qInfo() << "Hello world!";
+    // dbus service setup
+    QDBusConnection connection = QDBusConnection::sessionBus();
+
+    if (!connection.interface()->isServiceRegistered(DBusTypes::KEEPER_SERVICE))
+    {
+        auto service = new Keeper(&app);
+        new KeeperAdaptor(service);
+
+        if (!connection.registerService(DBusTypes::KEEPER_SERVICE))
+        {
+            qFatal("Could not register keeper dbus service: [%s]", connection.lastError().message().toStdString().c_str());
+            return 1;
+        }
+
+        if (!connection.registerObject(DBusTypes::KEEPER_SERVICE_PATH, service))
+        {
+            qFatal("Could not register keeper dbus service object: [%s]", connection.lastError().message().toStdString().c_str());
+            return 1;
+        }
+    }
+    else
+    {
+        qDebug() << "Service is already registered!.";
+    }
+
 
     return app.exec();
 }

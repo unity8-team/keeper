@@ -16,9 +16,9 @@ target_link_libraries(
   ${CLI_EXEC}
   storage
   util
+  qdbus-stubs
   Qt5::Core
   Qt5::DBus
-  Threads::Threads
 )
 
 install(
