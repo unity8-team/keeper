@@ -16,6 +16,26 @@
 #     Marcus Tomlinson <marcus.tomlinson@canonical.com>
 
 
+set(dbusinterface_keeper_xml "com.canonical.keeper.xml")
+set_source_files_properties(${dbusinterface_keeper_xml} PROPERTIES
+  CLASSNAME DBusInterfaceKeeper)
+
+qt5_add_dbus_interface(interface_files ${dbusinterface_keeper_xml} keeper_interface)
+
+qt5_add_dbus_adaptor(adaptor_files
+    com.canonical.keeper.xml
+    ${CMAKE_SOURCE_DIR}/src/service/keeper.h
+    Keeper
+    KeeperAdaptor)
+
+add_library(
+    qdbus-stubs
+    STATIC
+    ${interface_files}
+    ${adaptor_files}
+)
+
+
 #set_source_files_properties(
 #    "${DATA_DIR}/nm-device.xml"
 #    "${DATA_DIR}/nm-device-wifi.xml"

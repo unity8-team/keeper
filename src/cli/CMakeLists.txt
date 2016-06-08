@@ -16,9 +16,9 @@ add_executable(
 target_link_libraries(
   ${CLI_EXEC}
   util
+  qdbus-stubs
   Qt5::Core
   Qt5::DBus
-  Threads::Threads
 )
 
 install(

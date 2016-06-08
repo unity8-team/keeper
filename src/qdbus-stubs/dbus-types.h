@@ -40,6 +40,9 @@ namespace DBusTypes
         qDBusRegisterMetaType<QStringMap>();
     }
 
+    constexpr const char KEEPER_SERVICE[] = "com.canonical.keeper";
+
+    constexpr const char KEEPER_SERVICE_PATH[] = "/com/canonical/keeper";
 #if 0
     static constexpr char const* WPASUPPLICANT_DBUS_NAME = "fi.w1.wpa_supplicant1";
 

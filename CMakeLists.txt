@@ -65,6 +65,7 @@ pkg_check_modules(SERVICE_DEPS REQUIRED
     libarchive>=3.1.2
 )
 include_directories(SYSTEM ${SERVICE_DEPS_INCLUDE_DIRS})
+include_directories(${CMAKE_SOURCE_DIR}/include)
 
 
 ##

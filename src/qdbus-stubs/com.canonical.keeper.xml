@@ -1,0 +1,5 @@
+<node>
+  <interface name="com.canonical.keeper">
+    <method name="start"/>
+  </interface>
+</node>

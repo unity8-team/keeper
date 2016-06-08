@@ -5,6 +5,7 @@ include_directories("${CMAKE_BINARY_DIR}/src/qdbus-stubs")
 include_directories("${CMAKE_SOURCE_DIR}/src/qdbus-stubs")
 
 set(SERVICE_SOURCES
+  keeper.cpp
   main.cpp
 )
 
@@ -20,10 +21,11 @@ link_directories(
 target_link_libraries(
   ${SERVICE_EXEC}
   util
+  qdbus-stubs
+  backup-helper
   ${SERVICE_DEPS_LIBRARIES}
   Qt5::Core
   Qt5::DBus
-  Threads::Threads
 )
 
 install(
