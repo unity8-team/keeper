@@ -13,8 +13,10 @@
  * You should have received a copy of the GNU General Public License along
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Author: Xavi Garcia <xavi.garcia.mena@canonical.com>
+ * Authors:
+ *     Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
+
 #include "backup-helper-impl.h"
 
 #include <QTimer>

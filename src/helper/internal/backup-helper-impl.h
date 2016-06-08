@@ -13,8 +13,10 @@
  * You should have received a copy of the GNU General Public License along
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Author: Xavi Garcia <xavi.garcia.mena@canonical.com>
+ * Authors:
+ *     Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
+
 #pragma once
 
 #include <QObject>
@@ -43,10 +45,10 @@ class BackupHelperImpl : public QObject
 {
     Q_OBJECT
 public:
-    Q_DISABLE_COPY(BackupHelperImpl)
 
     BackupHelperImpl(QString const &appId, QObject * parent=nullptr);
     virtual ~BackupHelperImpl();
+    Q_DISABLE_COPY(BackupHelperImpl)
 
     void init();
 
@@ -70,4 +72,3 @@ private:
 };
 
 } // namespace internal
-

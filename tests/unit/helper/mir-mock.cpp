@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2016 Canonical, Ltd.
+ *
+ * This program is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 3, as published
+ * by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranties of
+ * MERCHANTABILITY, SATISFACTORY QUALITY, or FITNESS FOR A PARTICULAR
+ * PURPOSE.  See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authors:
+ *     Ted Gould <ted@canonical.com>
+ */
 
 #include "mir-mock.h"
 
@@ -14,53 +32,53 @@ static int trusted_fd = 1234;
 
 MirPromptSession *
 mir_connection_create_prompt_session_sync(MirConnection * connection, pid_t pid, void (*)(MirPromptSession *, MirPromptSessionState, void*data), void * context) {
-	last_trust_pid = pid;
+    last_trust_pid = pid;
 
-	if (valid_trust_connection) {
-		return (MirPromptSession *)valid_trust_session;
-	} else {
-		return nullptr;
-	}
+    if (valid_trust_connection) {
+        return (MirPromptSession *)valid_trust_session;
+    } else {
+        return nullptr;
+    }
 }
 
 void
 mir_prompt_session_release_sync (MirPromptSession * session)
 {
-	if (reinterpret_cast<char *>(session) != valid_trust_session) {
-		std::cerr << "Releasing a Mir Trusted Prompt that isn't valid" << std::endl;
-		exit(1);
-	}
+    if (reinterpret_cast<char *>(session) != valid_trust_session) {
+        std::cerr << "Releasing a Mir Trusted Prompt that isn't valid" << std::endl;
+        exit(1);
+    }
 }
 
 MirWaitHandle *
 mir_prompt_session_new_fds_for_prompt_providers (MirPromptSession * session, unsigned int numfds, mir_client_fd_callback cb, void * data) {
-	if (reinterpret_cast<char *>(session) != valid_trust_session) {
-		std::cerr << "Releasing a Mir Trusted Prompt that isn't valid" << std::endl;
-		exit(1);
-	}
+    if (reinterpret_cast<char *>(session) != valid_trust_session) {
+        std::cerr << "Releasing a Mir Trusted Prompt that isn't valid" << std::endl;
+        exit(1);
+    }
 
-	/* TODO: Put in another thread to be more mir like */
-	std::thread * thread = new std::thread([session, numfds, cb, data]() {
-		int fdlist[numfds];
+    /* TODO: Put in another thread to be more mir like */
+    std::thread * thread = new std::thread([session, numfds, cb, data]() {
+        int fdlist[numfds];
 
-		for (unsigned int i = 0; i < numfds; i++) 
-			fdlist[i] = trusted_fd;
+        for (unsigned int i = 0; i < numfds; i++)
+            fdlist[i] = trusted_fd;
 
-		cb(session, numfds, fdlist, data);
-	});
+        cb(session, numfds, fdlist, data);
+    });
 
-	return reinterpret_cast<MirWaitHandle *>(thread);
+    return reinterpret_cast<MirWaitHandle *>(thread);
 }
 
 void
 mir_wait_for (MirWaitHandle * wait)
 {
-	auto thread = reinterpret_cast<std::thread *>(wait);
+    auto thread = reinterpret_cast<std::thread *>(wait);
 
-	if (thread->joinable())
-		thread->join();
+    if (thread->joinable())
+        thread->join();
 
-	delete thread;
+    delete thread;
 }
 
 static const char * valid_connection_str = "Valid Mir Connection";
@@ -70,37 +88,37 @@ static bool valid_connection = true;
 void
 mir_mock_connect_return_valid (bool valid)
 {
-	valid_connection = valid;
+    valid_connection = valid;
 }
 
 std::pair<std::string, std::string>
 mir_mock_connect_last_connect (void)
 {
-	return last_connection;
+    return last_connection;
 }
 
 MirConnection *
 mir_connect_sync (char const * server, char const * appname)
 {
-	last_connection = std::pair<std::string, std::string>(server, appname);
+    last_connection = std::pair<std::string, std::string>(server, appname);
 
-	if (valid_connection) {
-		return (MirConnection *)(valid_connection_str);
-	} else {
-		return nullptr;
-	}
+    if (valid_connection) {
+        return (MirConnection *)(valid_connection_str);
+    } else {
+        return nullptr;
+    }
 }
 
 void
 mir_connection_release (MirConnection * con)
 {
-	if (reinterpret_cast<char *>(con) != valid_connection_str) {
-		std::cerr << "Releasing a Mir Connection that isn't valid" << std::endl;
-		exit(1);
-	}
+    if (reinterpret_cast<char *>(con) != valid_connection_str) {
+        std::cerr << "Releasing a Mir Connection that isn't valid" << std::endl;
+        exit(1);
+    }
 }
 
 void mir_mock_set_trusted_fd (int fd)
 {
-	trusted_fd = fd;
+    trusted_fd = fd;
 }

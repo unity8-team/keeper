@@ -44,4 +44,3 @@ Q_SIGNALS:
 private:
     QScopedPointer<internal::BackupHelperImpl> p_;
 };
-

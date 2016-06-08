@@ -38,4 +38,3 @@ private:
     QScopedPointer<BackupHelper> backup_helper_;
 
 };
-
