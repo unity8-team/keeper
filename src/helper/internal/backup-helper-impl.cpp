@@ -36,7 +36,7 @@ namespace
 constexpr char const HELPER_TYPE[] = "backup-helper";
 
 // TODO change this to something not fixed
-constexpr char const HELPER_BIN[] = "/custom/click/dekko.dekkoproject/0.6.20/localclient";
+constexpr char const HELPER_BIN[] = "/custom/click/dekko.dekkoproject/0.6.20/backup-helper";
 }
 
 static void helper_observer_cb(const gchar* appid, const gchar* /*instance*/, const gchar* /*type*/, gpointer user_data)
@@ -101,8 +101,7 @@ void BackupHelperImpl::start(int socket)
     // TODO in here we should search for the helper bin and pass it
     // instead of setting a fixed one.
     std::vector<ubuntu::app_launch::Helper::URL> urls = {
-        ubuntu::app_launch::Helper::URL::from_raw(HELPER_BIN),
-        ubuntu::app_launch::Helper::URL::from_raw("1999")};
+        ubuntu::app_launch::Helper::URL::from_raw(HELPER_BIN)};
 
     helper->launch(urls);
 }

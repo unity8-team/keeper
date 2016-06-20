@@ -16,8 +16,10 @@
  * Authors:
  *     Ted Gould <ted.gould@canonical.com>
  *     Xavi Garcia <xavi.garcia.mena@gmail.com>
- *     Charles Kerr <charles.kerr@canonical.com>
  */
+
+#include <future>
+#include <thread>
 
 #include <QCoreApplication>
 #include <QSignalSpy>
@@ -259,9 +261,10 @@ protected:
 
     GVariant* find_env(GVariant* env_array, const gchar* var)
     {
+        unsigned int i;
         GVariant* retval = nullptr;
 
-        for (int i=0, n=g_variant_n_children(env_array); i<n; i++)
+        for (i = 0; i < g_variant_n_children(env_array); i++)
         {
             GVariant* child = g_variant_get_child_value(env_array, i);
             const gchar* envvar = g_variant_get_string(child, nullptr);
@@ -293,32 +296,25 @@ protected:
         return retval;
     }
 
-    std::string get_env(GVariant* env_array, const gchar* key)
+    bool check_env(GVariant* env_array, const gchar* var, const gchar* value)
     {
-        std::string value;
-
-        GVariant* variant = find_env(env_array, key);
-        if (variant != nullptr)
+        bool found = false;
+        GVariant* val = find_env(env_array, var);
+        if (val == nullptr)
         {
-            const char* cstr = g_variant_get_string(variant, nullptr);
-            if (cstr != nullptr)
-            {
-                cstr = strchr(cstr, '=');
-                if (cstr != nullptr)
-                    value = cstr + 1;
-            }
-
-            g_clear_pointer(&variant, g_variant_unref);
+            return false;
         }
 
-        return value;
-    }
+        const gchar* envvar = g_variant_get_string(val, nullptr);
 
-    bool have_env(GVariant* env_array, const gchar* key)
-    {
-        GVariant* variant = find_env(env_array, key);
-        bool found = variant != nullptr;
-        g_clear_pointer(&variant, g_variant_unref);
+        gchar* combined = g_strdup_printf("%s=%s", var, value);
+        if (g_strcmp0(envvar, combined) == 0)
+        {
+            found = true;
+        }
+
+        g_variant_unref(val);
+
         return found;
     }
 
@@ -348,9 +344,6 @@ protected:
     }
 };
 
-#define EXPECT_ENV(expected, envvars, key) EXPECT_EQ(expected, get_env(envvars, key)) << "for key " << key
-#define ASSERT_ENV(expected, envvars, key) ASSERT_EQ(expected, get_env(envvars, key)) << "for key " << key
-
 TEST_F(LibUAL, StartHelper)
 {
     DbusTestDbusMockObject* obj =
@@ -368,10 +361,11 @@ TEST_F(LibUAL, StartHelper)
     EXPECT_EQ(1, len);
 
     auto env = g_variant_get_child_value(calls->params, 0);
-    EXPECT_ENV("com.test.multiple_first_1.2.3", env, "APP_ID");
-    EXPECT_ENV("'/tmp/test2.py' '1999'", env, "APP_URIS");
-    EXPECT_ENV("backup-helper", env, "HELPER_TYPE");
-    EXPECT_TRUE(have_env(env, "INSTANCE_ID"));
+    EXPECT_TRUE(check_env(env, "APP_ID", "com.test.multiple_first_1.2.3"));
+    EXPECT_TRUE(
+        check_env(env, "APP_URIS", "'/custom/click/dekko.dekkoproject/0.6.20/backup-helper'"));
+    EXPECT_TRUE(check_env(env, "HELPER_TYPE", "backup-helper"));
+    EXPECT_FALSE(check_env(env, "INSTANCE_ID", NULL));
     g_variant_unref(env);
 
     DbusTestDbusMockObject* objUpstart =
@@ -424,9 +418,9 @@ TEST_F(LibUAL, StopHelper)
     g_variant_unref(block);
 
     auto env = g_variant_get_child_value(calls->params, 0);
-    EXPECT_ENV("com.bar_foo_8432.13.1", env, "APP_ID");
-    EXPECT_ENV("backup-helper", env, "HELPER_TYPE");
-    EXPECT_ENV("24034582324132", env, "INSTANCE_ID");
+    EXPECT_TRUE(check_env(env, "APP_ID", "com.bar_foo_8432.13.1"));
+    EXPECT_TRUE(check_env(env, "HELPER_TYPE", "backup-helper"));
+    EXPECT_TRUE(check_env(env, "INSTANCE_ID", "24034582324132"));
     g_variant_unref(env);
 
     ASSERT_TRUE(dbus_test_dbus_mock_object_clear_method_calls(mock, obj, NULL));

@@ -8,8 +8,10 @@ Build-Depends: cmake,
                debhelper (>= 9), 
 # for building the code:
                libarchive-dev (>= 3.1.2),
+               libgmenuharness-dev,
                libproperties-cpp-dev,
                libubuntu-app-launch2-dev (>= 0.9),
+               libstorage-framework-dev,
                qt5-default,
                qtbase5-dev,
                qtbase5-dev-tools,
@@ -21,6 +23,7 @@ Build-Depends: cmake,
                libgtest-dev,
                google-mock (>= 1.6.0+svn437),
                python3-dbusmock (>= 0.16.3),
+               libdbustest1-dev,
                libqtdbusmock1-dev (>= 0.4),
                libqtdbustest1-dev,
 Standards-Version: 3.9.5
@@ -38,3 +41,11 @@ Depends: ${shlibs:Depends},
          systemd | systemd-shim,
 Description: Backup Tool
  A backup/restore utility for Ubuntu
+
+Package: keeper-cli
+Architecture: any
+Depends: ${shlibs:Depends},
+         ${misc:Depends},
+         systemd | systemd-shim,
+Description: Backup Tool
+ A backup/restore utility for Ubuntu (client application)

@@ -26,7 +26,7 @@ namespace storage
 
 Storage::Storage()
 {
-    qInfo() << "hello world";
+    qDebug() << "hello world";
 }
 
 Storage::~Storage()

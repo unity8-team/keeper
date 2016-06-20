@@ -1,5 +1,6 @@
 set(SERVICE_EXEC "keeper-service")
 
+include_directories("${CMAKE_SOURCE_DIR}/src")
 include_directories("${CMAKE_BINARY_DIR}/src/qdbus-stubs")
 include_directories("${CMAKE_SOURCE_DIR}/src/qdbus-stubs")
 
@@ -22,6 +23,7 @@ target_link_libraries(
   storage
   util
   qdbus-stubs
+  storage-framework
   backup-helper
   ${SERVICE_DEPS_LIBRARIES}
   Qt5::Core

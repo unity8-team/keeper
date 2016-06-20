@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Set the APP_EXEC environment variable
+initctl set-env "APP_EXEC=$APP_URIS"
+# remove the ' from the APP_URIS variable
+CMD=`echo "${APP_URIS//\'}"`
+
+# Launch the command
+eval $CMD
+

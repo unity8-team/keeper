@@ -6,7 +6,7 @@ if(NOT DEFINED CMAKE_INSTALL_PREFIX)
 endif()
 
 project(keeper C CXX)
-cmake_minimum_required(VERSION 3.5.1)
+cmake_minimum_required(VERSION 3.0.2)
 
 ##
 ##  Build Type
@@ -61,6 +61,9 @@ include_directories(SYSTEM ${Qt5Concurrent_INCLUDE_DIRS})
 
 find_package(Qt5DBus COMPONENTS Qt5DBusMacros REQUIRED)
 include_directories(SYSTEM ${Qt5DBus_INCLUDE_DIRS})
+
+find_package(Qt5Network REQUIRED)
+include_directories(SYSTEM ${Qt5Network_INCLUDE_DIRS})
 
 find_package(PkgConfig REQUIRED)
 
@@ -143,14 +146,16 @@ set(GNU_CXX_WARNINGS
   -Wsuggest-override
 )
 
-add_compile_options(
-  "$<$<COMPILE_LANGUAGE:C>:${C_OPTIONS}>"
-  "$<$<COMPILE_LANGUAGE:CXX>:${CXX_OPTIONS}>"
-  "$<$<AND:$<COMPILE_LANGUAGE:C>,$<CXX_COMPILER_ID:GNU>>:${GNU_C_WARNINGS}>"
-  "$<$<AND:$<COMPILE_LANGUAGE:C>,$<CXX_COMPILER_ID:Clang>>:${CLANG_C_WARNINGS}>"
-  "$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:GNU>>:${GNU_CXX_WARNINGS}>"
-  "$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang>>:${CLANG_CXX_WARNINGS}>"
-)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wextra -fPIC")
+
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag(-std=c++11 HAS_C11)
+# Precise's GCC is too old to have -std=c++11
+if(HAS_C11)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+else()
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Dfinal=")
+endif()
 
 # If warnings are errors, don't error on deprecated declarations.
 if (${Werror})

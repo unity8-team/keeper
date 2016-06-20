@@ -18,10 +18,12 @@
 #pragma once
 
 #include <QDBusContext>
+#include <QDBusUnixFileDescriptor>
 #include <QObject>
 
 class DBusPropertiesNotifier;
 class BackupHelper;
+class StorageFrameworkClient;
 
 class Keeper : public QObject, protected QDBusContext
 {
@@ -33,8 +35,18 @@ public:
 
 public Q_SLOTS:
     void start();
+    QDBusUnixFileDescriptor GetBackupSocketDescriptor();
+
+    // FOR TESTING PURPOSES ONLY
+    // we should finish when the helper finishes
+    void finish();
+
+    void socketReady(int sd);
+    void helperStarted();
+    void helperFinished();
+    void socketClosed();
 
 private:
     QScopedPointer<BackupHelper> backup_helper_;
-
+    QScopedPointer<StorageFrameworkClient> storage_;
 };
