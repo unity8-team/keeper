@@ -14,3 +14,9 @@ target_link_libraries(
   Qt5::DBus
   Qt5::Network
 )
+
+install(
+  TARGETS
+    simple-helper
+  RUNTIME DESTINATION ${CMAKE_INSTALL_FULL_PKGLIBEXECDIR}
+)
