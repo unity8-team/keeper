@@ -107,6 +107,14 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 
+  if(NOT ${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "5.0.0")
+    LIST(APPEND CXX_OPTIONS -std=c++14)
+  elseif(NOT ${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "4.8.0")
+    LIST(APPEND CXX_OPTIONS -std=c++11)
+  else()
+    LIST(APPEND CXX_OPTIONS -std=c++0x -Dfinal= -Doverride=)
+  endif()
+
   LIST(APPEND C_WARNINGS
     -Wall
     -pedantic
@@ -126,7 +134,6 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     -Woverlength-strings
     -Wpacked
     -Wredundant-decls
-    -Wshadow
     -Wsuggest-attribute=const
     -Wsuggest-attribute=format
     -Wsuggest-attribute=noreturn
@@ -147,12 +154,13 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     -Wstrict-null-sentinel
   )
 
-  if(NOT ${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "5.0.0")
-
-    LIST(APPEND CXX_OPTIONS
-      -std=c++14
+  if(NOT ${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "4.8.0")
+    LIST(APPEND C_WARNINGS
+      -Wshadow
     )
+  endif()
 
+  if(NOT ${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "5.0.0")
     LIST(APPEND CXX_WARNINGS
       -Wsized-deallocation
       -Wsuggest-attribute=pure
@@ -160,21 +168,6 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
       -Wsuggest-final-types
       -Wsuggest-override
     )
-
-  elseif(NOT ${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "4.7.0")
-
-    LIST(APPEND CXX_OPTIONS
-      -std=c++11
-    )
-
-  else()
-
-    LIST(APPEND CXX_OPTIONS
-      -std=c++0x
-      -Dfinal=
-      -Doverride=
-    )
-
   endif()
 
 endif()
