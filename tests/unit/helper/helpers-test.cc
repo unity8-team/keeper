@@ -372,7 +372,7 @@ TEST_F(LibUAL, StartHelper)
 
     auto env = g_variant_get_child_value(calls->params, 0);
     EXPECT_ENV("com.test.multiple_first_1.2.3", env, "APP_ID");
-    EXPECT_ENV("'/custom/click/dekko.dekkoproject/0.6.20/localclient' '1999'", env, "APP_URIS");
+    EXPECT_ENV("'/custom/click/dekko.dekkoproject/0.6.20/backup-helper'", env, "APP_URIS");
     EXPECT_ENV("backup-helper", env, "HELPER_TYPE");
     EXPECT_TRUE(have_env(env, "INSTANCE_ID"));
     g_variant_unref(env);
