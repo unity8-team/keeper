@@ -154,13 +154,13 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     -Wstrict-null-sentinel
   )
 
-  if(NOT ${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "4.8.0")
+  if(NOT ${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "5.0.0")
+
+    # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=57709
     LIST(APPEND C_WARNINGS
       -Wshadow
     )
-  endif()
 
-  if(NOT ${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "5.0.0")
     LIST(APPEND CXX_WARNINGS
       -Wsized-deallocation
       -Wsuggest-attribute=pure
@@ -168,6 +168,7 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
       -Wsuggest-final-types
       -Wsuggest-override
     )
+
   endif()
 
 endif()
