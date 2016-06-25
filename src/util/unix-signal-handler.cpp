@@ -27,8 +27,10 @@
 namespace util
 {
 
+//cppcheck-suppress arrayIndexOutOfBounds http://trac.cppcheck.net/ticket/6146
 int UnixSignalHandler::sigintFd[2];
 
+//cppcheck-suppress arrayIndexOutOfBounds http://trac.cppcheck.net/ticket/6146
 int UnixSignalHandler::sigtermFd[2];
 
 UnixSignalHandler::UnixSignalHandler(const std::function<void()>& f, QObject *parent):
