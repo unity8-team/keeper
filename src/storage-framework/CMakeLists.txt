@@ -1,8 +1,4 @@
 
-include(FindPkgConfig)
-find_package(Qt5Network REQUIRED)
-include_directories(SYSTEM ${Qt5Network_INCLUDE_DIRS})
-
 add_library(
   storage-framework
   STATIC
