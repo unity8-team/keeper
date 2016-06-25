@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2016 Canonical, Ltd.
+ *
+ * This program is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 3, as published
+ * by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranties of
+ * MERCHANTABILITY, SATISFACTORY QUALITY, or FITNESS FOR A PARTICULAR
+ * PURPOSE.  See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Authors:
+ *     Ted Gould <ted@canonical.com>
+ */
 
 #include "mir-mock.h"
 
@@ -24,7 +42,7 @@ mir_connection_create_prompt_session_sync(MirConnection * connection, pid_t pid,
 }
 
 void
-mir_prompt_session_release_sync(MirPromptSession * session)
+mir_prompt_session_release_sync (MirPromptSession * session)
 {
     if (reinterpret_cast<char *>(session) != valid_trust_session) {
         std::cerr << "Releasing a Mir Trusted Prompt that isn't valid" << std::endl;
@@ -33,7 +51,7 @@ mir_prompt_session_release_sync(MirPromptSession * session)
 }
 
 MirWaitHandle *
-mir_prompt_session_new_fds_for_prompt_providers(MirPromptSession * session, unsigned int numfds, mir_client_fd_callback cb, void * data) {
+mir_prompt_session_new_fds_for_prompt_providers (MirPromptSession * session, unsigned int numfds, mir_client_fd_callback cb, void * data) {
     if (reinterpret_cast<char *>(session) != valid_trust_session) {
         std::cerr << "Releasing a Mir Trusted Prompt that isn't valid" << std::endl;
         exit(1);
