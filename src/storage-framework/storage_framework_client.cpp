@@ -35,6 +35,9 @@ using namespace unity::storage::qt::client;
 StorageFrameworkClient::StorageFrameworkClient(QObject *parent)
     : QObject(parent)
     , runtime_(Runtime::create())
+    , close_uploader_watcher_(parent)
+    , uploader_ready_watcher_(parent)
+    , uploader_()
 {
     QObject::connect(&uploader_ready_watcher_,&QFutureWatcher<std::shared_ptr<Uploader>>::finished, this, &StorageFrameworkClient::uploaderReady);
     QObject::connect(&close_uploader_watcher_,&QFutureWatcher<unity::storage::TransferState>::finished, this, &StorageFrameworkClient::uploaderClosed);
@@ -68,7 +71,7 @@ int StorageFrameworkClient::getUploaderSocketDescriptor()
         return -1;
     }
     auto socket = uploader_->socket();
-    return socket->socketDescriptor();
+    return int(socket->socketDescriptor());
 }
 
 void StorageFrameworkClient::closeUploader()
@@ -84,7 +87,7 @@ void StorageFrameworkClient::uploaderReady()
     uploader_ = uploader_ready_watcher_.result();
 
     auto socket = uploader_->socket();
-    int sd = socket->socketDescriptor();
+    auto sd = int(socket->socketDescriptor());
     Q_EMIT (socketReady(sd));
 
 }
