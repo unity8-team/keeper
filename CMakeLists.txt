@@ -85,77 +85,106 @@ set(C_OPTIONS
 )
 set(CXX_OPTIONS
   ${C_OPTIONS}
-  -std=c++14
 )
 
 # Throw nearly everything into the compiler warnings.
 # This list isn't set in stone, feel free to disable items when sensible.
 
-set(CLANG_C_WARNINGS
-  -Weverything
-  -Wno-padded
-)
-set(CLANG_CXX_WARNINGS
-  ${CLANG_C_WARNINGS}
-  -Wno-c++98-compat
-)
+set(C_WARNINGS)
+set(CXX_WARNINGS)
 
-set(GNU_C_WARNINGS
-  -Wall
-  -pedantic
-  -Wextra
-  -Wcast-align
-  -Wcast-qual
-  -Wconditionally-supported
-  -Wconversion
-  -Wdate-time
-  -Wdouble-promotion
-  -Wfloat-equal
-  -Wformat=2
-  -Winline
-  -Wlogical-op
-  -Wmissing-declarations
-  -Wmissing-include-dirs
-  -Woverlength-strings
-  -Wpacked
-  -Wredundant-decls
-  -Wshadow
-  -Wsuggest-attribute=const
-  -Wsuggest-attribute=format
-  -Wsuggest-attribute=noreturn
-  -Wswitch
-  -Wtrampolines
-  -Wundef
-  -Wunused
-  -Wwrite-strings
-)
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 
-set(GNU_CXX_WARNINGS
-  ${GNU_C_WARNINGS}
-  -Wctor-dtor-privacy
-  -Weffc++
-  -Wnon-virtual-dtor
-  -Wold-style-cast
-  -Woverloaded-virtual
-  -Wsign-promo
-  -Wsized-deallocation
-  -Wstrict-null-sentinel
-  -Wsuggest-attribute=pure
-  -Wsuggest-final-methods
-  -Wsuggest-final-types
-  -Wsuggest-override
-)
+  LIST(APPEND CXX_OPTIONS -std=c++14)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wextra -fPIC")
+  LIST(APPEND C_WARNINGS
+    -Weverything
+    -Wno-padded
+  )
+  LIST(APPEND CXX_WARNINGS
+    -Wno-c++98-compat
+  )
 
-include(CheckCXXCompilerFlag)
-check_cxx_compiler_flag(-std=c++11 HAS_C11)
-# Precise's GCC is too old to have -std=c++11
-if(HAS_C11)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-else()
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Dfinal=")
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+
+  LIST(APPEND C_WARNINGS
+    -Wall
+    -pedantic
+    -Wextra
+    -Wcast-align
+    -Wcast-qual
+    -Wconditionally-supported
+    -Wconversion
+    -Wdate-time
+    -Wdouble-promotion
+    -Wfloat-equal
+    -Wformat=2
+    -Winline
+    -Wlogical-op
+    -Wmissing-declarations
+    -Wmissing-include-dirs
+    -Woverlength-strings
+    -Wpacked
+    -Wredundant-decls
+    -Wshadow
+    -Wsuggest-attribute=const
+    -Wsuggest-attribute=format
+    -Wsuggest-attribute=noreturn
+    -Wswitch
+    -Wtrampolines
+    -Wundef
+    -Wunused
+    -Wwrite-strings
+  )
+
+  LIST(APPEND CXX_WARNINGS
+    -Wctor-dtor-privacy
+    -Weffc++
+    -Wnon-virtual-dtor
+    -Wold-style-cast
+    -Woverloaded-virtual
+    -Wsign-promo
+    -Wstrict-null-sentinel
+  )
+
+  if(NOT ${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "5.0.0")
+
+    LIST(APPEND CXX_OPTIONS
+      -std=c++14
+    )
+
+    LIST(APPEND CXX_WARNINGS
+      -Wsized-deallocation
+      -Wsuggest-attribute=pure
+      -Wsuggest-final-methods
+      -Wsuggest-final-types
+      -Wsuggest-override
+    )
+
+  elseif(NOT ${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "4.7.0")
+
+    LIST(APPEND CXX_OPTIONS
+      -std=c++11
+    )
+
+  else()
+
+    LIST(APPEND CXX_OPTIONS
+      -std=c++0x
+      -Dfinal=
+      -Doverride=
+    )
+
+  endif()
+
 endif()
+
+add_compile_options(
+  ${C_OPTIONS}
+  ${C_WARNINGS}
+  ${CXX_OPTIONS}
+  ${CXX_WARNINGS}
+)
 
 # If warnings are errors, don't error on deprecated declarations.
 if (${Werror})
