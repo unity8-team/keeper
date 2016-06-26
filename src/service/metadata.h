@@ -23,6 +23,9 @@
 #include <QMap>
 #include <QVariant>
 
+/**
+ * Information about a backup
+ */
 class Metadata
 {
 public:

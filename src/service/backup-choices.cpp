@@ -22,8 +22,6 @@
 #include <QDebug>
 #include <QStandardPaths>
 #include <QString>
-#include <QStringList>
-#include <QVariantMap>
 
 #include <uuid/uuid.h>
 
@@ -63,7 +61,7 @@ BackupChoices::get_backups()
             uuid_generate(keyuu);
             char keybuf[37];
             uuid_unparse(keyuu, keybuf);
-            const QString keystr = QString::fromUtf8(keybuf);
+            const auto keystr = QString::fromUtf8(keybuf);
 
             Metadata m(keystr, name);
             m.set_property(path_str, locations.front());

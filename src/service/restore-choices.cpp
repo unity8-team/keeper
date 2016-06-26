@@ -17,17 +17,22 @@
  *   Charles Kerr <charles.kerr@canoincal.com>
  */
 
-#pragma once
+#include "service/restore-choices.h"
 
-#include "service/metadata-provider.h"
+#include <QDebug>
 
-/**
- * A MetadataProvider that lists the backups that can be created
- */
-class BackupChoices: public MetadataProvider
+RestoreChoices::RestoreChoices() =default;
+
+RestoreChoices::~RestoreChoices() =default;
+
+QVector<Metadata>
+RestoreChoices::get_backups()
 {
-public:
-    BackupChoices();
-    virtual ~BackupChoices();
-    QVector<Metadata> get_backups() override;
-};
+    QVector<Metadata> ret;
+
+    // FIXME: need to walk through the 'Ubuntu Backups' directory's children, read the manifests, and use the info here
+
+    // FIXME: async?
+
+    return ret;
+}

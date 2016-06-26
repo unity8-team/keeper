@@ -10,6 +10,7 @@ set(SERVICE_SOURCES
   keeper-user.cpp
   main.cpp
   metadata.cpp
+  restore-choices.cpp
 )
 
 add_executable(
