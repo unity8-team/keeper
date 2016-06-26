@@ -15,6 +15,7 @@
  *
  * Author: Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
+
 #pragma once
 
 #include <QDBusContext>
@@ -22,10 +23,12 @@
 #include <QObject>
 #include <QPair>
 #include <QScopedPointer>
+#include <QSharedPointer>
 #include <QString>
 #include <QVector>
 
 class Metadata;
+class MetadataProvider;
 
 class KeeperPrivate;
 class Keeper : public QObject, protected QDBusContext
@@ -35,7 +38,11 @@ class Keeper : public QObject, protected QDBusContext
 
 public:
     Q_DISABLE_COPY(Keeper)
-    Keeper(QObject* parent = nullptr);
+
+    Keeper(const QSharedPointer<MetadataProvider>& possible,
+           const QSharedPointer<MetadataProvider>& available,
+           QObject* parent = nullptr);
+
     virtual ~Keeper();
 
     QVector<Metadata> GetPossibleBackups() const;

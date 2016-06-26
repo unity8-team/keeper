@@ -18,13 +18,14 @@
  *     Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
 
-#include <util/logging.h>
-#include <util/unix-signal-handler.h>
-#include <dbus-types.h>
+#include "dbus-types.h"
+#include "service/possible-metadata-provider.h"
+#include "service/keeper.h"
+#include "service/keeper-user.h"
+#include "util/logging.h"
+#include "util/unix-signal-handler.h"
 
-#include "keeper.h"
 #include "KeeperAdaptor.h"
-#include "keeper-user.h"
 #include "KeeperUserAdaptor.h"
 
 #include <QCoreApplication>
@@ -77,8 +78,9 @@ main(int argc, char **argv)
             return 1;
         }
 
-        // register the service object
-        auto service = new Keeper(&app);
+        QSharedPointer<MetadataProvider> possible (new PossibleMetadataProvider());
+        QSharedPointer<MetadataProvider> available (new PossibleMetadataProvider()); // FIXME
+        auto service = new Keeper(possible, available, &app);
         new KeeperAdaptor(service);
         if (!connection.registerObject(DBusTypes::KEEPER_SERVICE_PATH, service))
         {

@@ -33,6 +33,7 @@
 #include <storage-framework/storage_framework_client.h>
 
 #include "service/metadata.h"
+#include "service/metadata-provider.h"
 #include "service/keeper.h"
 
 
@@ -47,68 +48,33 @@ class KeeperPrivate
     Q_DECLARE_PUBLIC(Keeper)
 
     Keeper * const q_ptr;
-    QVector<Metadata> possible_backups_;
+    QSharedPointer<MetadataProvider> possible_;
+    QSharedPointer<MetadataProvider> available_;
     QScopedPointer<BackupHelper> backup_helper_;
     QScopedPointer<StorageFrameworkClient> storage_;
 
-    explicit KeeperPrivate(Keeper* keeper)
+    KeeperPrivate(Keeper* keeper,
+                  const QSharedPointer<MetadataProvider>& possible,
+                  const QSharedPointer<MetadataProvider>& available)
         : q_ptr(keeper)
-        , possible_backups_()
+        , possible_(possible)
+        , available_(available)
         , backup_helper_(new BackupHelper(DEKKO_APP_ID))
         , storage_(new StorageFrameworkClient())
     {
-        init_possible_backups();
-
         QObject::connect(storage_.data(), &StorageFrameworkClient::socketReady, q_ptr, &Keeper::socketReady);
         QObject::connect(storage_.data(), &StorageFrameworkClient::socketClosed, q_ptr, &Keeper::socketClosed);
         QObject::connect(backup_helper_.data(), &BackupHelper::started, q_ptr, &Keeper::helperStarted);
         QObject::connect(backup_helper_.data(), &BackupHelper::finished, q_ptr, &Keeper::helperFinished);
     }
-
-    void init_possible_backups()
-    {
-        // FIXME: add the click packages here
-
-        // XDG User Directories
-
-        const QStandardPaths::StandardLocation standard_locations[] = {
-            QStandardPaths::DocumentsLocation,
-            QStandardPaths::MoviesLocation,
-            QStandardPaths::PicturesLocation,
-            QStandardPaths::MusicLocation
-        };
-
-        const auto display_name_str = QString::fromUtf8("display-name");
-        const auto path_str = QString::fromUtf8("path");
-
-        for (const auto& sl : standard_locations)
-        {
-            const auto name = QStandardPaths::displayName(sl);
-            const auto locations = QStandardPaths::standardLocations(sl);
-            if (locations.empty())
-            {
-                qWarning() << "unable to find path for"  << name;
-            }
-            else
-            {
-                uuid_t keyuu;
-                uuid_generate(keyuu);
-                char keybuf[37];
-                uuid_unparse(keyuu, keybuf);
-                const QString keystr = QString::fromUtf8(keybuf);
-
-                Metadata m(keystr, name);
-                m.set_property(path_str, locations.front());
-                possible_backups_.push_back(m);
-            }
-        }
-    }
 };
 
 
-Keeper::Keeper(QObject* parent)
+Keeper::Keeper(const QSharedPointer<MetadataProvider>& possible,
+               const QSharedPointer<MetadataProvider>& available,
+               QObject* parent)
     : QObject(parent)
-    , d_ptr(new KeeperPrivate(this))
+    , d_ptr(new KeeperPrivate(this, possible, available))
 {
 }
 
@@ -178,5 +144,5 @@ Keeper::GetPossibleBackups() const
 {
     Q_D(const Keeper);
 
-    return d->possible_backups_;
+    return d->possible_->get_backups();
 }

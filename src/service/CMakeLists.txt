@@ -9,6 +9,7 @@ set(SERVICE_SOURCES
   keeper-user.cpp
   main.cpp
   metadata.cpp
+  possible-metadata-provider.cpp
 )
 
 add_executable(
