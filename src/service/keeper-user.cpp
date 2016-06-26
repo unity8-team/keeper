@@ -53,6 +53,8 @@ KeeperUser::StartBackup (const QStringList& keys)
 void
 KeeperUser::Stop()
 {
+    // FIXME: writeme
+
     qInfo() << "hello world";
 }
 
@@ -76,6 +78,8 @@ KeeperUser::StartRestore (const QStringList& keys)
 QVariantDictMap
 KeeperUser::getState() const
 {
+    // FIXME: writeme (the code below is junk 'hello world' data for testing in d-feet)
+
     QVariantDictMap ret;
     for (const auto& item : keeper_.GetBackupChoices())
         ret[item.key()];
