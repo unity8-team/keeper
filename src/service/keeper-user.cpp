@@ -21,8 +21,9 @@
 #include <QDBusMessage>
 #include <QDBusConnection>
 
-#include "keeper.h"
-#include "keeper-user.h"
+#include "service/metadata.h"
+#include "service/keeper.h"
+#include "service/keeper-user.h"
 
 KeeperUser::KeeperUser(Keeper* keeper)
   : QObject(keeper)
@@ -37,9 +38,8 @@ KeeperUser::GetPossibleBackups()
 {
     QVariantMap ret;
 
-    const auto pairs = keeper_.GetPossibleBackups();
-    for (const auto& pair : pairs)
-        ret[pair.first] = pair.second;
+    for (const auto& item : keeper_.GetPossibleBackups())
+        ret[item.key()] = item.display_name();
 
     return ret;
 }
@@ -88,11 +88,8 @@ KeeperUser::getState() const
     QVariantDictMap ret;
 
     qInfo() << "hello world";
-    const auto pairs = keeper_.GetPossibleBackups();
-    for (const auto& pair : pairs)
-    {
-        ret[pair.first];
-    }
+    for (const auto& item : keeper_.GetPossibleBackups())
+        ret[item.key()];
 
     return ret;
 }

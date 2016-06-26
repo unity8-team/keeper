@@ -25,6 +25,8 @@
 #include <QString>
 #include <QVector>
 
+class Metadata;
+
 class KeeperPrivate;
 class Keeper : public QObject, protected QDBusContext
 {
@@ -36,7 +38,7 @@ public:
     Keeper(QObject* parent = nullptr);
     virtual ~Keeper();
 
-    QVector<QPair<QString,QString>> GetPossibleBackups() const;
+    QVector<Metadata> GetPossibleBackups() const;
 
 public Q_SLOTS:
 

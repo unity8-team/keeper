@@ -8,6 +8,7 @@ set(SERVICE_SOURCES
   keeper.cpp
   keeper-user.cpp
   main.cpp
+  metadata.cpp
 )
 
 add_executable(

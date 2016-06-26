@@ -31,7 +31,10 @@
 
 #include <helper/backup-helper.h>
 #include <storage-framework/storage_framework_client.h>
-#include "keeper.h"
+
+#include "service/metadata.h"
+#include "service/keeper.h"
+
 
 namespace
 {
@@ -44,7 +47,7 @@ class KeeperPrivate
     Q_DECLARE_PUBLIC(Keeper)
 
     Keeper * const q_ptr;
-    std::map<QString,QVariantMap> possible_backups_;
+    QVector<Metadata> possible_backups_;
     QScopedPointer<BackupHelper> backup_helper_;
     QScopedPointer<StorageFrameworkClient> storage_;
 
@@ -94,9 +97,9 @@ class KeeperPrivate
                 uuid_unparse(keyuu, keybuf);
                 const QString keystr = QString::fromUtf8(keybuf);
 
-                auto& pb = possible_backups_[keystr];
-                pb[display_name_str] = name;
-                pb[path_str] = locations.front();
+                Metadata m(keystr, name);
+                m.set_property(path_str, locations.front());
+                possible_backups_.push_back(m);
             }
         }
     }
@@ -170,23 +173,10 @@ void Keeper::socketClosed()
     qDebug() << "The storage framework socket was closed";
 }
 
-QVector<QPair<QString,QString>>
+QVector<Metadata>
 Keeper::GetPossibleBackups() const
 {
     Q_D(const Keeper);
 
-    QVector<QPair<QString,QString>> ret;
-
-    const auto display_name_str = QString::fromUtf8("display-name");
-
-    for(const auto& it : d->possible_backups_)
-    {
-        const auto& key = it.first;
-
-        const auto nameit = it.second.find(display_name_str);
-        if (nameit != it.second.end())
-            ret.push_back(qMakePair(key, nameit.value().toString()));
-    }
-
-    return ret;
+    return d->possible_backups_;
 }
