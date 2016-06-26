@@ -21,7 +21,6 @@
 #include <QDBusContext>
 #include <QDBusUnixFileDescriptor>
 #include <QObject>
-#include <QPair>
 #include <QScopedPointer>
 #include <QSharedPointer>
 #include <QString>

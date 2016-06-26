@@ -17,13 +17,13 @@
  *   Charles Kerr <charles.kerr@canonical.com>
  */
 
-#include <QDebug>
-#include <QDBusMessage>
-#include <QDBusConnection>
-
 #include "service/metadata.h"
 #include "service/keeper.h"
 #include "service/keeper-user.h"
+
+#include <QDebug>
+#include <QDBusMessage>
+#include <QDBusConnection>
 
 KeeperUser::KeeperUser(Keeper* keeper)
   : QObject(keeper)

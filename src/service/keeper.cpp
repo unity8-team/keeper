@@ -18,6 +18,12 @@
  *     Charles Kerr <charles.kerr@canonical.com>
  */
 
+#include "helper/backup-helper.h"
+#include "service/metadata.h"
+#include "service/metadata-provider.h"
+#include "service/keeper.h"
+#include "storage-framework/storage_framework_client.h"
+
 #include <QDebug>
 #include <QDBusMessage>
 #include <QDBusConnection>
@@ -26,16 +32,6 @@
 #include <QVariantMap>
 
 #include <uuid/uuid.h>
-
-#include <map>
-
-#include <helper/backup-helper.h>
-#include <storage-framework/storage_framework_client.h>
-
-#include "service/metadata.h"
-#include "service/metadata-provider.h"
-#include "service/keeper.h"
-
 
 namespace
 {
