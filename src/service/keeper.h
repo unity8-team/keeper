@@ -20,20 +20,26 @@
 #include <QDBusContext>
 #include <QDBusUnixFileDescriptor>
 #include <QObject>
+#include <QPair>
+#include <QScopedPointer>
+#include <QString>
+#include <QVector>
 
-class DBusPropertiesNotifier;
-class BackupHelper;
-class StorageFrameworkClient;
-
+class KeeperPrivate;
 class Keeper : public QObject, protected QDBusContext
 {
     Q_OBJECT
+    Q_DECLARE_PRIVATE(Keeper)
+
 public:
     Q_DISABLE_COPY(Keeper)
     Keeper(QObject* parent = nullptr);
     virtual ~Keeper();
 
+    QVector<QPair<QString,QString>> GetPossibleBackups() const;
+
 public Q_SLOTS:
+
     void start();
     QDBusUnixFileDescriptor GetBackupSocketDescriptor();
 
@@ -47,6 +53,5 @@ public Q_SLOTS:
     void socketClosed();
 
 private:
-    QScopedPointer<BackupHelper> backup_helper_;
-    QScopedPointer<StorageFrameworkClient> storage_;
+    QScopedPointer<KeeperPrivate> const d_ptr;
 };

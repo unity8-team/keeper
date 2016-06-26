@@ -51,6 +51,7 @@ set(CMAKE_AUTOMOC ON)
 
 add_definitions(
     -DQT_NO_KEYWORDS=1
+    -DQT_MESSAGELOGCONTEXT
 )
 
 find_package(Qt5Core REQUIRED)
@@ -69,6 +70,7 @@ find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(SERVICE_DEPS REQUIRED
     libarchive>=3.1.2
+    uuid>=2.25
 )
 include_directories(SYSTEM ${SERVICE_DEPS_INCLUDE_DIRS})
 include_directories(${CMAKE_SOURCE_DIR}/include)

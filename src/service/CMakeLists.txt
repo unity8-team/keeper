@@ -6,6 +6,7 @@ include_directories("${CMAKE_SOURCE_DIR}/src/qdbus-stubs")
 
 set(SERVICE_SOURCES
   keeper.cpp
+  keeper-user.cpp
   main.cpp
 )
 

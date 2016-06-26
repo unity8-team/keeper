@@ -16,6 +16,7 @@ Build-Depends: cmake,
                qtbase5-dev-tools,
                qtdeclarative5-dev,
                qtdeclarative5-dev-tools,
+               uuid-dev,
 # for the test harness:
                cppcheck,
                devscripts,

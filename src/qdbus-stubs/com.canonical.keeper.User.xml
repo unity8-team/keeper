@@ -1,0 +1,81 @@
+<node>
+  <interface name="com.canonical.keeper.User">
+
+    <method name="GetPossibleBackups">
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QVariantMap"/>
+      <arg direction="out" name="backups" type="a{sv}">
+        <doc:doc>
+        <doc:summary>
+        <doc:para>Returns a map of opaque backup keys to diplay names.</doc:para>
+        <doc:para>The display names should be presented to the user, and the
+                  keys of those selected should be passed to StartBackup.</doc:para>
+        </doc:summary>
+        </doc:doc>
+      </arg>
+    </method>
+
+    <method name="StartBackup">
+      <arg direction="in" name="backups" type="as">
+        <doc:doc>
+        <doc:summary>
+        <doc:para>An array of opaque backup keys from GetPossibleBackups.</doc:para>
+        </doc:summary>
+        </doc:doc>
+      </arg>
+    </method>
+
+    <method name="GetAvailableBackups">
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QVariantMap"/>
+      <arg direction="out" name="backups" type="a{sv}">
+        <doc:doc>
+        <doc:summary>
+        <doc:para>Returns a map of opaque backup keys to key/value pairs of
+                  each backup's properties.</doc:para>
+        <doc:para>The backup properties include a 'display-name' string,
+                  a 'size' in uint64 bytes,
+                  and a 'date' time_t as a uint64.</doc:para>
+        </doc:summary>
+        </doc:doc>
+      </arg>
+    </method>
+
+    <method name="StartRestore">
+      <arg direction="in" name="backups" type="as">
+        <doc:doc>
+        <doc:summary>
+        <doc:para>An array of opaque backup keys from GetAvailableBackups.</doc:para>
+        </doc:summary>
+        </doc:doc>
+      </arg>
+    </method>
+
+    <property name="State" type="a{sa{sv}}" access="read">
+      <annotation name="org.qtproject.QtDBus.QtTypeName" value="QVariantDictMap"/>
+      <doc:doc>
+        <doc:description>
+          <doc:para>The state of the backups queued by StartBackup or StartRestore.</doc:para>
+          <doc:para>State is a map of backup keys to a property map.
+                    All property maps will contain a display-name string
+                    and action int whose possible values are queued(0),
+                    saving(1), restoring(2), complete(3), stopped(4)</doc:para>
+          <doc:para>Depending on their action, backups may also have
+                    an item string and a percent-done double [0..1.0].
+                    For example if these are set to (1, “Photos”, 36),
+                    the user interface could show “Backing up Photos (36%)”.
+                    Clients should gracefully handle missing properties;
+                    eg a missing percent-done could instead show
+                    “Backing up Photos”.</doc:para>
+        </doc:description>
+      </doc:doc>
+    </property>
+
+    <method name="Stop">
+      <doc:doc>
+      <doc:summary>
+      <doc:para>Stops the current backup or restore actions.</doc:para>
+      </doc:summary>
+      </doc:doc>
+    </method>
+
+  </interface>
+</node>
