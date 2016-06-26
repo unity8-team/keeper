@@ -34,7 +34,7 @@ Metadata::Metadata(const QString& key, const QString& display_name)
 }
 
 Metadata::~Metadata() =default;
-    
+
 bool
 Metadata::has_property(const QString& property_name) const
 {
@@ -57,4 +57,14 @@ void
 Metadata::set_property(const QString& property_name, const QVariant& value)
 {
     properties_.insert(property_name, value);
+}
+
+QVariantMap
+Metadata::get_public_properties() const
+{
+    // they're all public so far...
+    QVariantMap ret = properties_;
+    ret.insert(QString::fromUtf8("key"), key_);
+    ret.insert(QString::fromUtf8("display-name"), display_name_);
+    return ret;
 }

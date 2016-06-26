@@ -19,7 +19,7 @@
  */
 
 #include "dbus-types.h"
-#include "service/possible-metadata-provider.h"
+#include "service/backup-choices.h"
 #include "service/keeper.h"
 #include "service/keeper-user.h"
 #include "util/logging.h"
@@ -78,8 +78,8 @@ main(int argc, char **argv)
             return 1;
         }
 
-        QSharedPointer<MetadataProvider> possible (new PossibleMetadataProvider());
-        QSharedPointer<MetadataProvider> available (new PossibleMetadataProvider()); // FIXME
+        QSharedPointer<MetadataProvider> possible (new BackupChoices());
+        QSharedPointer<MetadataProvider> available (new BackupChoices()); // FIXME: need a storage-framework provider
         auto service = new Keeper(possible, available, &app);
         new KeeperAdaptor(service);
         if (!connection.registerObject(DBusTypes::KEEPER_SERVICE_PATH, service))

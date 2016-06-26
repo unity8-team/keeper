@@ -34,13 +34,11 @@ KeeperUser::KeeperUser(Keeper* keeper)
 KeeperUser::~KeeperUser() =default;
 
 QVariantMap
-KeeperUser::GetPossibleBackups()
+KeeperUser::GetBackupChoices()
 {
     QVariantMap ret;
-
-    for (const auto& item : keeper_.GetPossibleBackups())
+    for (const auto& item : keeper_.GetBackupChoices())
         ret[item.key()] = item.display_name();
-
     return ret;
 }
 
@@ -55,20 +53,15 @@ KeeperUser::StartBackup (const QStringList& keys)
 void
 KeeperUser::Stop()
 {
-    // FIXME: writeme
-
     qInfo() << "hello world";
 }
 
 QVariantMap
-KeeperUser::GetAvailableBackups()
+KeeperUser::GetRestoreChoices()
 {
-    // FIXME: writeme
-
     QVariantMap ret;
-
-    qInfo() << "hello world";
-
+    for (const auto& metadata : keeper_.GetRestoreChoices())
+        ret.insert(metadata.key(), metadata.get_public_properties());
     return ret;
 }
 
@@ -83,13 +76,8 @@ KeeperUser::StartRestore (const QStringList& keys)
 QVariantDictMap
 KeeperUser::getState() const
 {
-    // FIXME: writeme
-
     QVariantDictMap ret;
-
-    qInfo() << "hello world";
-    for (const auto& item : keeper_.GetPossibleBackups())
+    for (const auto& item : keeper_.GetBackupChoices())
         ret[item.key()];
-
     return ret;
 }

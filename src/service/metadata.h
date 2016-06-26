@@ -38,10 +38,11 @@ public:
 
     void set_property(const QString& property_name, const QVariant& value);
 
+    QVariantMap get_public_properties() const;
+
 private:
 
     QString key_;
     QString display_name_;
     QVariantMap properties_ {};
 };
-

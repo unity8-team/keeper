@@ -21,11 +21,10 @@
 
 #include "service/metadata-provider.h"
 
-class PossibleMetadataProvider: public MetadataProvider
+class BackupChoices: public MetadataProvider
 {
 public:
-    PossibleMetadataProvider();
-    virtual ~PossibleMetadataProvider();
+    BackupChoices();
+    virtual ~BackupChoices();
     QVector<Metadata> get_backups() override;
 };
-

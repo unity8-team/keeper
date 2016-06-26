@@ -48,17 +48,17 @@ class KeeperPrivate
     Q_DECLARE_PUBLIC(Keeper)
 
     Keeper * const q_ptr;
-    QSharedPointer<MetadataProvider> possible_;
-    QSharedPointer<MetadataProvider> available_;
+    QSharedPointer<MetadataProvider> backup_choices_;
+    QSharedPointer<MetadataProvider> restore_choices_;
     QScopedPointer<BackupHelper> backup_helper_;
     QScopedPointer<StorageFrameworkClient> storage_;
 
     KeeperPrivate(Keeper* keeper,
-                  const QSharedPointer<MetadataProvider>& possible,
-                  const QSharedPointer<MetadataProvider>& available)
+                  const QSharedPointer<MetadataProvider>& backup_choices,
+                  const QSharedPointer<MetadataProvider>& restore_choices)
         : q_ptr(keeper)
-        , possible_(possible)
-        , available_(available)
+        , backup_choices_(backup_choices)
+        , restore_choices_(restore_choices)
         , backup_helper_(new BackupHelper(DEKKO_APP_ID))
         , storage_(new StorageFrameworkClient())
     {
@@ -70,11 +70,11 @@ class KeeperPrivate
 };
 
 
-Keeper::Keeper(const QSharedPointer<MetadataProvider>& possible,
-               const QSharedPointer<MetadataProvider>& available,
+Keeper::Keeper(const QSharedPointer<MetadataProvider>& backup_choices,
+               const QSharedPointer<MetadataProvider>& restore_choices,
                QObject* parent)
     : QObject(parent)
-    , d_ptr(new KeeperPrivate(this, possible, available))
+    , d_ptr(new KeeperPrivate(this, backup_choices, restore_choices))
 {
 }
 
@@ -140,9 +140,17 @@ void Keeper::socketClosed()
 }
 
 QVector<Metadata>
-Keeper::GetPossibleBackups() const
+Keeper::GetBackupChoices() const
 {
     Q_D(const Keeper);
 
-    return d->possible_->get_backups();
+    return d->backup_choices_->get_backups();
+}
+
+QVector<Metadata>
+Keeper::GetRestoreChoices() const
+{
+    Q_D(const Keeper);
+
+    return d->restore_choices_->get_backups();
 }

@@ -45,16 +45,18 @@ public:
     QVariantDictMap getState() const;
 
 Q_SIGNALS:
+
     void stateChanged();
 
 public Q_SLOTS:
 
-    QVariantMap GetPossibleBackups();
-    void StartBackup (const QStringList&);
-    void Stop();
+    QVariantMap GetBackupChoices();
+    void StartBackup(const QStringList&);
 
-    QVariantMap GetAvailableBackups();
-    void StartRestore (const QStringList&);
+    QVariantMap GetRestoreChoices();
+    void StartRestore(const QStringList&);
+
+    void Stop();
 
 private:
 

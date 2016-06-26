@@ -17,7 +17,7 @@
  *   Charles Kerr <charles.kerr@canoincal.com>
  */
 
-#include "service/possible-metadata-provider.h"
+#include "service/backup-choices.h"
 
 #include <QDebug>
 #include <QStandardPaths>
@@ -27,12 +27,12 @@
 
 #include <uuid/uuid.h>
 
-PossibleMetadataProvider::PossibleMetadataProvider() =default;
+BackupChoices::BackupChoices() =default;
 
-PossibleMetadataProvider::~PossibleMetadataProvider() =default;
+BackupChoices::~BackupChoices() =default;
 
 QVector<Metadata>
-PossibleMetadataProvider::get_backups()
+BackupChoices::get_backups()
 {
     QVector<Metadata> ret;
 
@@ -73,4 +73,3 @@ PossibleMetadataProvider::get_backups()
 
     return ret;
 }
-
