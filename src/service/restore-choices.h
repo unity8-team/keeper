@@ -21,6 +21,8 @@
 
 #include "service/metadata-provider.h"
 
+#include <unity/storage/qt/client/client-api.h>
+
 /**
  * A MetadataProvider that lists the backups that can be restored
  */
@@ -30,4 +32,7 @@ public:
     RestoreChoices();
     virtual ~RestoreChoices();
     QVector<Metadata> get_backups() override;
+
+private:
+    unity::storage::qt::client::Runtime::SPtr runtime_;
 };
