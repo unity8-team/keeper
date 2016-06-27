@@ -40,7 +40,7 @@ Item::SPtr get_backups_folder_sync(const Account::SPtr& account)
     auto roots = account->roots().results();
     if (roots.isEmpty() || roots.front().isEmpty())
     {
-        qInfo() << "storage-framework unable to find roots";
+        qDebug() << "storage-framework unable to find roots";
         return ret;
     }
     auto root = roots.front().front();
@@ -58,12 +58,12 @@ Item::SPtr get_backups_folder_sync(const Account::SPtr& account)
     }
     catch(const std::exception& e)
     {
-        qInfo() << backup_dir_name << "lookup returned" << e.what() << "so trying to create";
+        qDebug() << backup_dir_name << "lookup returned" << e.what() << "so trying to create";
 
         auto results = root->create_folder(backup_dir_name).results();
         if (!results.isEmpty())
         {
-            qInfo() << backup_dir_name << "created";
+            qDebug() << backup_dir_name << "created";
             ret = results.front();
         }
     }
@@ -97,13 +97,13 @@ RestoreChoices::get_backups()
 
     // FIXME: blocking
     auto tops = get_backups_folder(accounts.front()).results();
-    qInfo() << "tops.results().size()" << tops.size();
+    qDebug() << "tops.results().size()" << tops.size();
 
     if (!tops.empty())
     {
         auto top = tops.front();
-        qInfo() << "top id:" << top->native_identity();
-        qInfo() << "top time:" << top->last_modified_time();
+        qDebug() << "top id:" << top->native_identity();
+        qDebug() << "top time:" << top->last_modified_time();
     }
 
     // TODO: walk the directory's children

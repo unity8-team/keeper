@@ -47,7 +47,7 @@ KeeperUser::StartBackup (const QStringList& keys)
 {
     // FIXME: writeme
 
-    qInfo() << keys;
+    qDebug() << keys;
 }
 
 void
@@ -55,7 +55,7 @@ KeeperUser::Cancel()
 {
     // FIXME: writeme
 
-    qInfo() << "hello world";
+    qDebug() << "hello world";
 }
 
 QVariantDictMap
@@ -72,7 +72,7 @@ KeeperUser::StartRestore (const QStringList& keys)
 {
     // FIXME: writeme
 
-    qInfo() << keys;
+    qDebug() << keys;
 }
 
 QVariantDictMap
