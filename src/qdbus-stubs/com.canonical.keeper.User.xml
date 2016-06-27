@@ -31,8 +31,8 @@
     </method>
 
     <method name="GetRestoreChoices">
-      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QVariantMap"/>
-      <arg direction="out" name="backups" type="a{sv}">
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QVariantDictMap"/>
+      <arg direction="out" name="backups" type="a{sa{sv}}">
         <doc:doc>
         <doc:summary>The backups which already exist and can be restored</doc:summary>
         <doc:description>

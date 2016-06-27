@@ -58,10 +58,10 @@ KeeperUser::Stop()
     qInfo() << "hello world";
 }
 
-QVariantMap
+QVariantDictMap
 KeeperUser::GetRestoreChoices()
 {
-    QVariantMap ret;
+    QVariantDictMap ret;
     for (const auto& metadata : keeper_.GetRestoreChoices())
         ret.insert(metadata.key(), metadata.get_public_properties());
     return ret;

@@ -53,7 +53,7 @@ public Q_SLOTS:
     QVariantMap GetBackupChoices();
     void StartBackup(const QStringList&);
 
-    QVariantMap GetRestoreChoices();
+    QVariantDictMap GetRestoreChoices();
     void StartRestore(const QStringList&);
 
     void Stop();
