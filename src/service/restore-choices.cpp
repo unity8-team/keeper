@@ -105,7 +105,7 @@ RestoreChoices::get_backups()
         qInfo() << "top id:" << top->native_identity();
         qInfo() << "top time:" << top->last_modified_time();
     }
-  
+
     // TODO: walk the directory's children
 
     // TODO: look for a manifest.json in each child subdirectory
