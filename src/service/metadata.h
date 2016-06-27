@@ -32,7 +32,6 @@ public:
 
     Metadata();
     Metadata(const QString& key, const QString& display_name);
-    ~Metadata();
 
     QString key() const { return key_; }
     QString display_name() const { return display_name_; }

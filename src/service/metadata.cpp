@@ -33,8 +33,6 @@ Metadata::Metadata(const QString& key, const QString& display_name)
 {
 }
 
-Metadata::~Metadata() =default;
-
 bool
 Metadata::has_property(const QString& property_name) const
 {
