@@ -30,7 +30,6 @@
 #include <QString>
 
 #include <array>
-#include <iostream>
 
 #include <uuid/uuid.h>
 
@@ -96,11 +95,10 @@ BackupChoices::get_backups()
     const auto package_key = QString::fromUtf8("package");
     const auto title_key = QString::fromUtf8("title");
     const auto version_key = QString::fromUtf8("version");
-    const auto click_str = QString::fromUtf8("click");
+    const auto application_str = QString::fromUtf8("application");
 
     auto loadDoc = QJsonDocument::fromJson(manifests_str.toUtf8());
     auto tmp = loadDoc.toJson();
-    std::cout << tmp.constData();
     if (loadDoc.isArray())
     {
         auto manifests = loadDoc.array();
@@ -129,7 +127,7 @@ BackupChoices::get_backups()
 
                 Metadata m(generate_new_uuid(), display_name);
                 m.set_property(package_key, name.toString());
-                m.set_property(type_key, click_str);
+                m.set_property(type_key, application_str);
 
                 if (version != QJsonValue::Undefined)
                     m.set_property(version_key, version.toString());
@@ -158,7 +156,7 @@ BackupChoices::get_backups()
     };
 
     const auto path_key = QString::fromUtf8("path");
-    const auto user_folder_str = QString::fromUtf8("user-folder");
+    const auto user_folder_str = QString::fromUtf8("folder");
     for (const auto& sl : standard_locations)
     {
         const auto name = QStandardPaths::displayName(sl.location);

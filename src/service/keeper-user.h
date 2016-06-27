@@ -50,7 +50,7 @@ Q_SIGNALS:
 
 public Q_SLOTS:
 
-    QVariantMap GetBackupChoices();
+    QVariantDictMap GetBackupChoices();
     void StartBackup(const QStringList&);
 
     QVariantDictMap GetRestoreChoices();

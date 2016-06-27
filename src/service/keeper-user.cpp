@@ -33,12 +33,12 @@ KeeperUser::KeeperUser(Keeper* keeper)
 
 KeeperUser::~KeeperUser() =default;
 
-QVariantMap
+QVariantDictMap
 KeeperUser::GetBackupChoices()
 {
-    QVariantMap ret;
-    for (const auto& item : keeper_.GetBackupChoices())
-        ret[item.key()] = item.display_name();
+    QVariantDictMap ret;
+    for (const auto& metadata : keeper_.GetBackupChoices())
+        ret.insert(metadata.key(), metadata.get_public_properties());
     return ret;
 }
 
