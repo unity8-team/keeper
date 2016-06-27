@@ -20,6 +20,7 @@
 #include <QDBusConnection>
 
 #include <helper/backup-helper.h>
+#include <storage-framework/storage_framework_client.h>
 #include "keeper.h"
 
 namespace
@@ -29,8 +30,13 @@ namespace
 
 Keeper::Keeper(QObject* parent)
     : QObject(parent),
-      backup_helper_(new BackupHelper(DEKKO_APP_ID))
+      backup_helper_(new BackupHelper(DEKKO_APP_ID)),
+      storage_(new StorageFrameworkClient(this))
 {
+    QObject::connect(storage_.data(), &StorageFrameworkClient::socketReady, this, &Keeper::socketReady);
+    QObject::connect(storage_.data(), &StorageFrameworkClient::socketClosed, this, &Keeper::socketClosed);
+    QObject::connect(backup_helper_.data(), &BackupHelper::started, this, &Keeper::helperStarted);
+    QObject::connect(backup_helper_.data(), &BackupHelper::finished, this, &Keeper::helperFinished);
 }
 
 Keeper::~Keeper() = default;
@@ -39,9 +45,45 @@ Keeper::~Keeper() = default;
 void Keeper::start()
 {
     qDebug() << "Backup start";
+    qDebug() << "Waiting for a valid socket from the storage framework";
 
-    // TODO
-    // Here should go the code to retrieve the socket descriptor from storage framework
-    int socket = 1999;
-    backup_helper_->start(socket);
+    storage_->getNewFileForBackup();
+}
+
+QDBusUnixFileDescriptor Keeper::GetBackupSocketDescriptor()
+{
+    qDebug() << "Sending the socket " << storage_->getUploaderSocketDescriptor();
+    return QDBusUnixFileDescriptor(storage_->getUploaderSocketDescriptor());
+}
+
+// FOR TESTING PURPOSES ONLY
+// we should finish when the helper finishes
+void Keeper::finish()
+{
+    qDebug() << "Closing the socket-------";
+    storage_->closeUploader();
+}
+
+void Keeper::socketReady(int sd)
+{
+    qDebug() << "I've got a new socket: " << sd;
+    qDebug() << "Starting the backup helper";
+    backup_helper_->start(sd);
+}
+
+void Keeper::helperStarted()
+{
+    qDebug() << "Backup helper started";
+}
+
+void Keeper::helperFinished()
+{
+    qDebug() << "Backup helper finished";
+    qDebug() << "Closing the socket";
+    storage_->closeUploader();
+}
+
+void Keeper::socketClosed()
+{
+    qDebug() << "The storage framework socket was closed";
 }

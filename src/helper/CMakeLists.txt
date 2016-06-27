@@ -19,3 +19,8 @@ set_target_properties(backup-helper PROPERTIES AUTOMOC TRUE)
 
 target_link_libraries(backup-helper
                       ${UAL_LIBRARIES})
+
+install(
+  FILES ${CMAKE_SOURCE_DIR}/src/helper/exec-tool
+  DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/ubuntu-app-launch/backup-helper
+)

@@ -15,6 +15,8 @@
 # Authors:
 #     Marcus Tomlinson <marcus.tomlinson@canonical.com>
 
+# disable compilier warnings in machine-generated code
+add_compile_options(-w)
 
 set(dbusinterface_keeper_xml "com.canonical.keeper.xml")
 set_source_files_properties(${dbusinterface_keeper_xml} PROPERTIES

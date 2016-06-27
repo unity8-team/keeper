@@ -50,3 +50,5 @@ add_test(
     unit-tests
     unit-tests
 )
+
+add_subdirectory(helper)

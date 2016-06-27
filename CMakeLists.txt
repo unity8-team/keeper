@@ -6,7 +6,7 @@ if(NOT DEFINED CMAKE_INSTALL_PREFIX)
 endif()
 
 project(keeper C CXX)
-cmake_minimum_required(VERSION 3.5.1)
+cmake_minimum_required(VERSION 3.0.2)
 
 ##
 ##  Build Type
@@ -62,6 +62,9 @@ include_directories(SYSTEM ${Qt5Concurrent_INCLUDE_DIRS})
 find_package(Qt5DBus COMPONENTS Qt5DBusMacros REQUIRED)
 include_directories(SYSTEM ${Qt5DBus_INCLUDE_DIRS})
 
+find_package(Qt5Network REQUIRED)
+include_directories(SYSTEM ${Qt5Network_INCLUDE_DIRS})
+
 find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(SERVICE_DEPS REQUIRED
@@ -82,74 +85,99 @@ set(C_OPTIONS
 )
 set(CXX_OPTIONS
   ${C_OPTIONS}
-  -std=c++14
 )
 
 # Throw nearly everything into the compiler warnings.
 # This list isn't set in stone, feel free to disable items when sensible.
 
-set(CLANG_C_WARNINGS
-  -Weverything
-  -Wno-padded
-)
-set(CLANG_CXX_WARNINGS
-  ${CLANG_C_WARNINGS}
-  -Wno-c++98-compat
-)
+set(C_WARNINGS)
+set(CXX_WARNINGS)
 
-set(GNU_C_WARNINGS
-  -Wall
-  -pedantic
-  -Wextra
-  -Wcast-align
-  -Wcast-qual
-  -Wconditionally-supported
-  -Wconversion
-  -Wdate-time
-  -Wdouble-promotion
-  -Wfloat-equal
-  -Wformat=2
-  -Winline
-  -Wlogical-op
-  -Wmissing-declarations
-  -Wmissing-include-dirs
-  -Woverlength-strings
-  -Wpacked
-  -Wredundant-decls
-  -Wshadow
-  -Wsuggest-attribute=const
-  -Wsuggest-attribute=format
-  -Wsuggest-attribute=noreturn
-  -Wswitch
-  -Wtrampolines
-  -Wundef
-  -Wunused
-  -Wwrite-strings
-)
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 
-set(GNU_CXX_WARNINGS
-  ${GNU_C_WARNINGS}
-  -Wctor-dtor-privacy
-  -Weffc++
-  -Wnon-virtual-dtor
-  -Wold-style-cast
-  -Woverloaded-virtual
-  -Wsign-promo
-  -Wsized-deallocation
-  -Wstrict-null-sentinel
-  -Wsuggest-attribute=pure
-  -Wsuggest-final-methods
-  -Wsuggest-final-types
-  -Wsuggest-override
-)
+  LIST(APPEND CXX_OPTIONS -std=c++14)
+
+  LIST(APPEND C_WARNINGS
+    -Weverything
+    -Wno-padded
+  )
+  LIST(APPEND CXX_WARNINGS
+    -Wno-c++98-compat
+  )
+
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+
+  if(NOT ${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "5.0.0")
+    LIST(APPEND CXX_OPTIONS -std=c++14)
+  elseif(NOT ${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "4.8.0")
+    LIST(APPEND CXX_OPTIONS -std=c++11)
+  else()
+    LIST(APPEND CXX_OPTIONS -std=c++0x -Dfinal= -Doverride=)
+  endif()
+
+  LIST(APPEND C_WARNINGS
+    -Wall
+    -pedantic
+    -Wextra
+    -Wcast-align
+    -Wcast-qual
+    -Wconditionally-supported
+    -Wconversion
+    -Wdate-time
+    -Wdouble-promotion
+    -Wfloat-equal
+    -Wformat=2
+    -Winline
+    -Wlogical-op
+    -Wmissing-declarations
+    -Wmissing-include-dirs
+    -Woverlength-strings
+    -Wpacked
+    -Wredundant-decls
+    -Wsuggest-attribute=const
+    -Wsuggest-attribute=format
+    -Wsuggest-attribute=noreturn
+    -Wswitch
+    -Wtrampolines
+    -Wundef
+    -Wunused
+    -Wwrite-strings
+  )
+
+  LIST(APPEND CXX_WARNINGS
+    -Wctor-dtor-privacy
+    -Weffc++
+    -Wnon-virtual-dtor
+    -Wold-style-cast
+    -Woverloaded-virtual
+    -Wsign-promo
+    -Wstrict-null-sentinel
+  )
+
+  if(NOT ${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "5.0.0")
+
+    # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=57709
+    LIST(APPEND C_WARNINGS
+      -Wshadow
+    )
+
+    LIST(APPEND CXX_WARNINGS
+      -Wsized-deallocation
+      -Wsuggest-attribute=pure
+      -Wsuggest-final-methods
+      -Wsuggest-final-types
+      -Wsuggest-override
+    )
+
+  endif()
+
+endif()
 
 add_compile_options(
-  "$<$<COMPILE_LANGUAGE:C>:${C_OPTIONS}>"
-  "$<$<COMPILE_LANGUAGE:CXX>:${CXX_OPTIONS}>"
-  "$<$<AND:$<COMPILE_LANGUAGE:C>,$<CXX_COMPILER_ID:GNU>>:${GNU_C_WARNINGS}>"
-  "$<$<AND:$<COMPILE_LANGUAGE:C>,$<CXX_COMPILER_ID:Clang>>:${CLANG_C_WARNINGS}>"
-  "$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:GNU>>:${GNU_CXX_WARNINGS}>"
-  "$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:Clang>>:${CLANG_CXX_WARNINGS}>"
+  ${C_OPTIONS}
+  ${C_WARNINGS}
+  ${CXX_OPTIONS}
+  ${CXX_WARNINGS}
 )
 
 # If warnings are errors, don't error on deprecated declarations.

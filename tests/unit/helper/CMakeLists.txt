@@ -49,4 +49,4 @@ target_link_libraries(helpers-test
                         ${UAL_LIBRARIES}
                         ${GIO2_LIBRARIES})
 
-#add_test (NAME libual-cpp-test COMMAND libual-cpp-test)
+add_test (NAME helpers-test COMMAND helpers-test)

@@ -71,7 +71,7 @@ mir_prompt_session_new_fds_for_prompt_providers (MirPromptSession * session, uns
 }
 
 void
-mir_wait_for (MirWaitHandle * wait)
+mir_wait_for(MirWaitHandle * wait)
 {
     auto thread = reinterpret_cast<std::thread *>(wait);
 
@@ -86,19 +86,19 @@ static std::pair<std::string, std::string> last_connection;
 static bool valid_connection = true;
 
 void
-mir_mock_connect_return_valid (bool valid)
+mir_mock_connect_return_valid(bool valid)
 {
     valid_connection = valid;
 }
 
 std::pair<std::string, std::string>
-mir_mock_connect_last_connect (void)
+mir_mock_connect_last_connect(void)
 {
     return last_connection;
 }
 
 MirConnection *
-mir_connect_sync (char const * server, char const * appname)
+mir_connect_sync(char const * server, char const * appname)
 {
     last_connection = std::pair<std::string, std::string>(server, appname);
 
@@ -110,7 +110,7 @@ mir_connect_sync (char const * server, char const * appname)
 }
 
 void
-mir_connection_release (MirConnection * con)
+mir_connection_release(MirConnection * con)
 {
     if (reinterpret_cast<char *>(con) != valid_connection_str) {
         std::cerr << "Releasing a Mir Connection that isn't valid" << std::endl;
@@ -118,7 +118,7 @@ mir_connection_release (MirConnection * con)
     }
 }
 
-void mir_mock_set_trusted_fd (int fd)
+void mir_mock_set_trusted_fd(int fd)
 {
     trusted_fd = fd;
 }

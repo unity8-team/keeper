@@ -9,7 +9,6 @@ set(CMAKE_CXX_FLAGS ${old_cxx_flags})
 pkg_check_modules(TEST_DEPENDENCIES
   libqtdbustest-1 REQUIRED
   libqtdbusmock-1 REQUIRED
-  libgmenuharness REQUIRED
 )
 
 include_directories(
