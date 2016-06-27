@@ -56,7 +56,7 @@ public Q_SLOTS:
     QVariantDictMap GetRestoreChoices();
     void StartRestore(const QStringList&);
 
-    void Stop();
+    void Cancel();
 
 private:
 

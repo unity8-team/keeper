@@ -51,7 +51,7 @@ KeeperUser::StartBackup (const QStringList& keys)
 }
 
 void
-KeeperUser::Stop()
+KeeperUser::Cancel()
 {
     // FIXME: writeme
 
