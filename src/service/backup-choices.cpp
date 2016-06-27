@@ -63,10 +63,12 @@ BackupChoices::get_backups()
     //
 
     const auto type_key = QString::fromUtf8("type");
+    const auto icon_key = QString::fromUtf8("icon");
     const auto system_data_str = QString::fromUtf8("system-data");
     {
         Metadata m(generate_new_uuid(), "System Data"); // FIXME: how to i18n in a Qt DBus service?
         m.set_property(type_key, system_data_str);
+        m.set_property(icon_key, QString::fromUtf8("folder-system"));
         ret.push_back(m);
     }
 
@@ -90,7 +92,6 @@ BackupChoices::get_backups()
         g_clear_error(&error);
     }
 
-    const auto icon_key = QString::fromUtf8("icon");
     const auto name_key = QString::fromUtf8("name");
     const auto package_key = QString::fromUtf8("package");
     const auto title_key = QString::fromUtf8("title");
@@ -146,19 +147,22 @@ BackupChoices::get_backups()
     //  XDG User Directories
     //
 
-    const std::array<QStandardPaths::StandardLocation,4> standard_locations = {
-        QStandardPaths::DocumentsLocation,
-        QStandardPaths::MoviesLocation,
-        QStandardPaths::PicturesLocation,
-        QStandardPaths::MusicLocation
+    const struct {
+        QStandardPaths::StandardLocation location;
+        QString icon;
+    } standard_locations[] = {
+        { QStandardPaths::DocumentsLocation, QString::fromUtf8("folder-documents") },
+        { QStandardPaths::MoviesLocation,    QString::fromUtf8("folder-movies")    },
+        { QStandardPaths::PicturesLocation,  QString::fromUtf8("folder-pictures")  },
+        { QStandardPaths::MusicLocation,     QString::fromUtf8("folder-music")     }
     };
 
     const auto path_key = QString::fromUtf8("path");
     const auto user_folder_str = QString::fromUtf8("user-folder");
     for (const auto& sl : standard_locations)
     {
-        const auto name = QStandardPaths::displayName(sl);
-        const auto locations = QStandardPaths::standardLocations(sl);
+        const auto name = QStandardPaths::displayName(sl.location);
+        const auto locations = QStandardPaths::standardLocations(sl.location);
         if (locations.empty())
         {
             qWarning() << "unable to find path for"  << name;
@@ -169,6 +173,7 @@ BackupChoices::get_backups()
             Metadata m(keystr, name);
             m.set_property(path_key, locations.front());
             m.set_property(type_key, user_folder_str);
+            m.set_property(icon_key, sl.icon);
             ret.push_back(m);
         }
     }
