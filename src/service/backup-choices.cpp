@@ -45,10 +45,7 @@ namespace
     }
 }
 
-BackupChoices::BackupChoices() //=default;
-{
-    get_backups();
-}
+BackupChoices::BackupChoices() =default;
 
 BackupChoices::~BackupChoices() =default;
 
