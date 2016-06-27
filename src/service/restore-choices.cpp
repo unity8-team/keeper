@@ -23,8 +23,62 @@
 #include <unity/storage/qt/client/client-api.h>
 
 #include <QDebug>
+#include <QtConcurrentRun>
 
 using namespace unity::storage::qt::client;
+
+namespace
+{
+
+// FIXME: move to a common file so it can be used by restore-choices and storage_framework_client
+Item::SPtr get_backups_folder_sync(const Account::SPtr& account)
+{
+    Item::SPtr ret;
+
+    // find the root
+    // FIXME: returns a container of containers -- do we need to walk them?
+    auto roots = account->roots().results();
+    if (roots.isEmpty() || roots.front().isEmpty())
+    {
+        qInfo() << "storage-framework unable to find roots";
+        return ret;
+    }
+    auto root = roots.front().front();
+    qDebug() << "id:" << root->native_identity();
+    qDebug() << "time:" << root->last_modified_time();
+
+    // look for an Ubuntu Backups subfolder
+    // FIXME: i18n?
+    const auto backup_dir_name = QString::fromUtf8("Ubuntu Backups");
+    try
+    {
+        auto results = root->lookup(backup_dir_name).results();
+        if (!results.empty())
+            ret = results.front();
+    }
+    catch(const std::exception& e)
+    {
+        qInfo() << backup_dir_name << "lookup returned" << e.what() << "so trying to create";
+
+        auto results = root->create_folder(backup_dir_name).results();
+        if (!results.isEmpty())
+        {
+            qInfo() << backup_dir_name << "created";
+            ret = results.front();
+        }
+    }
+
+    return ret;
+}
+
+QFuture<Item::SPtr> get_backups_folder(const Account::SPtr& account)
+{
+    return QtConcurrent::run([account]{return get_backups_folder_sync(account);});
+}
+
+} // namespace
+
+
 
 RestoreChoices::RestoreChoices()
     : runtime_(Runtime::create())
@@ -38,46 +92,20 @@ RestoreChoices::get_backups()
 {
     QVector<Metadata> ret;
 
-    // Get the acccounts. (There is only one account for the local client implementation.)
-    // We do this synchronously for simplicity.
+    // FIXME: blocking
     auto accounts = runtime_->accounts().result();
-    auto root = accounts[0]->roots().result()[0];
-    qDebug() << "id:" << root->native_identity();
-    qDebug() << "time:" << root->last_modified_time();
 
-    // find the backups dir
-    // FIXME: we'll need this again -- in fact StorageFrameworkClient should be using it already
-    // so let's extract this into a reusable method that returns a QFuture<Item::SPtr>
-    const auto backup_dir_name = QString::fromUtf8("Ubuntu Backups");
-    Item::SPtr backup_dir;
-    try
+    // FIXME: blocking
+    auto tops = get_backups_folder(accounts.front()).results();
+    qInfo() << "tops.results().size()" << tops.size();
+
+    if (!tops.empty())
     {
-        auto looking = root->lookup(backup_dir_name);
-        looking.waitForFinished(); // FIXME: blocking
-        auto results = looking.results();
-        if (!results.empty())
-            backup_dir = results.front();
+        auto top = tops.front();
+        qInfo() << "top id:" << top->native_identity();
+        qInfo() << "top time:" << top->last_modified_time();
     }
-    catch(const std::exception& e)
-    {
-        qInfo() << backup_dir_name << "lookup returned" << e.what() << "so trying to create";
-
-        auto creating = root->create_folder(backup_dir_name);
-        creating.waitForFinished(); // FIXME: blocking
-        auto results = creating.results();
-        if (!results.isEmpty())
-        {
-            qInfo() << backup_dir_name << "created";
-            backup_dir = results.front();
-        }
-    }
-
-    if (backup_dir && (backup_dir->type() == unity::storage::ItemType::folder))
-    {
-        qInfo() << "got directory" << backup_dir->native_identity();
-        return ret;
-    }
-
+  
     // TODO: walk the directory's children
 
     // TODO: look for a manifest.json in each child subdirectory
