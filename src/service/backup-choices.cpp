@@ -23,6 +23,8 @@
 #include <QStandardPaths>
 #include <QString>
 
+#include <array>
+
 #include <uuid/uuid.h>
 
 BackupChoices::BackupChoices() =default;
@@ -38,7 +40,7 @@ BackupChoices::get_backups()
 
     // XDG User Directories
 
-    const QStandardPaths::StandardLocation standard_locations[] = {
+    const std::array<QStandardPaths::StandardLocation,4> standard_locations = {
         QStandardPaths::DocumentsLocation,
         QStandardPaths::MoviesLocation,
         QStandardPaths::PicturesLocation,
