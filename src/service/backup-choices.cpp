@@ -19,6 +19,8 @@
 
 #include "service/backup-choices.h"
 
+#include <click.h>
+
 #include <QDebug>
 #include <QStandardPaths>
 #include <QString>
@@ -36,7 +38,18 @@ BackupChoices::get_backups()
 {
     QVector<Metadata> ret;
 
-    // FIXME: add the click packages here
+    // Click Packages
+
+    GError* error {};
+    auto user = click_user_new_for_user(nullptr, nullptr, &error);
+    if (user != nullptr)
+    {
+        auto manifests = click_user_get_manifests_as_string (user, &error);
+        g_message("manifests: %s", manifests);
+        g_clear_pointer(&manifests, g_free);
+        g_clear_object(&user);
+    }
+
 
     // XDG User Directories
 

@@ -70,6 +70,7 @@ find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(SERVICE_DEPS REQUIRED
     libarchive>=3.1.2
+    click-0.4>=0.4.30 json-glib-1.0 gobject-2.0 glib-2.0
     uuid>=2.25
 )
 include_directories(SYSTEM ${SERVICE_DEPS_INCLUDE_DIRS})
