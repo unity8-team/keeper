@@ -76,7 +76,7 @@ KeeperUser::StartRestore (const QStringList& keys)
 }
 
 QVariantDictMap
-KeeperUser::getState() const
+KeeperUser::get_state() const
 {
     // FIXME: writeme (the code below is junk 'hello world' data for testing in d-feet)
 

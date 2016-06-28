@@ -24,7 +24,6 @@
 #include <QDBusContext>
 #include <QObject>
 #include <QStringList>
-#include <QVariantMap>
 
 class Keeper;
 
@@ -39,14 +38,14 @@ public:
     Q_DISABLE_COPY(KeeperUser)
 
     Q_PROPERTY(QVariantDictMap State
-               READ getState
-               NOTIFY stateChanged)
+               READ get_state
+               NOTIFY state_changed)
 
-    QVariantDictMap getState() const;
+    QVariantDictMap get_state() const;
 
 Q_SIGNALS:
 
-    void stateChanged();
+    void state_changed();
 
 public Q_SLOTS:
 
