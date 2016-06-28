@@ -37,7 +37,7 @@ QVariantDictMap
 KeeperUser::GetBackupChoices()
 {
     QVariantDictMap ret;
-    for (const auto& metadata : keeper_.GetBackupChoices())
+    for (const auto& metadata : keeper_.get_backup_choices())
         ret.insert(metadata.key(), metadata.get_public_properties());
     return ret;
 }
@@ -62,7 +62,7 @@ QVariantDictMap
 KeeperUser::GetRestoreChoices()
 {
     QVariantDictMap ret;
-    for (const auto& metadata : keeper_.GetRestoreChoices())
+    for (const auto& metadata : keeper_.get_restore_choices())
         ret.insert(metadata.key(), metadata.get_public_properties());
     return ret;
 }
@@ -81,7 +81,7 @@ KeeperUser::get_state() const
     // FIXME: writeme (the code below is junk 'hello world' data for testing in d-feet)
 
     QVariantDictMap ret;
-    for (const auto& item : keeper_.GetBackupChoices())
+    for (const auto& item : keeper_.get_backup_choices())
         ret[item.key()];
     return ret;
 }
