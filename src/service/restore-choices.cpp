@@ -23,6 +23,7 @@
 #include <unity/storage/qt/client/client-api.h>
 
 #include <QDebug>
+#include <QFuture>
 #include <QtConcurrentRun>
 
 using namespace unity::storage::qt::client;

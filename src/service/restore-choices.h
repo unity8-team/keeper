@@ -23,6 +23,8 @@
 
 #include <unity/storage/qt/client/client-api.h>
 
+#include <QVector>
+
 /**
  * A MetadataProvider that lists the backups that can be restored
  */

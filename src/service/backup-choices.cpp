@@ -21,6 +21,8 @@
 
 #include <click.h>
 
+#include <uuid/uuid.h>
+
 #include <QDebug>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -30,8 +32,6 @@
 #include <QString>
 
 #include <array>
-
-#include <uuid/uuid.h>
 
 namespace
 {
