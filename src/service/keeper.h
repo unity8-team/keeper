@@ -15,25 +15,40 @@
  *
  * Author: Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
+
 #pragma once
 
 #include <QDBusContext>
 #include <QDBusUnixFileDescriptor>
 #include <QObject>
+#include <QScopedPointer>
+#include <QSharedPointer>
+#include <QString>
+#include <QVector>
 
-class DBusPropertiesNotifier;
-class BackupHelper;
-class StorageFrameworkClient;
+class Metadata;
+class MetadataProvider;
 
+class KeeperPrivate;
 class Keeper : public QObject, protected QDBusContext
 {
     Q_OBJECT
+    Q_DECLARE_PRIVATE(Keeper)
+
 public:
     Q_DISABLE_COPY(Keeper)
-    Keeper(QObject* parent = nullptr);
+
+    Keeper(const QSharedPointer<MetadataProvider>& possible,
+           const QSharedPointer<MetadataProvider>& available,
+           QObject* parent = nullptr);
+
     virtual ~Keeper();
 
+    QVector<Metadata> GetBackupChoices() const;
+    QVector<Metadata> GetRestoreChoices() const;
+
 public Q_SLOTS:
+
     void start();
     QDBusUnixFileDescriptor GetBackupSocketDescriptor();
 
@@ -47,6 +62,5 @@ public Q_SLOTS:
     void socketClosed();
 
 private:
-    QScopedPointer<BackupHelper> backup_helper_;
-    QScopedPointer<StorageFrameworkClient> storage_;
+    QScopedPointer<KeeperPrivate> const d_ptr;
 };

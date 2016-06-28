@@ -18,12 +18,16 @@
  *     Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
 
-#include <util/logging.h>
-#include <util/unix-signal-handler.h>
-#include <dbus-types.h>
+#include "dbus-types.h"
+#include "service/backup-choices.h"
+#include "service/restore-choices.h"
+#include "service/keeper.h"
+#include "service/keeper-user.h"
+#include "util/logging.h"
+#include "util/unix-signal-handler.h"
 
-#include "keeper.h"
 #include "KeeperAdaptor.h"
+#include "KeeperUserAdaptor.h"
 
 #include <QCoreApplication>
 #include <QDBusConnection>
@@ -39,7 +43,7 @@ main(int argc, char **argv)
     qInstallMessageHandler(util::loggingFunction);
 
     QCoreApplication app(argc, argv);
-//    DBusTypes::registerMetaTypes();
+    DBusTypes::registerMetaTypes();
 //    Variant::registerMetaTypes();
     std::srand(unsigned(std::time(nullptr)));
 
@@ -62,26 +66,37 @@ main(int argc, char **argv)
     // dbus service setup
     QDBusConnection connection = QDBusConnection::sessionBus();
 
-    if (!connection.interface()->isServiceRegistered(DBusTypes::KEEPER_SERVICE))
+    if (connection.interface()->isServiceRegistered(DBusTypes::KEEPER_SERVICE))
     {
-        auto service = new Keeper(&app);
-        new KeeperAdaptor(service);
-
+        qDebug() << "Service is already registered";
+    }
+    else
+    {
+        // register the service
         if (!connection.registerService(DBusTypes::KEEPER_SERVICE))
         {
             qFatal("Could not register keeper dbus service: [%s]", connection.lastError().message().toStdString().c_str());
             return 1;
         }
 
+        QSharedPointer<MetadataProvider> possible (new BackupChoices());
+        QSharedPointer<MetadataProvider> available (new RestoreChoices());
+        auto service = new Keeper(possible, available, &app);
+        new KeeperAdaptor(service);
         if (!connection.registerObject(DBusTypes::KEEPER_SERVICE_PATH, service))
         {
             qFatal("Could not register keeper dbus service object: [%s]", connection.lastError().message().toStdString().c_str());
             return 1;
         }
-    }
-    else
-    {
-        qDebug() << "Service is already registered!.";
+
+        // register the user object
+        auto user  = new KeeperUser(service);
+        new KeeperUserAdaptor(user);
+        if (!connection.registerObject(DBusTypes::KEEPER_USER_PATH, user))
+        {
+            qFatal("Could not register keeper dbus user object: [%s]", connection.lastError().message().toStdString().c_str());
+            return 1;
+        }
     }
 
 

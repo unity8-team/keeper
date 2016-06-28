@@ -18,148 +18,77 @@
 # disable compilier warnings in machine-generated code
 add_compile_options(-w)
 
-set(dbusinterface_keeper_xml "com.canonical.keeper.xml")
-set_source_files_properties(${dbusinterface_keeper_xml} PROPERTIES
-  CLASSNAME DBusInterfaceKeeper)
+# XML
 
-qt5_add_dbus_interface(interface_files ${dbusinterface_keeper_xml} keeper_interface)
-
-qt5_add_dbus_adaptor(adaptor_files
-    com.canonical.keeper.xml
-    ${CMAKE_SOURCE_DIR}/src/service/keeper.h
-    Keeper
-    KeeperAdaptor)
-
-add_library(
-    qdbus-stubs
-    STATIC
-    ${interface_files}
-    ${adaptor_files}
+set(
+  keeper_xml
+  "com.canonical.keeper.xml"
 )
 
+set(
+  user_xml
+  "com.canonical.keeper.User.xml"
+)
 
-#set_source_files_properties(
-#    "${DATA_DIR}/nm-device.xml"
-#    "${DATA_DIR}/nm-device-wifi.xml"
-#    "${DATA_DIR}/nm-access-point.xml"
-#    "${DATA_DIR}/nm-active-connection.xml"
-#    "${DATA_DIR}/nm-agent-manager.xml"
-#    "${DATA_DIR}/nm-vpn-connection.xml"
-#    "${DATA_DIR}/org.freedesktop.URfkill.xml"
-#    "${DATA_DIR}/org.freedesktop.URfkill.Device.xml"
-#    "${DATA_DIR}/org.freedesktop.URfkill.Killswitch.xml"
-#    "${DATA_DIR}/com.canonical.powerd.xml"
-#    PROPERTIES
-#    NO_NAMESPACE YES
-#)
+set_source_files_properties(
+    "${keeper_xml}"
+    "${user_xml}"
+    PROPERTIES
+    NO_NAMESPACE YES
+    INCLUDE "qdbus-stubs/dbus-types.h"
+)
+
+# Service Object
+
+set_source_files_properties(
+  ${keeper_xml}
+  PROPERTIES
+  CLASSNAME DBusInterfaceKeeper
+)
+
+qt5_add_dbus_interface(
+  interface_files
+  ${keeper_xml}
+  keeper_interface
+)
+
+qt5_add_dbus_adaptor(
+  adaptor_files
+  ${keeper_xml}
+  ${CMAKE_SOURCE_DIR}/src/service/keeper.h
+  Keeper
+  KeeperAdaptor
+)
+
+# User Object
+
+set_source_files_properties(
+  ${user_xml}
+  PROPERTIES
+  CLASSNAME DBusInterfaceKeeperUser
+)
+
+qt5_add_dbus_interface(
+  interface_files
+  ${user_xml}
+  keeper_user_interface
+)
+
+qt5_add_dbus_adaptor(
+  adaptor_files
+  ${user_xml}
+  ${CMAKE_SOURCE_DIR}/src/service/keeper-user.h
+  KeeperUser
+  KeeperUserAdaptor
+  KeeperUserAdaptor
+)
+
 #
-#set_source_files_properties(
-#    "${DATA_DIR}/nm-settings.xml"
-#    "${DATA_DIR}/nm-settings-connection.xml"
-#    "${DATA_DIR}/nm-manager.xml"
-#    "${DATA_DIR}/org.freedesktop.Notifications.xml"
-#    PROPERTIES
-#    NO_NAMESPACE YES
-#    INCLUDE "dbus-types.h"
-#)
 #
-#qt5_add_dbus_interface(
-#    CONNECTIVITY_BACKEND_SRC
-#    "${DATA_DIR}/org.freedesktop.URfkill.xml"
-#    URfkillInterface
-#)
-#
-#qt5_add_dbus_interface(
-#    CONNECTIVITY_BACKEND_SRC
-#    "${DATA_DIR}/org.freedesktop.URfkill.Device.xml"
-#    URfkillDeviceInterface
-#)
-#
-#qt5_add_dbus_interface(
-#    CONNECTIVITY_BACKEND_SRC
-#    "${DATA_DIR}/org.freedesktop.URfkill.Killswitch.xml"
-#    URfkillKillswitchInterface
-#)
-#
-#qt5_add_dbus_interface(
-#    CONNECTIVITY_BACKEND_SRC
-#    "${DATA_DIR}/nm-manager.xml"
-#    NetworkManagerInterface
-#)
-#
-#qt5_add_dbus_interface(
-#    CONNECTIVITY_BACKEND_SRC
-#    "${DATA_DIR}/nm-device.xml"
-#    NetworkManagerDeviceInterface
-#)
-#
-#qt5_add_dbus_interface(
-#    CONNECTIVITY_BACKEND_SRC
-#    "${DATA_DIR}/nm-device-wifi.xml"
-#    NetworkManagerDeviceWirelessInterface
-#)
-#
-#qt5_add_dbus_interface(
-#    CONNECTIVITY_BACKEND_SRC
-#    "${DATA_DIR}/nm-access-point.xml"
-#    NetworkManagerAccessPointInterface
-#)
-#
-#qt5_add_dbus_interface(
-#    CONNECTIVITY_BACKEND_SRC
-#    "${DATA_DIR}/nm-active-connection.xml"
-#    NetworkManagerActiveConnectionInterface
-#)
-#
-#qt5_add_dbus_interface(
-#    CONNECTIVITY_BACKEND_SRC
-#    "${DATA_DIR}/nm-vpn-connection.xml"
-#    NetworkManagerVpnConnectionInterface
-#)
-#
-#qt5_add_dbus_interface(
-#    CONNECTIVITY_BACKEND_SRC
-#    "${DATA_DIR}/nm-settings-connection.xml"
-#    NetworkManagerSettingsConnectionInterface
-#)
-#
-#qt5_add_dbus_interface(
-#    CONNECTIVITY_BACKEND_SRC
-#    "${DATA_DIR}/nm-agent-manager.xml"
-#    AgentManagerInterface
-#)
-#
-#qt5_add_dbus_interface(
-#    CONNECTIVITY_BACKEND_SRC
-#    "${DATA_DIR}/nm-settings-connection.xml"
-#    NetworkManagerSettingsConnectionInterface
-#)
-#
-#qt5_add_dbus_interface(
-#    CONNECTIVITY_BACKEND_SRC
-#    "${DATA_DIR}/nm-settings.xml"
-#    NetworkManagerSettingsInterface
-#)
-#
-#qt5_add_dbus_interface(
-#    CONNECTIVITY_BACKEND_SRC
-#    "${DATA_DIR}/org.freedesktop.Notifications.xml"
-#    NotificationsInterface
-#)
-#
-#qt5_add_dbus_interface(
-#    CONNECTIVITY_BACKEND_SRC
-#    "${DATA_DIR}/com.canonical.powerd.xml"
-#    PowerdInterface
-#)
-#
-#add_library(
-#    qdbus-stubs
-#    STATIC
-#    ${CONNECTIVITY_BACKEND_SRC}
-#)
-#
-#qt5_use_modules(
-#    qdbus-stubs
-#    DBus
-#)
+
+add_library(
+  qdbus-stubs
+  STATIC
+  ${interface_files}
+  ${adaptor_files}
+)

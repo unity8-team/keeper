@@ -5,8 +5,12 @@ include_directories("${CMAKE_BINARY_DIR}/src/qdbus-stubs")
 include_directories("${CMAKE_SOURCE_DIR}/src/qdbus-stubs")
 
 set(SERVICE_SOURCES
+  backup-choices.cpp
   keeper.cpp
+  keeper-user.cpp
   main.cpp
+  metadata.cpp
+  restore-choices.cpp
 )
 
 add_executable(
