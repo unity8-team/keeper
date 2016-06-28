@@ -48,6 +48,8 @@ class KeeperPrivate
     QSharedPointer<MetadataProvider> restore_choices_;
     QScopedPointer<BackupHelper> backup_helper_;
     QScopedPointer<StorageFrameworkClient> storage_;
+    QVector<Metadata> cached_backup_choices_;
+    QVector<Metadata> cached_restore_choices_;
 
     KeeperPrivate(Keeper* keeper,
                   const QSharedPointer<MetadataProvider>& backup_choices,
@@ -140,7 +142,8 @@ Keeper::GetBackupChoices() const
 {
     Q_D(const Keeper);
 
-    return d->backup_choices_->get_backups();
+    d->cached_backup_choices_ = d->backup_choices_->get_backups();
+    return d->cached_backup_choices_;
 }
 
 QVector<Metadata>
@@ -148,5 +151,6 @@ Keeper::GetRestoreChoices() const
 {
     Q_D(const Keeper);
 
-    return d->restore_choices_->get_backups();
+    d->cached_restore_choices_ = d->restore_choices_->get_backups();
+    return d->cached_restore_choices_;
 }
