@@ -50,7 +50,7 @@ Item::SPtr get_backups_folder_sync(const Account::SPtr& account)
 
     // look for an Ubuntu Backups subfolder
     // FIXME: i18n?
-    const auto backup_dir_name = QString::fromUtf8("Ubuntu Backups");
+    const auto backup_dir_name = QStringLiteral("Ubuntu Backups");
     try
     {
         auto results = root->lookup(backup_dir_name).results();

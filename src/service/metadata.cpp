@@ -62,7 +62,7 @@ Metadata::get_public_properties() const
 {
     // they're all public so far...
     QVariantMap ret = properties_;
-    ret.insert(QString::fromUtf8("key"), key_);
-    ret.insert(QString::fromUtf8("display-name"), display_name_);
+    ret.insert(QStringLiteral("key"), key_);
+    ret.insert(QStringLiteral("display-name"), display_name_);
     return ret;
 }

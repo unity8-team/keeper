@@ -58,13 +58,13 @@ BackupChoices::get_backups()
     //  System Data
     //
 
-    const auto type_key = QString::fromUtf8("type");
-    const auto icon_key = QString::fromUtf8("icon");
-    const auto system_data_str = QString::fromUtf8("system-data");
+    const auto type_key = QStringLiteral("type");
+    const auto icon_key = QStringLiteral("icon");
+    const auto system_data_str = QStringLiteral("system-data");
     {
         Metadata m(generate_new_uuid(), "System Data"); // FIXME: how to i18n in a Qt DBus service?
         m.set_property(type_key, system_data_str);
-        m.set_property(icon_key, QString::fromUtf8("folder-system"));
+        m.set_property(icon_key, QStringLiteral("folder-system"));
         ret.push_back(m);
     }
 
@@ -88,11 +88,11 @@ BackupChoices::get_backups()
         g_clear_error(&error);
     }
 
-    const auto name_key = QString::fromUtf8("name");
-    const auto package_key = QString::fromUtf8("package");
-    const auto title_key = QString::fromUtf8("title");
-    const auto version_key = QString::fromUtf8("version");
-    const auto application_str = QString::fromUtf8("application");
+    const auto name_key = QStringLiteral("name");
+    const auto package_key = QStringLiteral("package");
+    const auto title_key = QStringLiteral("title");
+    const auto version_key = QStringLiteral("version");
+    const auto application_str = QStringLiteral("application");
 
     auto loadDoc = QJsonDocument::fromJson(manifests_str.toUtf8());
     auto tmp = loadDoc.toJson();
@@ -120,7 +120,7 @@ BackupChoices::get_backups()
                 // if version is available, append it to display_name
                 const auto version = o[version_key];
                 if (version != QJsonValue::Undefined)
-                    display_name = QString::fromUtf8("%1 (%2)").arg(display_name).arg(version.toString());
+                    display_name = QStringLiteral("%1 (%2)").arg(display_name).arg(version.toString());
 
                 Metadata m(generate_new_uuid(), display_name);
                 m.set_property(package_key, name.toString());
@@ -146,14 +146,14 @@ BackupChoices::get_backups()
         QStandardPaths::StandardLocation location;
         QString icon;
     } standard_locations[] = {
-        { QStandardPaths::DocumentsLocation, QString::fromUtf8("folder-documents") },
-        { QStandardPaths::MoviesLocation,    QString::fromUtf8("folder-movies")    },
-        { QStandardPaths::PicturesLocation,  QString::fromUtf8("folder-pictures")  },
-        { QStandardPaths::MusicLocation,     QString::fromUtf8("folder-music")     }
+        { QStandardPaths::DocumentsLocation, QStringLiteral("folder-documents") },
+        { QStandardPaths::MoviesLocation,    QStringLiteral("folder-movies")    },
+        { QStandardPaths::PicturesLocation,  QStringLiteral("folder-pictures")  },
+        { QStandardPaths::MusicLocation,     QStringLiteral("folder-music")     }
     };
 
-    const auto path_key = QString::fromUtf8("path");
-    const auto user_folder_str = QString::fromUtf8("folder");
+    const auto path_key = QStringLiteral("path");
+    const auto user_folder_str = QStringLiteral("folder");
     for (const auto& sl : standard_locations)
     {
         const auto name = QStandardPaths::displayName(sl.location);
