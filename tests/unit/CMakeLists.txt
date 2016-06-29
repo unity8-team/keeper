@@ -27,6 +27,8 @@ add_executable(
 
     helper/helpers-test.cc
     helper/mir-mock.cpp
+
+    metadata-providers/user-dirs-test.cpp
 )
 
 qt5_use_modules(
@@ -40,6 +42,8 @@ target_link_libraries(
     unit-tests
     backup-helper
     test-utils
+    keeperservice
+    ${SERVICE_DEPS_LDFLAGS}
     ${HELPERS_TEST_DEPS_LDFLAGS}
     ${TEST_DEPENDENCIES_LDFLAGS}
     ${GTEST_LIBRARIES}
