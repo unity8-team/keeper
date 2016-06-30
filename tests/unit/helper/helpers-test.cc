@@ -30,8 +30,14 @@
 #include <ubuntu-app-launch/registry.h>
 #include <libdbustest/dbus-test.h>
 
+#include <libqtdbustest/DBusTestRunner.h>
+#include <libqtdbustest/QProcessDBusService.h>
+#include <libqtdbusmock/DBusMock.h>
+
 #include "mir-mock.h"
 #include <helper/backup-helper.h>
+#include <qdbus-stubs/dbus-types.h>
+#include <simple-helper/simple-helper-defs.h>
 
 
 
@@ -40,8 +46,15 @@ extern "C" {
     #include <fcntl.h>
 }
 
-class LibUAL : public ::testing::Test
+class TestHelpers : public ::testing::Test
 {
+public:
+    TestHelpers()
+    {
+    };
+
+    ~TestHelpers() = default;
+
 protected:
     DbusTestService* service = NULL;
     DbusTestDbusMock* mock = NULL;
@@ -51,19 +64,21 @@ protected:
     std::string last_resume_appid;
     guint resume_timeout = 0;
     std::shared_ptr<ubuntu::app_launch::Registry> registry;
+    DbusTestProcess * keeper = nullptr;
+    QProcess keeper_client;
 
 private:
     static void focus_cb(const gchar* appid, gpointer user_data)
     {
         g_debug("Focus Callback: %s", appid);
-        LibUAL* _this = static_cast<LibUAL*>(user_data);
+        TestHelpers* _this = static_cast<TestHelpers*>(user_data);
         _this->last_focus_appid = appid;
     }
 
     static void resume_cb(const gchar* appid, gpointer user_data)
     {
         g_debug("Resume Callback: %s", appid);
-        LibUAL* _this = static_cast<LibUAL*>(user_data);
+        TestHelpers* _this = static_cast<TestHelpers*>(user_data);
         _this->last_resume_appid = appid;
 
         if (_this->resume_timeout > 0)
@@ -91,6 +106,23 @@ protected:
         g_object_unref(monitor);
     }
 
+    void startTasks()
+    {
+        dbus_test_service_start_tasks(service);
+
+        bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
+        g_dbus_connection_set_exit_on_close(bus, FALSE);
+        g_object_add_weak_pointer(G_OBJECT(bus), (gpointer*)&bus);
+
+        /* Make sure we pretend the CG manager is just on our bus */
+        g_setenv("UBUNTU_APP_LAUNCH_CG_MANAGER_SESSION_BUS", "YES", TRUE);
+
+        ASSERT_TRUE(ubuntu_app_launch_observer_add_app_focus(focus_cb, this));
+        ASSERT_TRUE(ubuntu_app_launch_observer_add_app_resume(resume_cb, this));
+
+        registry = std::make_shared<ubuntu::app_launch::Registry>();
+    }
+
     virtual void SetUp()
     {
         /* Click DB test mode */
@@ -104,8 +136,17 @@ protected:
         g_setenv("XDG_DATA_DIRS", CMAKE_SOURCE_DIR, TRUE);
         g_setenv("XDG_CACHE_HOME", CMAKE_SOURCE_DIR "/libertine-data", TRUE);
         g_setenv("XDG_DATA_HOME", CMAKE_SOURCE_DIR "/libertine-home", TRUE);
+        QDir data_home_dir(CMAKE_SOURCE_DIR "/libertine-home");
+        if (!data_home_dir.exists())
+        {
+            data_home_dir.mkdir(CMAKE_SOURCE_DIR "/libertine-home");
+        }
 
         service = dbus_test_service_new(NULL);
+
+        keeper = dbus_test_process_new(KEEPER_SERVICE_BIN);
+        dbus_test_task_set_name(DBUS_TEST_TASK(keeper), "Keeper");
+        dbus_test_service_add_task(service, DBUS_TEST_TASK(keeper));
 
         debugConnection();
 
@@ -191,8 +232,6 @@ protected:
                             "target.close\n"
                             , NULL);
 
-
-
         dbus_test_dbus_mock_object_add_method(mock, uhelperobj, "Stop", G_VARIANT_TYPE("(asb)"), NULL, "", NULL);
 
         dbus_test_dbus_mock_object_add_method(mock, uhelperobj, "GetAllInstances", NULL, G_VARIANT_TYPE("ao"),
@@ -223,19 +262,22 @@ protected:
         /* Put it together */
         dbus_test_service_add_task(service, DBUS_TEST_TASK(mock));
         dbus_test_service_add_task(service, DBUS_TEST_TASK(cgmock));
-        dbus_test_service_start_tasks(service);
+//        dbus_test_service_start_tasks(service);
 
-        bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
-        g_dbus_connection_set_exit_on_close(bus, FALSE);
-        g_object_add_weak_pointer(G_OBJECT(bus), (gpointer*)&bus);
-
-        /* Make sure we pretend the CG manager is just on our bus */
-        g_setenv("UBUNTU_APP_LAUNCH_CG_MANAGER_SESSION_BUS", "YES", TRUE);
-
-        ASSERT_TRUE(ubuntu_app_launch_observer_add_app_focus(focus_cb, this));
-        ASSERT_TRUE(ubuntu_app_launch_observer_add_app_resume(resume_cb, this));
-
-        registry = std::make_shared<ubuntu::app_launch::Registry>();
+//        bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
+//        g_dbus_connection_set_exit_on_close(bus, FALSE);
+//        g_object_add_weak_pointer(G_OBJECT(bus), (gpointer*)&bus);
+//
+//        /* Make sure we pretend the CG manager is just on our bus */
+//        g_setenv("UBUNTU_APP_LAUNCH_CG_MANAGER_SESSION_BUS", "YES", TRUE);
+//
+//        ASSERT_TRUE(ubuntu_app_launch_observer_add_app_focus(focus_cb, this));
+//        ASSERT_TRUE(ubuntu_app_launch_observer_add_app_resume(resume_cb, this));
+//
+//        registry = std::make_shared<ubuntu::app_launch::Registry>();
+//
+//        qWarning() << "CONNECTION: " << g_dbus_connection_get_unique_name (bus);
+//        qWarning() << "CONNECTION 2: " << g_dbus_connection_get_guid (bus);
     }
 
     virtual void TearDown()
@@ -257,7 +299,101 @@ protected:
             pause(100);
             cleartry++;
         }
+
+        QDir data_home_dir(CMAKE_SOURCE_DIR "/libertine-home");
+        if (data_home_dir.exists())
+        {
+            data_home_dir.removeRecursively();
+        }
         ASSERT_EQ(nullptr, bus);
+    }
+
+    bool startKeeperClient()
+    {
+        keeper_client.start(KEEPER_CLIENT_BIN, QStringList());
+
+        if (!keeper_client.waitForStarted())
+            return false;
+
+        return true;
+    }
+
+    bool checkStorageFrameworkContent(QString const & content)
+    {
+        // search the storage framework file that the helper created
+        auto data_home = qgetenv("XDG_DATA_HOME");
+        if (data_home == "")
+        {
+            qWarning() << "ERROR: XDG_DATA_HOME is not defined";
+            return false;
+        }
+        QString storage_framework_dir_path = QString("%1%2storage-framework").arg(QString(data_home)).arg(QDir::separator());
+        QDir storage_framework_dir(storage_framework_dir_path);
+        if (!storage_framework_dir.exists())
+        {
+            qWarning() << "ERROR: Storage framework directory: [" << storage_framework_dir_path << "] does not exist.";
+            return false;
+        }
+        QFileInfo lastFile;
+        QFileInfoList files = storage_framework_dir.entryInfoList();
+        for (uint i = 0; i < files.size(); ++i)
+        {
+            QFileInfo file = files[i];
+            if (file.isFile())
+            {
+                if (file.created() > lastFile.created())
+                {
+                    lastFile = file;
+                }
+            }
+        }
+        if (!lastFile.isFile())
+        {
+            qWarning() << "ERROR: last file in the storage-framework directory was not found";
+            return false;
+        }
+        QFile storage_framework_file(lastFile.absoluteFilePath());
+        if(!storage_framework_file.open(QFile::ReadOnly))
+        {
+            qWarning() << "ERROR: opening file: " << lastFile.absoluteFilePath();
+            return false;
+        }
+
+        QTextStream in(&storage_framework_file);
+        QString file_content = in.readAll();
+
+        return file_content == content;
+    }
+
+    bool removeHelperMarkBeforeStarting()
+    {
+        QFile helper_mark(SIMPLE_HELPER_MARK_FILE_PATH);
+        if (helper_mark.exists())
+        {
+            return helper_mark.remove();
+        }
+        return true;
+    }
+
+    bool waitUntilHelperFinishes(int maxTimeout = 5000)
+    {
+        // TODO create a new mock for upstart that controls the lifecycle of the
+        // helper process so we can do this in a cleaner way.
+        QFile helper_mark(SIMPLE_HELPER_MARK_FILE_PATH);
+        int timeWaited = 0;
+        while (timeWaited < maxTimeout)
+        {
+            if (helper_mark.exists())
+            {
+                return true;
+            }
+            else
+            {
+                QThread::msleep(10);
+                timeWaited += 10;
+            }
+        }
+        return false;
     }
 
     GVariant* find_env(GVariant* env_array, const gchar* var)
@@ -354,8 +490,11 @@ protected:
 #define EXPECT_ENV(expected, envvars, key) EXPECT_EQ(expected, get_env(envvars, key)) << "for key " << key
 #define ASSERT_ENV(expected, envvars, key) ASSERT_EQ(expected, get_env(envvars, key)) << "for key " << key
 
-TEST_F(LibUAL, StartHelper)
+TEST_F(TestHelpers, StartHelper)
 {
+    // starts the services, including keeper-service
+    startTasks();
+
     DbusTestDbusMockObject* obj =
         dbus_test_dbus_mock_get_object(mock, "/com/test/untrusted/helper", "com.ubuntu.Upstart0_6.Job", NULL);
 
@@ -363,7 +502,7 @@ TEST_F(LibUAL, StartHelper)
 
     QSignalSpy spy(&helper, &BackupHelper::started);
 
-    helper.start(1999);
+    helper.start();
 
     guint len = 0;
     auto calls = dbus_test_dbus_mock_object_get_method_calls(mock, obj, "Start", &len, NULL);
@@ -400,11 +539,15 @@ TEST_F(LibUAL, StartHelper)
     }
 
     helper.stop();
+
     return;
 }
 
-TEST_F(LibUAL, StopHelper)
+TEST_F(TestHelpers, StopHelper)
 {
+    // starts the services, including keeper-service
+    startTasks();
+
     DbusTestDbusMockObject* obj =
         dbus_test_dbus_mock_get_object(mock, "/com/test/untrusted/helper", "com.ubuntu.Upstart0_6.Job", NULL);
 
@@ -480,8 +623,11 @@ static void helper_observer_cb(const gchar* appid, const gchar* instance, const 
     }
 }
 
-TEST_F(LibUAL, StartStopHelperObserver)
+TEST_F(TestHelpers, StartStopHelperObserver)
 {
+    // starts the services, including keeper-service
+    startTasks();
+
     helper_observer_data_t start_data = {
         .count = 0, .appid = "com.foo_foo_1.2.3", .type = "my-type-is-scorpio", .instance = nullptr};
     helper_observer_data_t stop_data = {
@@ -527,6 +673,49 @@ TEST_F(LibUAL, StartStopHelperObserver)
     ASSERT_TRUE(
         ubuntu_app_launch_observer_delete_helper_started(helper_observer_cb, "my-type-is-scorpio", &start_data));
     ASSERT_TRUE(ubuntu_app_launch_observer_delete_helper_stop(helper_observer_cb, "my-type-is-libra", &stop_data));
+}
+
+TEST_F(TestHelpers, StartFullTest)
+{
+    g_setenv("KEEPER_TEST_HELPER", TEST_SIMPLE_HELPER, TRUE);
+
+    // remove any previous marks that may exist.
+    EXPECT_TRUE(removeHelperMarkBeforeStarting());
+
+    // starts the services, including keeper-service
+    startTasks();
+
+    // start the keeper client, which triggers the backup process
+    // TODO when we have a more complex client we would need to pass here
+    // some parameters to the client.
+    ASSERT_TRUE(startKeeperClient());
+
+    // Wait until the helper finishes
+    EXPECT_TRUE(waitUntilHelperFinishes());
+
+    // send the upstart signal so keeper-service is aware of the helper termination
+    DbusTestDbusMockObject* objUpstart =
+        dbus_test_dbus_mock_get_object(mock, "/com/ubuntu/Upstart", "com.ubuntu.Upstart0_6", NULL);
+
+    dbus_test_dbus_mock_object_emit_signal(
+        mock, objUpstart, "EventEmitted", G_VARIANT_TYPE("(sas)"),
+        g_variant_new_parsed(
+            "('stopped', ['JOB=untrusted-helper', 'INSTANCE=backup-helper::dekko.dekkoproject_dekko_0.6.20'])"),
+        NULL);
+    g_usleep(100000);
+    while (g_main_pending())
+    {
+        g_main_iteration(TRUE);
+    }
+
+    // check that the content of the file is the expected
+    EXPECT_TRUE(checkStorageFrameworkContent(SIMPLE_HELPER_TEXT_TO_WRITE));
+
+    // let's leave things clean
+    EXPECT_TRUE(removeHelperMarkBeforeStarting());
+    unsetenv("KEEPER_TEST_HELPER");
+
+    return;
 }
 
 int main(int argc, char** argv)
