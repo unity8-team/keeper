@@ -52,7 +52,7 @@ public:
 
     void init();
 
-    void start(int socket);
+    void start();
     void stop();
 
     void emitHelperStarted();
@@ -66,6 +66,8 @@ Q_SIGNALS:
     void finished();
 
 private:
+    QString getHelperPath(QString const & appId);
+
     QString appid_;
     QTimer * timer_;
     std::shared_ptr<ubuntu::app_launch::Registry> registry_;

@@ -68,7 +68,7 @@ void Keeper::socketReady(int sd)
 {
     qDebug() << "I've got a new socket: " << sd;
     qDebug() << "Starting the backup helper";
-    backup_helper_->start(sd);
+    backup_helper_->start();
 }
 
 void Keeper::helperStarted()
