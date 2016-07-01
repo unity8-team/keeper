@@ -22,6 +22,7 @@
 #include <gtest/gtest.h>
 
 #include <QCoreApplication>
+#include <QDebug>
 #include <QDir>
 #include <QFile>
 #include <QSignalSpy>
@@ -40,7 +41,7 @@ inline void PrintTo(const std::set<QString>& s, std::ostream* os)
 {
     *os << "{ ";
     for (const auto& str : s)
-        *os << '"' << str.toStdString() << "\", "; 
+        *os << '"' << str.toStdString() << "\", ";
     *os << " }";
 }
 
@@ -71,12 +72,12 @@ protected:
             const char * key;
             const char * dirname;
         } user_dirs[] = {
-            { "XDG_DESKTOP_DIR", "Desktop" }, 
-            { "XDG_DOWNLOAD_DIR", "Downloads" }, 
-            { "XDG_TEMPLATES_DIR", "Templates" }, 
-            { "XDG_PUBLICSHARE_DIR", "Public" }, 
-            { "XDG_DOCUMENTS_DIR", "Documents" }, 
-            { "XDG_MUSIC_DIR", "Music" }, 
+            { "XDG_DESKTOP_DIR", "Desktop" },
+            { "XDG_DOWNLOAD_DIR", "Downloads" },
+            { "XDG_TEMPLATES_DIR", "Templates" },
+            { "XDG_PUBLICSHARE_DIR", "Public" },
+            { "XDG_DOCUMENTS_DIR", "Documents" },
+            { "XDG_MUSIC_DIR", "Music" },
             { "XDG_PICTURES_DIR", "Pictures" },
             { "XDG_VIDEOS_DIR", "Videos" }
         };
