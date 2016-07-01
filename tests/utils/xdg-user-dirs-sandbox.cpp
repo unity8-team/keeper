@@ -79,4 +79,3 @@ XdgUserDirsSandbox::init()
 
     qDebug() << xdg_config_key << "sandbox created in" << top.path();
 }
-

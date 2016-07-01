@@ -32,4 +32,3 @@ private:
     void init();
     std::shared_ptr<QTemporaryDir> temporary_dir_;
 };
-
