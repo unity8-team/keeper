@@ -44,8 +44,8 @@ public:
 
     virtual ~Keeper();
 
-    QVector<Metadata> GetBackupChoices() const;
-    QVector<Metadata> GetRestoreChoices() const;
+    QVector<Metadata> get_backup_choices();
+    QVector<Metadata> get_restore_choices();
 
 public Q_SLOTS:
 

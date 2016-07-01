@@ -1,21 +1,30 @@
+set(SERVICE_LIB "keeperservice")
 set(SERVICE_EXEC "keeper-service")
 
 include_directories("${CMAKE_SOURCE_DIR}/src")
 include_directories("${CMAKE_BINARY_DIR}/src/qdbus-stubs")
 include_directories("${CMAKE_SOURCE_DIR}/src/qdbus-stubs")
 
-set(SERVICE_SOURCES
+set(SERVICE_LIB_SOURCES
   backup-choices.cpp
   keeper.cpp
   keeper-user.cpp
-  main.cpp
   metadata.cpp
   restore-choices.cpp
+)
+add_library(
+  ${SERVICE_LIB}
+  STATIC
+  ${SERVICE_LIB_SOURCES}
+)
+
+set(SERVICE_EXEC_SOURCES
+  main.cpp
 )
 
 add_executable(
   ${SERVICE_EXEC}
-  ${SERVICE_SOURCES}
+  ${SERVICE_EXEC_SOURCES}
 )
 
 link_directories(
@@ -24,6 +33,7 @@ link_directories(
 
 target_link_libraries(
   ${SERVICE_EXEC}
+  ${SERVICE_LIB}
   storage
   util
   qdbus-stubs

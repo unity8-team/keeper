@@ -19,13 +19,31 @@
 
 #include "service/backup-choices.h"
 
+#include <click.h>
+
+#include <uuid/uuid.h>
+
 #include <QDebug>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonValue>
 #include <QStandardPaths>
 #include <QString>
 
 #include <array>
 
-#include <uuid/uuid.h>
+namespace
+{
+    QString generate_new_uuid()
+    {
+        uuid_t keyuu;
+        uuid_generate(keyuu);
+        char keybuf[37];
+        uuid_unparse(keyuu, keybuf);
+        return QString::fromUtf8(keybuf);
+    }
+}
 
 BackupChoices::BackupChoices() =default;
 
@@ -36,37 +54,121 @@ BackupChoices::get_backups()
 {
     QVector<Metadata> ret;
 
-    // FIXME: add the click packages here
+    //
+    //  System Data
+    //
 
-    // XDG User Directories
+    const auto type_key = QStringLiteral("type");
+    const auto icon_key = QStringLiteral("icon");
+    const auto system_data_str = QStringLiteral("system-data");
+    {
+        Metadata m(generate_new_uuid(), "System Data"); // FIXME: how to i18n in a Qt DBus service?
+        m.set_property(type_key, system_data_str);
+        m.set_property(icon_key, QStringLiteral("folder-system"));
+        ret.push_back(m);
+    }
 
-    const std::array<QStandardPaths::StandardLocation,4> standard_locations = {
-        QStandardPaths::DocumentsLocation,
-        QStandardPaths::MoviesLocation,
-        QStandardPaths::PicturesLocation,
-        QStandardPaths::MusicLocation
+    //
+    //  Click Packages
+    //
+
+    QString manifests_str;
+    GError* error {};
+    auto user = click_user_new_for_user(nullptr, nullptr, &error);
+    if (user != nullptr)
+    {
+        auto tmp = click_user_get_manifests_as_string (user, &error);
+        manifests_str = QString::fromUtf8(tmp);
+        g_clear_pointer(&tmp, g_free);
+        g_clear_object(&user);
+    }
+    if (error != nullptr)
+    {
+        qCritical() << "Error getting click manifests: " << error->message;
+        g_clear_error(&error);
+    }
+
+    const auto name_key = QStringLiteral("name");
+    const auto package_key = QStringLiteral("package");
+    const auto title_key = QStringLiteral("title");
+    const auto version_key = QStringLiteral("version");
+    const auto application_str = QStringLiteral("application");
+
+    auto loadDoc = QJsonDocument::fromJson(manifests_str.toUtf8());
+    auto tmp = loadDoc.toJson();
+    if (loadDoc.isArray())
+    {
+        auto manifests = loadDoc.array();
+        for(auto it=manifests.begin(), end=manifests.end(); it!=end; ++it)
+        {
+            const auto& manifest (*it);
+            if (manifest.isObject())
+            {
+                auto o = manifest.toObject();
+
+                // manditory name
+                const auto name = o[name_key];
+                if (name == QJsonValue::Undefined)
+                    continue;
+
+                // manditory title
+                const auto title = o[title_key];
+                if (title == QJsonValue::Undefined)
+                    continue;
+                QString display_name = title.toString();
+
+                // if version is available, append it to display_name
+                const auto version = o[version_key];
+                if (version != QJsonValue::Undefined)
+                    display_name = QStringLiteral("%1 (%2)").arg(display_name).arg(version.toString());
+
+                Metadata m(generate_new_uuid(), display_name);
+                m.set_property(package_key, name.toString());
+                m.set_property(type_key, application_str);
+
+                if (version != QJsonValue::Undefined)
+                    m.set_property(version_key, version.toString());
+
+                const auto icon = o[icon_key];
+                if (icon != QJsonValue::Undefined)
+                    m.set_property(icon_key, icon.toString());
+
+                ret.push_back(m);
+            }
+        }
+    }
+
+    //
+    //  XDG User Directories
+    //
+
+    const struct {
+        QStandardPaths::StandardLocation location;
+        QString icon;
+    } standard_locations[] = {
+        { QStandardPaths::DocumentsLocation, QStringLiteral("folder-documents") },
+        { QStandardPaths::MoviesLocation,    QStringLiteral("folder-movies")    },
+        { QStandardPaths::PicturesLocation,  QStringLiteral("folder-pictures")  },
+        { QStandardPaths::MusicLocation,     QStringLiteral("folder-music")     }
     };
 
-    const auto path_str = QString::fromUtf8("path");
-
+    const auto path_key = QStringLiteral("path");
+    const auto user_folder_str = QStringLiteral("folder");
     for (const auto& sl : standard_locations)
     {
-        const auto name = QStandardPaths::displayName(sl);
-        const auto locations = QStandardPaths::standardLocations(sl);
+        const auto name = QStandardPaths::displayName(sl.location);
+        const auto locations = QStandardPaths::standardLocations(sl.location);
         if (locations.empty())
         {
             qWarning() << "unable to find path for"  << name;
         }
         else
         {
-            uuid_t keyuu;
-            uuid_generate(keyuu);
-            char keybuf[37];
-            uuid_unparse(keyuu, keybuf);
-            const auto keystr = QString::fromUtf8(keybuf);
-
+            const auto keystr = generate_new_uuid();
             Metadata m(keystr, name);
-            m.set_property(path_str, locations.front());
+            m.set_property(path_key, locations.front());
+            m.set_property(type_key, user_folder_str);
+            m.set_property(icon_key, sl.icon);
             ret.push_back(m);
         }
     }

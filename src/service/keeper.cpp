@@ -48,6 +48,8 @@ class KeeperPrivate
     QSharedPointer<MetadataProvider> restore_choices_;
     QScopedPointer<BackupHelper> backup_helper_;
     QScopedPointer<StorageFrameworkClient> storage_;
+    QVector<Metadata> cached_backup_choices_;
+    QVector<Metadata> cached_restore_choices_;
 
     KeeperPrivate(Keeper* keeper,
                   const QSharedPointer<MetadataProvider>& backup_choices,
@@ -57,6 +59,8 @@ class KeeperPrivate
         , restore_choices_(restore_choices)
         , backup_helper_(new BackupHelper(DEKKO_APP_ID))
         , storage_(new StorageFrameworkClient())
+        , cached_backup_choices_()
+        , cached_restore_choices_()
     {
         QObject::connect(storage_.data(), &StorageFrameworkClient::socketReady, q_ptr, &Keeper::socketReady);
         QObject::connect(storage_.data(), &StorageFrameworkClient::socketClosed, q_ptr, &Keeper::socketClosed);
@@ -136,17 +140,19 @@ void Keeper::socketClosed()
 }
 
 QVector<Metadata>
-Keeper::GetBackupChoices() const
+Keeper::get_backup_choices()
 {
-    Q_D(const Keeper);
+    Q_D(Keeper);
 
-    return d->backup_choices_->get_backups();
+    d->cached_backup_choices_ = d->backup_choices_->get_backups();
+    return d->cached_backup_choices_;
 }
 
 QVector<Metadata>
-Keeper::GetRestoreChoices() const
+Keeper::get_restore_choices()
 {
-    Q_D(const Keeper);
+    Q_D(Keeper);
 
-    return d->restore_choices_->get_backups();
+    d->cached_restore_choices_ = d->restore_choices_->get_backups();
+    return d->cached_restore_choices_;
 }

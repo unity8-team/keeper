@@ -33,12 +33,12 @@ KeeperUser::KeeperUser(Keeper* keeper)
 
 KeeperUser::~KeeperUser() =default;
 
-QVariantMap
+QVariantDictMap
 KeeperUser::GetBackupChoices()
 {
-    QVariantMap ret;
-    for (const auto& item : keeper_.GetBackupChoices())
-        ret[item.key()] = item.display_name();
+    QVariantDictMap ret;
+    for (const auto& metadata : keeper_.get_backup_choices())
+        ret.insert(metadata.key(), metadata.get_public_properties());
     return ret;
 }
 
@@ -47,7 +47,7 @@ KeeperUser::StartBackup (const QStringList& keys)
 {
     // FIXME: writeme
 
-    qInfo() << keys;
+    qDebug() << keys;
 }
 
 void
@@ -55,14 +55,14 @@ KeeperUser::Cancel()
 {
     // FIXME: writeme
 
-    qInfo() << "hello world";
+    qDebug() << "hello world";
 }
 
 QVariantDictMap
 KeeperUser::GetRestoreChoices()
 {
     QVariantDictMap ret;
-    for (const auto& metadata : keeper_.GetRestoreChoices())
+    for (const auto& metadata : keeper_.get_restore_choices())
         ret.insert(metadata.key(), metadata.get_public_properties());
     return ret;
 }
@@ -72,16 +72,16 @@ KeeperUser::StartRestore (const QStringList& keys)
 {
     // FIXME: writeme
 
-    qInfo() << keys;
+    qDebug() << keys;
 }
 
 QVariantDictMap
-KeeperUser::getState() const
+KeeperUser::get_state() const
 {
     // FIXME: writeme (the code below is junk 'hello world' data for testing in d-feet)
 
     QVariantDictMap ret;
-    for (const auto& item : keeper_.GetBackupChoices())
+    for (const auto& item : keeper_.get_backup_choices())
         ret[item.key()];
     return ret;
 }
