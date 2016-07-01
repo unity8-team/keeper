@@ -37,7 +37,7 @@ public:
     TarCreator(const QStringList& files, bool compress, QObject* parent=nullptr);
     ~TarCreator();
 
-    quint64 calculate_size();
+    qint64 calculate_size();
 
 private:
     QScopedPointer<TarCreatorPrivate> const d_ptr;

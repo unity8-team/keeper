@@ -83,21 +83,25 @@ TEST_F(TarCreatorFixture, HelloWorld)
 
 TEST_F(TarCreatorFixture, CreateUncompressedFromSingleDirectoryOfFiles)
 {
-    constexpr int n_runs = 10;
-    constexpr int max_files_per_test = 32;
-    constexpr int max_filesize = 1024*1024;
+    static constexpr int n_runs = 10;
+    static constexpr int max_files_per_test = 32;
+    static constexpr int max_filesize = 1024*1024;
+
+    qsrand(time(nullptr));
 
     for (int i=0; i<n_runs; ++i)
     {
         // build a directory full of random files
         QTemporaryDir sandbox;
-        auto files = std::vector<FileInfo>(qrand()%max_files_per_test);
+        const auto n_files = std::max(1, (qrand() % max_files_per_test));
+        auto files = std::vector<FileInfo>(n_files);
         qint64 filesize_sum = 0;
         for (decltype(files.size()) j=0, n=files.size(); j!=n; ++j)
         {
             const auto filesize = qrand() % max_filesize;
-            files[j] = create_some_file(sandbox.path(), filesize);
-            filesize_sum += files[i].size;
+            auto& file = files[j];
+            file = create_some_file(sandbox.path(), filesize);
+            filesize_sum += file.size;
         }
 
         // build the TarCreator
@@ -108,6 +112,7 @@ TEST_F(TarCreatorFixture, CreateUncompressedFromSingleDirectoryOfFiles)
 
         // simple sanity check on its size estimate
         const auto estimated_size = tar_creator.calculate_size();
+std::cerr << "estimated size is " << estimated_size << " bytes" << std::endl;
         ASSERT_GT(estimated_size, filesize_sum);
     }
 }

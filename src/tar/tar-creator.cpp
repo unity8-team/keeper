@@ -19,28 +19,73 @@
 
 #include "tar/tar-creator.h"
 
+#include <archive.h>
+#include <archive_entry.h>
+
+#include <QDebug>
+
 class TarCreatorPrivate
 {
 public:
 
-    TarCreatorPrivate(TarCreator* tar_creator, const QStringList& files, bool compress)
+    TarCreatorPrivate(TarCreator* tar_creator, const QStringList& filenames, bool compress)
         : q_ptr(tar_creator)
-        , files_(files)
+        , filenames_(filenames)
         , compress_(compress)
     {
     }
 
     Q_DISABLE_COPY(TarCreatorPrivate)
 
-    quint64 calculate_size()
+    qint64 calculate_size()
+    {
+        return compress_ ? calculate_compressed_size() : calculate_uncompressed_size();
+    }
+
+    qint64 calculate_compressed_size()
     {
         return 0;
+    }
+
+    qint64 calculate_uncompressed_size()
+    {
+        qint64 archive_size {};
+
+        auto a = archive_write_new();
+        archive_write_set_format_pax(a);
+        archive_write_open(a,
+            &archive_size,
+            [](struct archive*, void*){ return ARCHIVE_OK; }, // open
+            [](struct archive*, void* userdata, const void*, size_t len){ // write
+                  *static_cast<qint64*>(userdata) += len;
+                  return ssize_t(len);
+            },
+            [](struct archive*, void*){ return ARCHIVE_OK; } // close
+        );
+
+        for (const auto& filename : filenames_)
+        {
+            const auto filename_utf8 = filename.toUtf8();
+            struct stat st;
+            stat(filename_utf8.constData(), &st);
+
+            auto entry = archive_entry_new();
+            archive_entry_copy_stat(entry, &st);
+            archive_entry_set_pathname(entry, filename_utf8.constData());
+            if (archive_write_header(a, entry) != ARCHIVE_OK)
+                qCritical() << archive_error_string(a);
+            archive_entry_free(entry);
+        }
+
+        archive_write_close(a);
+        archive_write_free(a);
+        return archive_size;
     }
 
 private:
 
     TarCreator * const q_ptr {};
-    const QStringList files_ {};
+    const QStringList filenames_ {};
     const bool compress_ {};
 };
 
@@ -48,15 +93,15 @@ private:
 ***
 **/
 
-TarCreator::TarCreator(const QStringList& files, bool compress, QObject* parent)
+TarCreator::TarCreator(const QStringList& filenames, bool compress, QObject* parent)
     : QObject(parent)
-    , d_ptr(new TarCreatorPrivate(this, files, compress))
+    , d_ptr(new TarCreatorPrivate(this, filenames, compress))
 {
 }
 
 TarCreator::~TarCreator() =default;
 
-quint64
+qint64
 TarCreator::calculate_size()
 {
     Q_D(TarCreator);
