@@ -1,4 +1,4 @@
-set(APP_LIB "keepertarcreator")
+set(APP_LIB "keepertar")
 set(APP_EXEC "keeper-tar-creator")
 
 set(APP_LIB_SOURCES
