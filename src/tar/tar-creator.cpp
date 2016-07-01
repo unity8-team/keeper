@@ -17,19 +17,19 @@
  *   Charles Kerr <charles.kerr@canoincal.com>
  */
 
-#include "tar/tar-builder.h"
+#include "tar/tar-creator.h"
 
-class TarBuilderPrivate
+class TarCreatorPrivate
 {
-    Q_DISABLE_COPY(TarBuilderPrivate)
-    Q_DECLARE_PUBLIC(TarBuilder)
+    Q_DISABLE_COPY(TarCreatorPrivate)
+    Q_DECLARE_PUBLIC(TarCreator)
 
-    TarBuilder * const q_ptr {};
+    TarCreator * const q_ptr {};
     const QStringList files_ {};
     const bool compress_ {};
 
-    TarBuilderPrivate(TarBuilder* tar_builder, const QStringList& files, bool compress)
-        : q_ptr(tar_builder)
+    TarCreatorPrivate(TarCreator* tar_creator, const QStringList& files, bool compress)
+        : q_ptr(tar_creator)
         , files_(files)
         , compress_(compress)
     {
@@ -45,18 +45,18 @@ class TarBuilderPrivate
 ***
 **/
 
-TarBuilder::TarBuilder(const QStringList& files, bool compress, QObject* parent)
+TarCreator::TarCreator(const QStringList& files, bool compress, QObject* parent)
     : QObject(parent)
-    , d_ptr(new TarBuilderPrivate(this, files, compress))
+    , d_ptr(new TarCreatorPrivate(this, files, compress))
 {
 }
 
-TarBuilder::~TarBuilder() =default;
+TarCreator::~TarCreator() =default;
 
 quint64
-TarBuilder::calculate_size()
+TarCreator::calculate_size()
 {
-    Q_D(TarBuilder);
+    Q_D(TarCreator);
 
     return d->calculate_size();
 }

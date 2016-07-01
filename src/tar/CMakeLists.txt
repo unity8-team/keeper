@@ -1,8 +1,8 @@
-set(APP_LIB "keeperbackupfiles")
-set(APP_EXEC "keeper-backup-files")
+set(APP_LIB "keepertarcreator")
+set(APP_EXEC "keeper-tar-creator")
 
 set(APP_LIB_SOURCES
-    tar-builder.cpp
+    tar-creator.cpp
 )
 add_library(
     ${APP_LIB}

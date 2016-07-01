@@ -25,21 +25,21 @@
 #include <QScopedPointer>
 
 
-class TarBuilderPrivate;
-class TarBuilder : public QObject
+class TarCreatorPrivate;
+class TarCreator : public QObject
 {
     Q_OBJECT
-    Q_DECLARE_PRIVATE(TarBuilder)
+    Q_DECLARE_PRIVATE(TarCreator)
 
 public:
-    Q_DISABLE_COPY(TarBuilder)
+    Q_DISABLE_COPY(TarCreator)
 
-    TarBuilder(const QStringList& files, bool compress, QObject* parent=nullptr);
-    ~TarBuilder();
+    TarCreator(const QStringList& files, bool compress, QObject* parent=nullptr);
+    ~TarCreator();
 
     quint64 calculate_size();
 
 private:
-    QScopedPointer<TarBuilderPrivate> const d_ptr;
+    QScopedPointer<TarCreatorPrivate> const d_ptr;
 };
 

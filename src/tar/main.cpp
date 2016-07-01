@@ -20,7 +20,7 @@
 //#include "util/logging.h"
 //#include "util/unix-signal-handler.h"
 
-#include "tar/tar-builder.h"
+#include "tar/tar-creator.h"
 
 #include <QCommandLineParser>
 #include <QCoreApplication>
@@ -70,8 +70,8 @@ main(int argc, char **argv)
         std::cerr << "--> " << qPrintable(file) << std::endl;
     }
 
-    TarBuilder tar_builder(files, compress);
-    std::cout << "size: " << tar_builder.calculate_size() << std::endl;
+    TarCreator tar_creator(files, compress);
+    std::cout << "size: " << tar_creator.calculate_size() << std::endl;
 
 
     //DBusTypes::registerMetaTypes();
