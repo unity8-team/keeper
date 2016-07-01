@@ -28,6 +28,8 @@ add_executable(
     helper/helpers-test.cc
     helper/mir-mock.cpp
 
+    tar/tar-creator-test.cpp
+
     metadata-providers/user-dirs-test.cpp
 )
 
