@@ -21,12 +21,7 @@
 
 class TarCreatorPrivate
 {
-    Q_DISABLE_COPY(TarCreatorPrivate)
-    Q_DECLARE_PUBLIC(TarCreator)
-
-    TarCreator * const q_ptr {};
-    const QStringList files_ {};
-    const bool compress_ {};
+public:
 
     TarCreatorPrivate(TarCreator* tar_creator, const QStringList& files, bool compress)
         : q_ptr(tar_creator)
@@ -35,10 +30,18 @@ class TarCreatorPrivate
     {
     }
 
+    Q_DISABLE_COPY(TarCreatorPrivate)
+
     quint64 calculate_size()
     {
         return 0;
     }
+
+private:
+
+    TarCreator * const q_ptr {};
+    const QStringList files_ {};
+    const bool compress_ {};
 };
 
 /**

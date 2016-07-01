@@ -42,4 +42,3 @@ public:
 private:
     QScopedPointer<TarCreatorPrivate> const d_ptr;
 };
-
