@@ -22,6 +22,7 @@
 #include <gtest/gtest.h>
 
 #include <QCoreApplication>
+#include <QDebug>
 #include <QDir>
 #include <QFile>
 #include <QSignalSpy>
