@@ -23,6 +23,8 @@
 #include <archive_entry.h>
 
 #include <QDebug>
+#include <QFile>
+#include <QString>
 
 class TarCreatorPrivate
 {
@@ -42,9 +44,38 @@ public:
         return compress_ ? calculate_compressed_size() : calculate_uncompressed_size();
     }
 
-    qint64 calculate_compressed_size()
+
+    static int calculate_archive_open_callback(struct archive *, void *)
     {
-        return 0;
+        return ARCHIVE_OK;
+    }
+    static int calculate_archive_close_callback(struct archive *, void *)
+    {
+        return ARCHIVE_OK;
+    }
+    static ssize_t calculate_archive_write_callback(
+        struct archive *,
+        void * userdata,
+        const void *,
+        size_t len)
+    {
+        *static_cast<qint64*>(userdata) += len;
+        return ssize_t(len);
+    }
+
+    static void add_file_header_to_archive(
+        struct archive* archive,
+        const QString& filename)
+    {
+        struct stat st;
+        const auto filename_utf8 = filename.toUtf8();
+        stat(filename_utf8.constData(), &st);
+        auto entry = archive_entry_new();
+        archive_entry_copy_stat(entry, &st);
+        archive_entry_set_pathname(entry, filename_utf8.constData());
+        if (archive_write_header(archive, entry) != ARCHIVE_OK)
+            qCritical() << archive_error_string(archive);
+        archive_entry_free(entry);
     }
 
     qint64 calculate_uncompressed_size()
@@ -55,26 +86,54 @@ public:
         archive_write_set_format_pax(a);
         archive_write_open(a,
             &archive_size,
-            [](struct archive*, void*){ return ARCHIVE_OK; }, // open
-            [](struct archive*, void* userdata, const void*, size_t len){ // write
-                  *static_cast<qint64*>(userdata) += len;
-                  return ssize_t(len);
-            },
-            [](struct archive*, void*){ return ARCHIVE_OK; } // close
+            calculate_archive_open_callback,
+            calculate_archive_write_callback,
+            calculate_archive_close_callback
         );
 
         for (const auto& filename : filenames_)
         {
-            const auto filename_utf8 = filename.toUtf8();
-            struct stat st;
-            stat(filename_utf8.constData(), &st);
+            add_file_header_to_archive(a, filename);
 
-            auto entry = archive_entry_new();
-            archive_entry_copy_stat(entry, &st);
-            archive_entry_set_pathname(entry, filename_utf8.constData());
-            if (archive_write_header(a, entry) != ARCHIVE_OK)
-                qCritical() << archive_error_string(a);
-            archive_entry_free(entry);
+            // don't bother with archive_write_data():
+            // libarchive pads any missing data,
+            // even if /all/ the data is missing
+        }
+
+        archive_write_close(a);
+        archive_write_free(a);
+        return archive_size;
+    }
+
+    qint64 calculate_compressed_size()
+    {
+        qint64 archive_size {};
+
+        auto a = archive_write_new();
+        archive_write_set_format_pax(a);
+        archive_write_add_filter_xz(a);
+        archive_write_open(a,
+            &archive_size,
+            calculate_archive_open_callback,
+            calculate_archive_write_callback,
+            calculate_archive_close_callback
+        );
+
+        for (const auto& filename : filenames_)
+        {
+            add_file_header_to_archive(a, filename);
+
+            // write the content
+            QFile file(filename);
+            file.open(QIODevice::ReadOnly);
+            char buf[4096];
+            for(;;) {
+                const auto n_read = file.read(buf, sizeof(buf));
+                if (n_read == 0)
+                    break;
+                if (n_read > 0)
+                    archive_write_data(a, buf, n_read);
+            }
         }
 
         archive_write_close(a);
