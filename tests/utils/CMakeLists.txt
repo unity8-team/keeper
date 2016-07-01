@@ -6,6 +6,7 @@ add_library(
     test-utils
     STATIC
     main.cpp
+    xdg-user-dirs-sandbox.cpp
 )
 
 qt5_use_modules(
