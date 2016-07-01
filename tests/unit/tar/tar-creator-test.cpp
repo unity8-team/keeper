@@ -46,6 +46,8 @@ protected:
 
      FileInfo create_some_file(const QString& dir, qint64 filesize)
     {
+#warning FIXME some of these filenames need to be > 100 characters
+
         // build a file holding filesize random letters
         QTemporaryFile f(dir+"/tmpfile-XXXXXX");
         f.setAutoRemove(false);
@@ -104,15 +106,23 @@ TEST_F(TarCreatorFixture, CreateUncompressedFromSingleDirectoryOfFiles)
             filesize_sum += file.size;
         }
 
-        // build the TarCreator
+        // start the TarCreator
         QStringList filenames;
         for (const auto& file : files)
             filenames.append(file.filename);
-        TarCreator tar_creator (filenames, false);
+        TarCreator tar_creator(filenames, false);
 
         // simple sanity check on its size estimate
         const auto estimated_size = tar_creator.calculate_size();
 std::cerr << "estimated size is " << estimated_size << " bytes" << std::endl;
         ASSERT_GT(estimated_size, filesize_sum);
+
+        // FIXME: actually build the tar and confirm the size eq calculated size
     }
 }
+
+// FIXME: calculate compressed size
+
+// FIXME: actually build the compressed tar and confirm the size eq calculated size
+
+// FIXME: what happens when we pass in a directory name instead of an ordinary file. We need to confirm the subtree gets walked correctly
