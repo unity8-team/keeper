@@ -23,12 +23,12 @@ include_directories(
 add_executable(
     unit-tests
 
+    tar/tar-creator-test.cpp
+
     storage/test-factory.cpp
 
     helper/helpers-test.cc
     helper/mir-mock.cpp
-
-    tar/tar-creator-test.cpp
 
     metadata-providers/user-dirs-test.cpp
 )

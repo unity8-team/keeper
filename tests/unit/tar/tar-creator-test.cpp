@@ -114,10 +114,18 @@ TEST_F(TarCreatorFixture, CreateUncompressedFromSingleDirectoryOfFiles)
 
         // simple sanity check on its size estimate
         const auto estimated_size = tar_creator.calculate_size();
-std::cerr << "estimated size is " << estimated_size << " bytes" << std::endl;
         ASSERT_GT(estimated_size, filesize_sum);
 
-        // FIXME: actually build the tar and confirm the size eq calculated size
+        // does it match the actual size?
+        size_t actual_size {};
+        std::vector<char> buf;
+        while (tar_creator.step(buf)) {
+            std::cerr << "step got " << buf.size() << " bytes" << std::endl;
+            actual_size += buf.size();
+        }
+        ASSERT_EQ(estimated_size, actual_size);
+
+        // FIXME: now extract and confirm the checksums are the same
     }
 }
 

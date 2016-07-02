@@ -47,11 +47,15 @@ public:
         return compress_ ? calculate_compressed_size() : calculate_uncompressed_size();
     }
 
-    void step(std::vector<char>& fillme)
+    bool step(std::vector<char>& fillme)
     {
+        step_buf_.resize(0);
+        bool success = true;
+
+        // if this is the first step, create an archive
         if (!step_archive_)
         {
-            step_archive_.reset(archive_write_new(), [](struct archive* a){archive_write_close(a);});
+            step_archive_.reset(archive_write_new(), [](struct archive* a){archive_write_free(a);});
             archive_write_set_format_pax(step_archive_.get());
             if (compress_)
                 archive_write_add_filter_xz(step_archive_.get());
@@ -63,29 +67,60 @@ public:
 
         for(;;)
         {
+            // if we don't have a file we're working on, then get one
             if (!step_file_)
             {
-                if (++step_filenum_ >= filenames_.size())
+                if (step_filenum_ >= filenames_.size()) // read past end
+                {
+                    success = false;
                     break;
+                }
 
+                // step to next file
+                if (++step_filenum_ == filenames_.size())
+                {
+                    archive_write_close(step_archive_.get());
+                    break;
+                }
+
+                // write the file's header
                 const auto& filename = filenames_[step_filenum_];
-                add_file_header_to_archive(step_archive_.get(), filename);
+                if (add_file_header_to_archive(step_archive_.get(), filename) != ARCHIVE_OK)
+                {
+                    success = false;
+                    break;
+                }
+
+                // prep it for reading
                 step_file_.reset(new QFile(filename));
                 step_file_->open(QIODevice::ReadOnly);
             }
 
-            char inbuf[4096];
-            const auto inbuf_n = step_file_->read(inbuf, sizeof(inbuf));
-            if (inbuf_n > 0) {
-                archive_write_data(step_archive_.get(), inbuf, inbuf_n);
+            char inbuf[1024*10];
+            const auto n = step_file_->read(inbuf, sizeof(inbuf));
+            if (n > 0) // got data
+            {
+                if (archive_write_data(step_archive_.get(), inbuf, n) == -1)
+                {
+                    qWarning() << archive_error_string(step_archive_.get());
+                    success = false;
+                }
                 break;
             }
-
-            step_file_.reset(); // go to next file
+            else if (n < 0) // read error
+            {
+                success = false;
+                break;
+            }
+            else if (step_file_->atEnd()) // eof
+            {
+                step_file_.reset(); // go to next file
+                continue;
+            }
         }
 
         std::swap(fillme,step_buf_);
-        step_buf_.resize(0);
+        return success;
     }
 
 private:
@@ -110,7 +145,7 @@ private:
         return ssize_t(len);
     }
 
-    static void add_file_header_to_archive(struct archive* archive,
+    static int add_file_header_to_archive(struct archive* archive,
                                            const QString& filename)
     {
         struct stat st;
@@ -119,9 +154,18 @@ private:
         auto entry = archive_entry_new();
         archive_entry_copy_stat(entry, &st);
         archive_entry_set_pathname(entry, filename_utf8.constData());
-        if (archive_write_header(archive, entry) != ARCHIVE_OK)
-            qCritical() << archive_error_string(archive);
+
+        int ret;
+        do {
+            ret = archive_write_header(archive, entry);
+            if (ret==ARCHIVE_WARN)
+                qWarning() << archive_error_string(archive);
+            if (ret==ARCHIVE_FATAL)
+                qFatal("%s", archive_error_string(archive));
+        } while (ret == ARCHIVE_RETRY);
+
         archive_entry_free(entry);
+        return ret;
     }
 
     qint64 calculate_uncompressed_size() const
@@ -205,10 +249,10 @@ TarCreator::calculate_size() const
     return d->calculate_size();
 }
 
-void
+bool
 TarCreator::step(std::vector<char>& fillme)
 {
     Q_D(TarCreator);
 
-    d->step(fillme);
+    return d->step(fillme);
 }

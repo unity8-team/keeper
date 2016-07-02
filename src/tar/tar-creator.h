@@ -40,7 +40,7 @@ public:
     ~TarCreator();
 
     qint64 calculate_size() const;
-    void step(std::vector<char>& fillme);
+    bool step(std::vector<char>& fillme);
 
 private:
     QScopedPointer<TarCreatorPrivate> const d_ptr;
