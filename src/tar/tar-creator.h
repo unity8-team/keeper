@@ -24,6 +24,8 @@
 #include <QStringList>
 #include <QScopedPointer>
 
+#include <vector>
+
 
 class TarCreatorPrivate;
 class TarCreator : public QObject
@@ -37,7 +39,8 @@ public:
     TarCreator(const QStringList& files, bool compress, QObject* parent=nullptr);
     ~TarCreator();
 
-    qint64 calculate_size();
+    qint64 calculate_size() const;
+    void step(std::vector<char>& fillme);
 
 private:
     QScopedPointer<TarCreatorPrivate> const d_ptr;

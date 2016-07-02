@@ -26,46 +26,92 @@
 #include <QFile>
 #include <QString>
 
+#include <memory>
+
 class TarCreatorPrivate
 {
 public:
 
-    TarCreatorPrivate(TarCreator* tar_creator, const QStringList& filenames, bool compress)
-        : q_ptr(tar_creator)
-        , filenames_(filenames)
+    TarCreatorPrivate(const QStringList& filenames, bool compress)
+        : filenames_(filenames)
         , compress_(compress)
+        , step_archive_()
+        , step_filenum_(-1)
+        , step_file_()
+        , step_buf_()
     {
     }
 
-    Q_DISABLE_COPY(TarCreatorPrivate)
-
-    qint64 calculate_size()
+    qint64 calculate_size() const
     {
         return compress_ ? calculate_compressed_size() : calculate_uncompressed_size();
     }
 
+    void step(std::vector<char>& fillme)
+    {
+        if (!step_archive_)
+        {
+            step_archive_.reset(archive_write_new(), [](struct archive* a){archive_write_close(a);});
+            archive_write_set_format_pax(step_archive_.get());
+            if (compress_)
+                archive_write_add_filter_xz(step_archive_.get());
+            archive_write_open(step_archive_.get(), &step_buf_, nullptr, append_bytes_write_cb, nullptr);
 
-    static int calculate_archive_open_callback(struct archive *, void *)
-    {
-        return ARCHIVE_OK;
+            step_file_.reset();
+            step_filenum_ = -1;
+        }
+
+        for(;;)
+        {
+            if (!step_file_)
+            {
+                if (++step_filenum_ >= filenames_.size())
+                    break;
+
+                const auto& filename = filenames_[step_filenum_];
+                add_file_header_to_archive(step_archive_.get(), filename);
+                step_file_.reset(new QFile(filename));
+                step_file_->open(QIODevice::ReadOnly);
+            }
+
+            char inbuf[4096];
+            const auto inbuf_n = step_file_->read(inbuf, sizeof(inbuf));
+            if (inbuf_n > 0) {
+                archive_write_data(step_archive_.get(), inbuf, inbuf_n);
+                break;
+            }
+
+            step_file_.reset(); // go to next file
+        }
+
+        std::swap(fillme,step_buf_);
+        step_buf_.resize(0);
     }
-    static int calculate_archive_close_callback(struct archive *, void *)
+
+private:
+
+    static ssize_t append_bytes_write_cb(struct archive *,
+                                         void * vtarget,
+                                         const void * vsource,
+                                         size_t len)
     {
-        return ARCHIVE_OK;
+        auto& target = *static_cast<std::vector<char>*>(vtarget);
+        const auto& source = static_cast<const char*>(vsource);
+        target.insert(target.end(), source, source+len);
+        return ssize_t(len);
     }
-    static ssize_t calculate_archive_write_callback(
-        struct archive *,
-        void * userdata,
-        const void *,
-        size_t len)
+
+    static ssize_t count_bytes_write_cb(struct archive *,
+                                        void * userdata,
+                                        const void *,
+                                        size_t len)
     {
         *static_cast<qint64*>(userdata) += len;
         return ssize_t(len);
     }
 
-    static void add_file_header_to_archive(
-        struct archive* archive,
-        const QString& filename)
+    static void add_file_header_to_archive(struct archive* archive,
+                                           const QString& filename)
     {
         struct stat st;
         const auto filename_utf8 = filename.toUtf8();
@@ -78,26 +124,20 @@ public:
         archive_entry_free(entry);
     }
 
-    qint64 calculate_uncompressed_size()
+    qint64 calculate_uncompressed_size() const
     {
         qint64 archive_size {};
 
         auto a = archive_write_new();
         archive_write_set_format_pax(a);
-        archive_write_open(a,
-            &archive_size,
-            calculate_archive_open_callback,
-            calculate_archive_write_callback,
-            calculate_archive_close_callback
-        );
+        archive_write_open(a, &archive_size, nullptr, count_bytes_write_cb, nullptr);
 
         for (const auto& filename : filenames_)
         {
             add_file_header_to_archive(a, filename);
 
-            // don't bother with archive_write_data():
             // libarchive pads any missing data,
-            // even if /all/ the data is missing
+            // don't bother calling archive_write_data()
         }
 
         archive_write_close(a);
@@ -105,25 +145,20 @@ public:
         return archive_size;
     }
 
-    qint64 calculate_compressed_size()
+    qint64 calculate_compressed_size() const
     {
         qint64 archive_size {};
 
         auto a = archive_write_new();
         archive_write_set_format_pax(a);
         archive_write_add_filter_xz(a);
-        archive_write_open(a,
-            &archive_size,
-            calculate_archive_open_callback,
-            calculate_archive_write_callback,
-            calculate_archive_close_callback
-        );
+        archive_write_open(a, &archive_size, nullptr, count_bytes_write_cb, nullptr);
 
         for (const auto& filename : filenames_)
         {
             add_file_header_to_archive(a, filename);
 
-            // write the content
+            // process the file
             QFile file(filename);
             file.open(QIODevice::ReadOnly);
             char buf[4096];
@@ -141,11 +176,13 @@ public:
         return archive_size;
     }
 
-private:
-
-    TarCreator * const q_ptr {};
     const QStringList filenames_ {};
     const bool compress_ {};
+
+    std::shared_ptr<struct archive> step_archive_;
+    int step_filenum_ {-1};
+    std::shared_ptr<QFile> step_file_;
+    std::vector<char> step_buf_;
 };
 
 /**
@@ -154,16 +191,24 @@ private:
 
 TarCreator::TarCreator(const QStringList& filenames, bool compress, QObject* parent)
     : QObject(parent)
-    , d_ptr(new TarCreatorPrivate(this, filenames, compress))
+    , d_ptr(new TarCreatorPrivate(filenames, compress))
 {
 }
 
 TarCreator::~TarCreator() =default;
 
 qint64
-TarCreator::calculate_size()
+TarCreator::calculate_size() const
+{
+    Q_D(const TarCreator);
+
+    return d->calculate_size();
+}
+
+void
+TarCreator::step(std::vector<char>& fillme)
 {
     Q_D(TarCreator);
 
-    return d->calculate_size();
+    d->step(fillme);
 }
