@@ -85,7 +85,7 @@ TEST_F(TarCreatorFixture, HelloWorld)
 
 TEST_F(TarCreatorFixture, CreateUncompressedFromSingleDirectoryOfFiles)
 {
-    static constexpr int n_runs = 10;
+    static constexpr int n_runs = 1000;
     static constexpr int max_files_per_test = 32;
     static constexpr int max_filesize = 1024*1024;
 
