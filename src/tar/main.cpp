@@ -17,17 +17,17 @@
  *     Charles Kerr <charles.kerr@canonical.com>
  */
 
-//#include "util/logging.h"
-//#include "util/unix-signal-handler.h"
-
 #include "tar/tar-creator.h"
+#include "qdbus-stubs/keeper_interface.h"
 
 #include <QCommandLineParser>
 #include <QCoreApplication>
 #include <QDebug>
 #include <QDBusConnection>
 #include <QDBusConnectionInterface>
+#include <QDBusUnixFileDescriptor>
 #include <QFile>
+#include <QLocalSocket>
 
 #include <glib.h>
 
@@ -84,47 +84,129 @@ main(int argc, char **argv)
     QCommandLineParser parser;
     parser.setApplicationDescription("Backup files helper for Keeper");
     parser.addHelpOption();
-    QCommandLineOption compressOption(
+    QCommandLineOption compress_option(
         QStringList() << "c" << "compress",
         QStringLiteral("Compress files before adding to archive")
     );
-    QCommandLineOption zeroDelimiterOption(
+    QCommandLineOption zero_delimiter_option(
         QStringList() << "0" << "null",
         QStringLiteral("Input items are terminated by a null character instead of by whitespace")
     );
-    parser.addOption(zeroDelimiterOption);
-    QCommandLineOption pathOption(
+    parser.addOption(zero_delimiter_option);
+    QCommandLineOption path_option(
         QStringList() << "a" << "bus-path",
         QStringLiteral("Keeper service's DBus path"),
         QStringLiteral("bus-path")
     );
-    parser.addOption(pathOption);
+    parser.addOption(path_option);
+#if 0
     parser.addPositionalArgument("files", "The files/directories to back up.");
+#endif
     parser.process(app);
-//    const bool compress = parser.isSet(compressOption);
-    const bool zero = parser.isSet(zeroDelimiterOption);
+    const bool compress = parser.isSet(compress_option);
+    const bool zero = parser.isSet(zero_delimiter_option);
+    const auto bus_path = parser.value(bus_path_option);
 
-    // pull file list from stdin
+    // gotta have the bus path
+    if (bus_path.empty())
+    {
+        std::cerr << "bus-path not listed" << std::endl;
+        return EXIT_FAILURE;
+    }
+    
+    // gotta have files
     const auto filenames = get_filenames_from_file(stdin, zero);
+    for (const auto& filename : filenames)
+    {
+        qDebug() << "filename: " << filename;
+    }
     if (filenames.empty())
     {
-        std::cerr << "No files listed" << std::endl;
+        std::cerr << "no files listed" << std::endl;
         return EXIT_FAILURE;
     }
 
+    // build the creator
+    TarCreator tar_creator(filenames, compress);
+    qDebug() << "tar size will be: " << tar_creator.calculate_size();
+
+    QScopedPointer<DBusInterfaceKeeper> keeperInterface(
+        new DBusInterfaceKeeper(
+            DBusTypes::KEEPER_SERVICE,
+            DBusTypes::KEEPER_SERVICE_PATH,
+            QDBusConnection::sessionBus(),
+            0
+        )
+    );
+
+    QDBusReply<QDBusUnixFileDescriptor> userResp = keeperInterface->call(QLatin1String("StartBackup"));
+    if (!userResp.isValid())
+    {
+        qWarning() << "Error getting backup socket: " << userResp.error().message();
+    }
+    else
+    {
+        auto backupSocket = userResp.value().fileDescriptor();
+        qDebug() << "I've got the following socket descriptor: " << backupSocket;
+
+        QByteArray block;
+        QDataStream out(&block, QIODevice::WriteOnly);
+        out << "This is a test\n";
+        QLocalSocket localSocket;
+        localSocket.setSocketDescriptor(backupSocket);
+
+        qDebug() << "Wrote " << localSocket.write(block) << " bytes to it.";
+        localSocket.flush();
+        localSocket.disconnectFromServer();
+
+
+
+
+    //
 #if 0
     const auto files = parser.positionalArguments();
     if (files.isEmpty()) {
         parser.showHelp(EXIT_FAILURE);
     }
 #endif
-    for (const auto& filename : filenames)
-        qDebug() << "filename: " << filename;
 
 #if 0
-    TarCreator tar_creator(files, compress);
-    std::cout << "size: " << tar_creator.calculate_size() << std::endl;
 #endif
+
+
+#include <libintl.h>
+#include <cstdlib>
+#include <ctime>
+
+int
+main(int argc, char **argv)
+{
+zzz
+    QScopedPointer<DBusInterfaceKeeper> keeperInterface(new DBusInterfaceKeeper(DBusTypes::KEEPER_SERVICE,
+                                                            DBusTypes::KEEPER_SERVICE_PATH,
+                                                            QDBusConnection::sessionBus(), 0));
+
+    QDBusReply<QDBusUnixFileDescriptor> userResp = keeperInterface->call(QLatin1String("GetBackupSocketDescriptor"));
+
+    if (!userResp.isValid())
+    {
+        qWarning() << "Error getting backup socket: " << userResp.error().message();
+    }
+    else
+    {
+        auto backupSocket = userResp.value().fileDescriptor();
+        qDebug() << "I've got the following socket descriptor: " << backupSocket;
+
+        QByteArray block;
+        QDataStream out(&block, QIODevice::WriteOnly);
+        out << "This is a test\n";
+        QLocalSocket localSocket;
+        localSocket.setSocketDescriptor(backupSocket);
+
+        qDebug() << "Wrote " << localSocket.write(block) << " bytes to it.";
+        localSocket.flush();
+        localSocket.disconnectFromServer();
+
 
     return EXIT_SUCCESS;
 }
