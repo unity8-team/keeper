@@ -45,8 +45,8 @@ main(int argc, char **argv)
     QScopedPointer<DBusInterfaceKeeper> keeperInterface(new DBusInterfaceKeeper(DBusTypes::KEEPER_SERVICE,
                                                             DBusTypes::KEEPER_SERVICE_PATH,
                                                             QDBusConnection::sessionBus(), 0));
-
-    QDBusReply<QDBusUnixFileDescriptor> userResp = keeperInterface->call(QLatin1String("GetBackupSocketDescriptor"));
+    quint64 nbytes = 0;
+    QDBusReply<QDBusUnixFileDescriptor> userResp = keeperInterface->call(QLatin1String("StartBackup"), nbytes);
 
     if (!userResp.isValid())
     {

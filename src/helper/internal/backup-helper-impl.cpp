@@ -29,8 +29,16 @@ extern "C" {
     #include <ubuntu-app-launch.h>
 }
 
+#include <fcntl.h>
+#include <sys/socket.h>
+
 typedef void* gpointer;
 typedef char gchar;
+
+namespace
+{
+    const int MAX_TIME_WAITING_FOR_DATA = 10000;
+}
 
 static void helper_observer_cb(const gchar* appid, const gchar* /*instance*/, const gchar* /*type*/, gpointer user_data)
 {
@@ -62,6 +70,9 @@ BackupHelperImpl::BackupHelperImpl(QString const & appid, QObject * parent) :
         ,appid_(appid)
         ,timer_(new QTimer(this))
         ,registry_(new ubuntu::app_launch::Registry())
+        ,storage_framework_socket_(new QLocalSocket())
+        ,helper_socket_(new QLocalSocket())
+        ,read_socket_(new QLocalSocket())
 {
     init();
 }
@@ -76,13 +87,28 @@ BackupHelperImpl::~BackupHelperImpl()
 
 void BackupHelperImpl::init()
 {
-    connect(timer_, &QTimer::timeout, this, &BackupHelperImpl::checkStatus);
+    connect(timer_, &QTimer::timeout, this, &BackupHelperImpl::inactivityDetected);
     // install the start observer
     ubuntu_app_launch_observer_add_helper_started(helper_observer_cb, HELPER_TYPE, this);
     ubuntu_app_launch_observer_add_helper_stop(helper_observer_stop_cb, HELPER_TYPE, this);
+
+    int fds[2];
+    int rc = socketpair(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0, fds);
+    if (rc == -1)
+    {
+        // TODO throw exception.
+        qWarning() << "BackupHelperImpl::init(): error creating socket pair to communicate with helper ";
+        return;
+    }
+
+    // helper socket is for the client.
+    helper_socket_->setSocketDescriptor(fds[1], QLocalSocket::ConnectedState, QIODevice::WriteOnly);
+
+    read_socket_->setSocketDescriptor(fds[0], QLocalSocket::ConnectedState, QIODevice::ReadOnly);
+    connect(read_socket_.data(), &QLocalSocket::readyRead, this, &BackupHelperImpl::onSocketReadReady);
 }
 
-void BackupHelperImpl::start()
+void BackupHelperImpl::start(int sd)
 {
     qDebug() << "Starting helper for app: " << appid_;
 
@@ -95,6 +121,8 @@ void BackupHelperImpl::start()
         ubuntu::app_launch::Helper::URL::from_raw(get_helper_path(appid_).toStdString())
     };
 
+    storage_framework_socket_->setSocketDescriptor(sd, QLocalSocket::ConnectedState, QIODevice::WriteOnly);
+    timer_->start(MAX_TIME_WAITING_FOR_DATA);
     helper->launch(urls);
 }
 
@@ -115,11 +143,10 @@ void BackupHelperImpl::stop()
     }
 }
 
-void BackupHelperImpl::checkStatus()
+void BackupHelperImpl::inactivityDetected()
 {
-    // TODO due to the errors we get with apparmor I've removed this code
-    // it simply checks with a timer that the socket coming from the
-    // storage framework is receiving data.
+    qWarning() << "Inactivity detected in the helper...stopping it";
+    this->stop();
 }
 
 void BackupHelperImpl::emitHelperStarted()
@@ -147,6 +174,29 @@ QString BackupHelperImpl::get_helper_path(QString const & /*appId*/)
     }
 
     return DEKKO_HELPER_BIN;
+}
+
+void BackupHelperImpl::onSocketReadReady()
+{
+    timer_->stop();
+    qDebug() << "BackupHelperImpl::onSocketReadReady() " << read_socket_->socketDescriptor();
+    auto buf = read_socket_->read(read_socket_->bytesAvailable());
+    if (buf.size() != 0)
+    {
+        auto bytes_written = storage_framework_socket_->write(buf);
+        if (bytes_written != buf.size())
+        {
+            // TODO: Store error details.
+            qWarning() << "Error writing to the storage framework socket: " << storage_framework_socket_->errorString();
+            return;
+        }
+    }
+    timer_->start(MAX_TIME_WAITING_FOR_DATA);
+}
+
+int BackupHelperImpl::get_helper_socket()
+{
+    return static_cast<int>(helper_socket_->socketDescriptor());
 }
 
 } // namespace internal

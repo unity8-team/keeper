@@ -33,8 +33,10 @@ public:
     BackupHelper(QString const &appid, QObject * parent=nullptr);
     virtual ~BackupHelper();
 
-    void start();
+    void start(int sd);
     void stop();
+
+    int get_helper_socket();
 
 Q_SIGNALS:
     void started();

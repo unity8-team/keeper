@@ -50,7 +50,7 @@ public:
 public Q_SLOTS:
 
     void start();
-    QDBusUnixFileDescriptor GetBackupSocketDescriptor();
+    QDBusUnixFileDescriptor StartBackup(quint64 nbytes);
 
     // FOR TESTING PURPOSES ONLY
     // we should finish when the helper finishes

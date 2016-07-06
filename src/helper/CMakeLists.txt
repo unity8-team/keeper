@@ -14,7 +14,7 @@ add_library(
   internal/backup-helper-impl.h
 )
 
-qt5_use_modules(backup-helper Core DBus)
+qt5_use_modules(backup-helper Core DBus Network)
 set_target_properties(backup-helper PROPERTIES AUTOMOC TRUE)
 
 target_link_libraries(backup-helper

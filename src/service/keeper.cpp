@@ -82,13 +82,13 @@ void Keeper::start()
     d->storage_->getNewFileForBackup();
 }
 
-QDBusUnixFileDescriptor Keeper::GetBackupSocketDescriptor()
+QDBusUnixFileDescriptor Keeper::StartBackup(quint64 /*nbytes*/)
 {
     Q_D(Keeper);
 
-    qDebug() << "Sending the socket " << d->storage_->getUploaderSocketDescriptor();
+    qDebug() << "Sending the socket " << d->backup_helper_->get_helper_socket();
 
-    return QDBusUnixFileDescriptor(d->storage_->getUploaderSocketDescriptor());
+    return QDBusUnixFileDescriptor(d->backup_helper_->get_helper_socket());
 }
 
 // FOR TESTING PURPOSES ONLY
@@ -108,7 +108,7 @@ void Keeper::socketReady(int sd)
 
     qDebug() << "I've got a new socket: " << sd;
     qDebug() << "Starting the backup helper";
-    d->backup_helper_->start();
+    d->backup_helper_->start(sd);
 }
 
 void Keeper::helperStarted()
