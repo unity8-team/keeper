@@ -128,85 +128,41 @@ main(int argc, char **argv)
 
     // build the creator
     TarCreator tar_creator(filenames, compress);
-    qDebug() << "tar size will be: " << tar_creator.calculate_size();
+    const auto n_bytes = tar_creator.calculate_size();
+    qDebug() << "tar size will be" << n_bytes;
 
-    QScopedPointer<DBusInterfaceKeeper> keeperInterface(
-        new DBusInterfaceKeeper(
-            DBusTypes::KEEPER_SERVICE,
-            DBusTypes::KEEPER_SERVICE_PATH,
-            QDBusConnection::sessionBus(),
-            0
-        )
+
+    // call StartBackup() to get a socket
+    DBusInterfaceKeeper keeperInterface(
+        DBusTypes::KEEPER_SERVICE,
+        bus-path,//DBusTypes::KEEPER_SERVICE_PATH,
+        QDBusConnection::sessionBus()
     );
+    auto fd_reply = keeperInterface.StartBackup(n_bytes);
+    reply.waitForFinished();
+    if (reply.isError())
+        qFatal() << "StartBackup() bus call failed:" << reply.error().message();
+    QDBusUnixFileDescriptor qfd = reply.value();
+    const auto fd = fsd.fileDescriptor();
 
-    QDBusReply<QDBusUnixFileDescriptor> userResp = keeperInterface->call(QLatin1String("StartBackup"));
-    if (!userResp.isValid())
-    {
-        qWarning() << "Error getting backup socket: " << userResp.error().message();
+    // send the tar to the socket piece by piece
+    std::vector<char> buf;
+    while(tar_creator.step(buf)) {
+        if (buf.empty())
+            continue;
+        const char* walk = &buf.front();
+        auto n_left = buf.size();
+        while(n_left > 0) {
+            const auto n_written = write(fd, walk, n_left);
+            if (n_written < 0)
+                qFatal() << "error sending binary blob to Keeper:" << strerror(errno);
+            n_left += n_written;
+            walk += n_written;
+        }
     }
-    else
-    {
-        auto backupSocket = userResp.value().fileDescriptor();
-        qDebug() << "I've got the following socket descriptor: " << backupSocket;
 
-        QByteArray block;
-        QDataStream out(&block, QIODevice::WriteOnly);
-        out << "This is a test\n";
-        QLocalSocket localSocket;
-        localSocket.setSocketDescriptor(backupSocket);
-
-        qDebug() << "Wrote " << localSocket.write(block) << " bytes to it.";
-        localSocket.flush();
-        localSocket.disconnectFromServer();
-
-
-
-
-    //
-#if 0
-    const auto files = parser.positionalArguments();
-    if (files.isEmpty()) {
-        parser.showHelp(EXIT_FAILURE);
-    }
-#endif
-
-#if 0
-#endif
-
-
-#include <libintl.h>
-#include <cstdlib>
-#include <ctime>
-
-int
-main(int argc, char **argv)
-{
-zzz
-    QScopedPointer<DBusInterfaceKeeper> keeperInterface(new DBusInterfaceKeeper(DBusTypes::KEEPER_SERVICE,
-                                                            DBusTypes::KEEPER_SERVICE_PATH,
-                                                            QDBusConnection::sessionBus(), 0));
-
-    QDBusReply<QDBusUnixFileDescriptor> userResp = keeperInterface->call(QLatin1String("GetBackupSocketDescriptor"));
-
-    if (!userResp.isValid())
-    {
-        qWarning() << "Error getting backup socket: " << userResp.error().message();
-    }
-    else
-    {
-        auto backupSocket = userResp.value().fileDescriptor();
-        qDebug() << "I've got the following socket descriptor: " << backupSocket;
-
-        QByteArray block;
-        QDataStream out(&block, QIODevice::WriteOnly);
-        out << "This is a test\n";
-        QLocalSocket localSocket;
-        localSocket.setSocketDescriptor(backupSocket);
-
-        qDebug() << "Wrote " << localSocket.write(block) << " bytes to it.";
-        localSocket.flush();
-        localSocket.disconnectFromServer();
-
-
-    return EXIT_SUCCESS;
+    // FIXME: xavi, is it util's responsibility to close() here?
+    // Keeper knows how many bytes to expect, so it should be
+    // able to handle it on its own?
+    //close(fd);
 }
