@@ -31,6 +31,8 @@
 
 #include <glib.h>
 
+#include <unistd.h>
+
 #include <ctime>
 #include <iostream>
 
@@ -93,12 +95,12 @@ main(int argc, char **argv)
         QStringLiteral("Input items are terminated by a null character instead of by whitespace")
     );
     parser.addOption(zero_delimiter_option);
-    QCommandLineOption path_option(
+    QCommandLineOption bus_path_option(
         QStringList() << "a" << "bus-path",
         QStringLiteral("Keeper service's DBus path"),
         QStringLiteral("bus-path")
     );
-    parser.addOption(path_option);
+    parser.addOption(bus_path_option);
 #if 0
     parser.addPositionalArgument("files", "The files/directories to back up.");
 #endif
@@ -108,7 +110,7 @@ main(int argc, char **argv)
     const auto bus_path = parser.value(bus_path_option);
 
     // gotta have the bus path
-    if (bus_path.empty())
+    if (bus_path.isEmpty())
     {
         std::cerr << "bus-path not listed" << std::endl;
         return EXIT_FAILURE;
@@ -135,15 +137,15 @@ main(int argc, char **argv)
     // call StartBackup() to get a socket
     DBusInterfaceKeeper keeperInterface(
         DBusTypes::KEEPER_SERVICE,
-        bus-path,//DBusTypes::KEEPER_SERVICE_PATH,
+        bus_path,//DBusTypes::KEEPER_SERVICE_PATH,
         QDBusConnection::sessionBus()
     );
     auto fd_reply = keeperInterface.StartBackup(n_bytes);
-    reply.waitForFinished();
-    if (reply.isError())
-        qFatal() << "StartBackup() bus call failed:" << reply.error().message();
-    QDBusUnixFileDescriptor qfd = reply.value();
-    const auto fd = fsd.fileDescriptor();
+    fd_reply.waitForFinished();
+    if (fd_reply.isError())
+        qFatal("StartBackup() bus call failed: %s", fd_reply.error().message().toUtf8().constData());
+    QDBusUnixFileDescriptor qfd = fd_reply.value();
+    const auto fd = qfd.fileDescriptor();
 
     // send the tar to the socket piece by piece
     std::vector<char> buf;
@@ -155,7 +157,7 @@ main(int argc, char **argv)
         while(n_left > 0) {
             const auto n_written = write(fd, walk, n_left);
             if (n_written < 0)
-                qFatal() << "error sending binary blob to Keeper:" << strerror(errno);
+                qFatal("error sending binary blob to Keeper: %s", strerror(errno));
             n_left += n_written;
             walk += n_written;
         }

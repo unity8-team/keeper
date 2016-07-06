@@ -26,8 +26,12 @@ link_directories(
 target_link_libraries(
     ${APP_EXEC}
     ${APP_LIB}
+    qdbus-stubs
+    storage-framework
+    backup-helper
     ${SERVICE_DEPS_LIBRARIES}
     Qt5::Core
+    Qt5::DBus
 )
 
 install(
