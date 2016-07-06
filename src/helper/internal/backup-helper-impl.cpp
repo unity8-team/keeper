@@ -23,6 +23,7 @@
 #include <QDebug>
 
 #include <ubuntu-app-launch/registry.h>
+#include <service/app-const.h>
 
 extern "C" {
     #include <ubuntu-app-launch.h>
@@ -30,14 +31,6 @@ extern "C" {
 
 typedef void* gpointer;
 typedef char gchar;
-
-namespace
-{
-constexpr char const HELPER_TYPE[] = "backup-helper";
-
-// TODO change this to something not fixed
-constexpr char const HELPER_BIN[] = "/custom/click/dekko.dekkoproject/0.6.20/backup-helper";
-}
 
 static void helper_observer_cb(const gchar* appid, const gchar* /*instance*/, const gchar* /*type*/, gpointer user_data)
 {
@@ -89,19 +82,18 @@ void BackupHelperImpl::init()
     ubuntu_app_launch_observer_add_helper_stop(helper_observer_stop_cb, HELPER_TYPE, this);
 }
 
-void BackupHelperImpl::start(int socket)
+void BackupHelperImpl::start()
 {
-    qDebug() << "Starting helper for app: " << appid_ << " and socket: " << socket;
+    qDebug() << "Starting helper for app: " << appid_;
 
     auto backupType = ubuntu::app_launch::Helper::Type::from_raw(HELPER_TYPE);
 
     auto appid = ubuntu::app_launch::AppID::parse(appid_.toStdString());
     auto helper = ubuntu::app_launch::Helper::create(backupType, appid, registry_);
 
-    // TODO in here we should search for the helper bin and pass it
-    // instead of setting a fixed one.
     std::vector<ubuntu::app_launch::Helper::URL> urls = {
-        ubuntu::app_launch::Helper::URL::from_raw(HELPER_BIN)};
+        ubuntu::app_launch::Helper::URL::from_raw(get_helper_path(appid_).toStdString())
+    };
 
     helper->launch(urls);
 }
@@ -140,6 +132,21 @@ void BackupHelperImpl::emitHelperFinished()
 {
     qDebug() << "BACKUP FINISHED SIGNAL";
     Q_EMIT finished();
+}
+
+QString BackupHelperImpl::get_helper_path(QString const & /*appId*/)
+{
+    //TODO retrieve the helper path from the package information
+
+    // This is added for testing purposes only
+    auto testHelper = qgetenv("KEEPER_TEST_HELPER");
+    if (testHelper != "")
+    {
+        qDebug() << "BackupHelperImpl::getHelperPath: returning the helper: " << testHelper;
+        return testHelper;
+    }
+
+    return DEKKO_HELPER_BIN;
 }
 
 } // namespace internal

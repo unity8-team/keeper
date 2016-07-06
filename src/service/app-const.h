@@ -15,32 +15,12 @@
  *
  * Author: Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
+
 #pragma once
 
-#include <QObject>
-
-namespace internal
+namespace
 {
-class BackupHelperImpl;
+    constexpr char const DEKKO_APP_ID[] = "dekko.dekkoproject_dekko_0.6.20";
+    constexpr char const HELPER_TYPE[] = "backup-helper";
+    constexpr char const DEKKO_HELPER_BIN[] = "/custom/click/dekko.dekkoproject/0.6.20/backup-helper";
 }
-
-class BackupHelper : public QObject
-{
-    Q_OBJECT
-public:
-    Q_DISABLE_COPY(BackupHelper)
-
-    BackupHelper(QString const &appid, QObject * parent=nullptr);
-    virtual ~BackupHelper();
-
-    void start();
-    void stop();
-
-Q_SIGNALS:
-    void started();
-    void finished();
-    void stalled();
-
-private:
-    QScopedPointer<internal::BackupHelperImpl> p_;
-};

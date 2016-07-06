@@ -32,9 +32,9 @@ BackupHelper::~BackupHelper()
 {
 }
 
-void BackupHelper::start(int socket)
+void BackupHelper::start()
 {
-    p_->start(socket);
+    p_->start();
 }
 
 void BackupHelper::stop()

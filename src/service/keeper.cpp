@@ -32,11 +32,7 @@
 #include <QVariantMap>
 
 #include <uuid/uuid.h>
-
-namespace
-{
-    constexpr char const DEKKO_APP_ID[] = "dekko.dekkoproject_dekko_0.6.20";
-}
+#include "app-const.h"
 
 class KeeperPrivate
 {
@@ -116,8 +112,7 @@ void Keeper::socketReady(int sd)
 
     qDebug() << "I've got a new socket: " << sd;
     qDebug() << "Starting the backup helper";
-
-    d->backup_helper_->start(sd);
+    d->backup_helper_->start();
 }
 
 void Keeper::helperStarted()
