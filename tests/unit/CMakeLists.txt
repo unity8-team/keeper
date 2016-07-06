@@ -1,6 +1,9 @@
 
 
 add_definitions (-DCMAKE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+add_definitions (-DTEST_SIMPLE_HELPER="${CMAKE_BINARY_DIR}/src/simple-helper/simple-helper")
+add_definitions (-DKEEPER_SERVICE_BIN="${CMAKE_BINARY_DIR}/src/service/keeper-service")
+add_definitions (-DKEEPER_CLIENT_BIN="${CMAKE_BINARY_DIR}/src/cli/keeper")
 
 pkg_check_modules(HELPERS_TEST_DEPS REQUIRED
     ubuntu-app-launch-2

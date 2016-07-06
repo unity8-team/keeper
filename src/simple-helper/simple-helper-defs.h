@@ -13,36 +13,14 @@
  * You should have received a copy of the GNU General Public License along
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Author: Xavi Garcia <xavi.garcia.mena@canonical.com>
+ * Authors: Charles Kerr <charles.kerr@canonical.com>
+ * 			Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
 #pragma once
 
-#include <QObject>
-
-namespace internal
+namespace
 {
-class BackupHelperImpl;
+constexpr char const SIMPLE_HELPER_MARK_FILE_PATH[] = "/tmp/simple-helper-finished";
+constexpr char const SIMPLE_HELPER_TEXT_TO_WRITE[] = "This is a test";
+
 }
-
-class BackupHelper : public QObject
-{
-    Q_OBJECT
-public:
-    Q_DISABLE_COPY(BackupHelper)
-
-    BackupHelper(QString const &appid, QObject * parent=nullptr);
-    virtual ~BackupHelper();
-
-    void start(int sd);
-    void stop();
-
-    int get_helper_socket();
-
-Q_SIGNALS:
-    void started();
-    void finished();
-    void stalled();
-
-private:
-    QScopedPointer<internal::BackupHelperImpl> p_;
-};

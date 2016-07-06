@@ -19,6 +19,7 @@
 #include <dbus-types.h>
 
 #include "keeper_interface.h"
+#include "simple-helper-defs.h"
 
 #include <QCoreApplication>
 #include <QDBusConnection>
@@ -44,8 +45,8 @@ main(int argc, char **argv)
     QScopedPointer<DBusInterfaceKeeper> keeperInterface(new DBusInterfaceKeeper(DBusTypes::KEEPER_SERVICE,
                                                             DBusTypes::KEEPER_SERVICE_PATH,
                                                             QDBusConnection::sessionBus(), 0));
-
-    QDBusReply<QDBusUnixFileDescriptor> userResp = keeperInterface->call(QLatin1String("GetBackupSocketDescriptor"));
+    quint64 nbytes = 0;
+    QDBusReply<QDBusUnixFileDescriptor> userResp = keeperInterface->call(QLatin1String("StartBackup"), nbytes);
 
     if (!userResp.isValid())
     {
@@ -56,16 +57,17 @@ main(int argc, char **argv)
         auto backupSocket = userResp.value().fileDescriptor();
         qDebug() << "I've got the following socket descriptor: " << backupSocket;
 
-        QByteArray block;
-        QDataStream out(&block, QIODevice::WriteOnly);
-        out << "This is a test\n";
         QLocalSocket localSocket;
         localSocket.setSocketDescriptor(backupSocket);
 
-        qDebug() << "Wrote " << localSocket.write(block) << " bytes to it.";
+        qDebug() << "Wrote " << localSocket.write(SIMPLE_HELPER_TEXT_TO_WRITE) << " bytes to it.";
         localSocket.flush();
         localSocket.disconnectFromServer();
 
+
+        QFile markFile(SIMPLE_HELPER_MARK_FILE_PATH);
+        markFile.open(QFile::WriteOnly);
+        markFile.close();
         // this is just used when we need to simulate that the helper has finished
         // when not running the full setup with upstart
 //        qDebug() << "Finishing...";
