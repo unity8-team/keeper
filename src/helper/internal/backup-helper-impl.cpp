@@ -23,6 +23,7 @@
 #include <QDebug>
 
 #include <ubuntu-app-launch/registry.h>
+#include <service/app-const.h>
 
 extern "C" {
     #include <ubuntu-app-launch.h>
@@ -30,14 +31,6 @@ extern "C" {
 
 typedef void* gpointer;
 typedef char gchar;
-
-namespace
-{
-constexpr char const HELPER_TYPE[] = "backup-helper";
-
-// TODO change this to something not fixed
-constexpr char const HELPER_BIN[] = "/custom/click/dekko.dekkoproject/0.6.20/backup-helper";
-}
 
 static void helper_observer_cb(const gchar* appid, const gchar* /*instance*/, const gchar* /*type*/, gpointer user_data)
 {
@@ -99,7 +92,7 @@ void BackupHelperImpl::start()
     auto helper = ubuntu::app_launch::Helper::create(backupType, appid, registry_);
 
     std::vector<ubuntu::app_launch::Helper::URL> urls = {
-        ubuntu::app_launch::Helper::URL::from_raw(getHelperPath(appid_).toStdString())
+        ubuntu::app_launch::Helper::URL::from_raw(get_helper_path(appid_).toStdString())
     };
 
     helper->launch(urls);
@@ -141,7 +134,7 @@ void BackupHelperImpl::emitHelperFinished()
     Q_EMIT finished();
 }
 
-QString BackupHelperImpl::getHelperPath(QString const & /*appId*/)
+QString BackupHelperImpl::get_helper_path(QString const & /*appId*/)
 {
     //TODO retrieve the helper path from the package information
 
@@ -153,7 +146,7 @@ QString BackupHelperImpl::getHelperPath(QString const & /*appId*/)
         return testHelper;
     }
 
-    return HELPER_BIN;
+    return DEKKO_HELPER_BIN;
 }
 
 } // namespace internal

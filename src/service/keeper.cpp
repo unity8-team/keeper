@@ -32,11 +32,7 @@
 #include <QVariantMap>
 
 #include <uuid/uuid.h>
-
-namespace
-{
-    constexpr char const DEKKO_APP_ID[] = "dekko.dekkoproject_dekko_0.6.20";
-}
+#include "app-const.h"
 
 class KeeperPrivate
 {

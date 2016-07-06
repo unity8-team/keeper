@@ -66,7 +66,7 @@ Q_SIGNALS:
     void finished();
 
 private:
-    QString getHelperPath(QString const & appId);
+    QString get_helper_path(QString const & appId);
 
     QString appid_;
     QTimer * timer_;

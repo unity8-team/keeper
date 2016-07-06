@@ -36,10 +36,20 @@
 
 #include "mir-mock.h"
 #include <helper/backup-helper.h>
+#include <helper/internal/backup-helper-impl.h>
 #include <qdbus-stubs/dbus-types.h>
 #include <simple-helper/simple-helper-defs.h>
+#include "../../../src/service/app-const.h"
 
 
+namespace
+{
+constexpr char const UPSTART_PATH[] = "/com/ubuntu/Upstart";
+constexpr char const UPSTART_INTERFACE[] = "com.ubuntu.Upstart0_6";
+constexpr char const UPSTART_INSTANCE[] = "com.ubuntu.Upstart0_6.Instance";
+constexpr char const UPSTART_JOB[] = "com.ubuntu.Upstart0_6.Job";
+constexpr char const UNTRUSTED_HELPER_PATH[] = "/com/test/untrusted/helper";
+}
 
 extern "C" {
     #include <ubuntu-app-launch.h>
@@ -49,17 +59,15 @@ extern "C" {
 class TestHelpers : public ::testing::Test
 {
 public:
-    TestHelpers()
-    {
-    };
+    TestHelpers() = default;
 
     ~TestHelpers() = default;
 
 protected:
-    DbusTestService* service = NULL;
-    DbusTestDbusMock* mock = NULL;
-    DbusTestDbusMock* cgmock = NULL;
-    GDBusConnection* bus = NULL;
+    DbusTestService* service = nullptr;
+    DbusTestDbusMock* mock = nullptr;
+    DbusTestDbusMock* cgmock = nullptr;
+    GDBusConnection* bus = nullptr;
     std::string last_focus_appid;
     std::string last_resume_appid;
     guint resume_timeout = 0;
@@ -71,14 +79,14 @@ private:
     static void focus_cb(const gchar* appid, gpointer user_data)
     {
         g_debug("Focus Callback: %s", appid);
-        TestHelpers* _this = static_cast<TestHelpers*>(user_data);
+        auto _this = static_cast<TestHelpers*>(user_data);
         _this->last_focus_appid = appid;
     }
 
     static void resume_cb(const gchar* appid, gpointer user_data)
     {
         g_debug("Resume Callback: %s", appid);
-        TestHelpers* _this = static_cast<TestHelpers*>(user_data);
+        auto _this = static_cast<TestHelpers*>(user_data);
         _this->last_resume_appid = appid;
 
         if (_this->resume_timeout > 0)
@@ -136,6 +144,10 @@ protected:
         g_setenv("XDG_DATA_DIRS", CMAKE_SOURCE_DIR, TRUE);
         g_setenv("XDG_CACHE_HOME", CMAKE_SOURCE_DIR "/libertine-data", TRUE);
         g_setenv("XDG_DATA_HOME", CMAKE_SOURCE_DIR "/libertine-home", TRUE);
+        // storage framework uses XDG_DATA_HOME to create the
+        // folder where all its uploaded files will be placed.
+        // We need to create a folder in order to let storage-framework
+        // find a real place where to create its data.
         QDir data_home_dir(CMAKE_SOURCE_DIR "/libertine-home");
         if (!data_home_dir.exists())
         {
@@ -153,7 +165,7 @@ protected:
         mock = dbus_test_dbus_mock_new("com.ubuntu.Upstart");
 
         DbusTestDbusMockObject* obj =
-            dbus_test_dbus_mock_get_object(mock, "/com/ubuntu/Upstart", "com.ubuntu.Upstart0_6", NULL);
+            dbus_test_dbus_mock_get_object(mock, UPSTART_PATH, UPSTART_INTERFACE, NULL);
 
         dbus_test_dbus_mock_object_add_method(mock, obj, "EmitEvent", G_VARIANT_TYPE("(sasb)"), NULL, "", NULL);
 
@@ -170,7 +182,7 @@ protected:
 
         /* Click App */
         DbusTestDbusMockObject* jobobj =
-            dbus_test_dbus_mock_get_object(mock, "/com/test/application_click", "com.ubuntu.Upstart0_6.Job", NULL);
+            dbus_test_dbus_mock_get_object(mock, "/com/test/application_click", UPSTART_JOB, NULL);
 
         dbus_test_dbus_mock_object_add_method(
             mock, jobobj, "Start", G_VARIANT_TYPE("(asb)"), NULL,
@@ -184,7 +196,7 @@ protected:
                                               "ret = [ dbus.ObjectPath('/com/test/app_instance') ]", NULL);
 
         DbusTestDbusMockObject* instobj =
-            dbus_test_dbus_mock_get_object(mock, "/com/test/app_instance", "com.ubuntu.Upstart0_6.Instance", NULL);
+            dbus_test_dbus_mock_get_object(mock, "/com/test/app_instance", UPSTART_INSTANCE, NULL);
         dbus_test_dbus_mock_object_add_property(mock, instobj, "name", G_VARIANT_TYPE_STRING,
                                                 g_variant_new_string("com.test.good_application_1.2.3"), NULL);
         gchar* process_var = g_strdup_printf("[('main', %d)]", getpid());
@@ -194,7 +206,7 @@ protected:
 
         /*  Legacy App */
         DbusTestDbusMockObject* ljobobj =
-            dbus_test_dbus_mock_get_object(mock, "/com/test/application_legacy", "com.ubuntu.Upstart0_6.Job", NULL);
+            dbus_test_dbus_mock_get_object(mock, "/com/test/application_legacy", UPSTART_JOB, NULL);
 
         dbus_test_dbus_mock_object_add_method(mock, ljobobj, "Start", G_VARIANT_TYPE("(asb)"), NULL, "", NULL);
 
@@ -204,7 +216,7 @@ protected:
                                               "ret = [ dbus.ObjectPath('/com/test/legacy_app_instance') ]", NULL);
 
         DbusTestDbusMockObject* linstobj = dbus_test_dbus_mock_get_object(mock, "/com/test/legacy_app_instance",
-                                                                          "com.ubuntu.Upstart0_6.Instance", NULL);
+                                                                          UPSTART_INSTANCE, NULL);
         dbus_test_dbus_mock_object_add_property(mock, linstobj, "name", G_VARIANT_TYPE_STRING,
                                                 g_variant_new_string("multiple-2342345"), NULL);
         dbus_test_dbus_mock_object_add_property(mock, linstobj, "processes", G_VARIANT_TYPE("a(si)"),
@@ -212,7 +224,7 @@ protected:
 
         /*  Untrusted Helper */
         DbusTestDbusMockObject* uhelperobj =
-            dbus_test_dbus_mock_get_object(mock, "/com/test/untrusted/helper", "com.ubuntu.Upstart0_6.Job", NULL);
+            dbus_test_dbus_mock_get_object(mock, UNTRUSTED_HELPER_PATH, UPSTART_JOB, NULL);
 
         dbus_test_dbus_mock_object_add_method(mock, uhelperobj, "Start", G_VARIANT_TYPE("(asb)"), NULL,
                             "import os\n"
@@ -240,12 +252,12 @@ protected:
                                               NULL);
 
         DbusTestDbusMockObject* uhelperinstance = dbus_test_dbus_mock_get_object(
-            mock, "/com/test/untrusted/helper/instance", "com.ubuntu.Upstart0_6.Instance", NULL);
+            mock, "/com/test/untrusted/helper/instance", UPSTART_INSTANCE, NULL);
         dbus_test_dbus_mock_object_add_property(mock, uhelperinstance, "name", G_VARIANT_TYPE_STRING,
                                                 g_variant_new_string("untrusted-type::com.foo_bar_43.23.12"), NULL);
 
         DbusTestDbusMockObject* unhelpermulti = dbus_test_dbus_mock_get_object(
-            mock, "/com/test/untrusted/helper/multi_instance", "com.ubuntu.Upstart0_6.Instance", NULL);
+            mock, "/com/test/untrusted/helper/multi_instance", UPSTART_INSTANCE, NULL);
         dbus_test_dbus_mock_object_add_property(
             mock, unhelpermulti, "name", G_VARIANT_TYPE_STRING,
             g_variant_new_string("backup-helper:24034582324132:com.bar_foo_8432.13.1"), NULL);
@@ -262,22 +274,6 @@ protected:
         /* Put it together */
         dbus_test_service_add_task(service, DBUS_TEST_TASK(mock));
         dbus_test_service_add_task(service, DBUS_TEST_TASK(cgmock));
-//        dbus_test_service_start_tasks(service);
-
-//        bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
-//        g_dbus_connection_set_exit_on_close(bus, FALSE);
-//        g_object_add_weak_pointer(G_OBJECT(bus), (gpointer*)&bus);
-//
-//        /* Make sure we pretend the CG manager is just on our bus */
-//        g_setenv("UBUNTU_APP_LAUNCH_CG_MANAGER_SESSION_BUS", "YES", TRUE);
-//
-//        ASSERT_TRUE(ubuntu_app_launch_observer_add_app_focus(focus_cb, this));
-//        ASSERT_TRUE(ubuntu_app_launch_observer_add_app_resume(resume_cb, this));
-//
-//        registry = std::make_shared<ubuntu::app_launch::Registry>();
-//
-//        qWarning() << "CONNECTION: " << g_dbus_connection_get_unique_name (bus);
-//        qWarning() << "CONNECTION 2: " << g_dbus_connection_get_guid (bus);
     }
 
     virtual void TearDown()
@@ -336,7 +332,7 @@ protected:
         }
         QFileInfo lastFile;
         QFileInfoList files = storage_framework_dir.entryInfoList();
-        for (uint i = 0; i < files.size(); ++i)
+        for (int i = 0; i < files.size(); ++i)
         {
             QFileInfo file = files[i];
             if (file.isFile())
@@ -359,8 +355,7 @@ protected:
             return false;
         }
 
-        QTextStream in(&storage_framework_file);
-        QString file_content = in.readAll();
+        QString file_content = storage_framework_file.readAll();
 
         return file_content == content;
     }
@@ -380,17 +375,13 @@ protected:
         // TODO create a new mock for upstart that controls the lifecycle of the
         // helper process so we can do this in a cleaner way.
         QFile helper_mark(SIMPLE_HELPER_MARK_FILE_PATH);
-        int timeWaited = 0;
-        while (timeWaited < maxTimeout)
+        QElapsedTimer timer;
+        timer.start();
+        while (!timer.hasExpired(maxTimeout))
         {
             if (helper_mark.exists())
             {
                 return true;
-            }
-            else
-            {
-                QThread::msleep(10);
-                timeWaited += 10;
             }
         }
         return false;
@@ -496,7 +487,7 @@ TEST_F(TestHelpers, StartHelper)
     startTasks();
 
     DbusTestDbusMockObject* obj =
-        dbus_test_dbus_mock_get_object(mock, "/com/test/untrusted/helper", "com.ubuntu.Upstart0_6.Job", NULL);
+        dbus_test_dbus_mock_get_object(mock, UNTRUSTED_HELPER_PATH, UPSTART_JOB, NULL);
 
     BackupHelper helper("com.test.multiple_first_1.2.3");
 
@@ -511,13 +502,15 @@ TEST_F(TestHelpers, StartHelper)
 
     auto env = g_variant_get_child_value(calls->params, 0);
     EXPECT_ENV("com.test.multiple_first_1.2.3", env, "APP_ID");
-    EXPECT_ENV("'/custom/click/dekko.dekkoproject/0.6.20/backup-helper'", env, "APP_URIS");
+
+    QString appUrisStr = QString("'%1'").arg(DEKKO_HELPER_BIN);
+    EXPECT_ENV(appUrisStr.toLocal8Bit().data(), env, "APP_URIS");
     EXPECT_ENV("backup-helper", env, "HELPER_TYPE");
     EXPECT_TRUE(have_env(env, "INSTANCE_ID"));
     g_variant_unref(env);
 
     DbusTestDbusMockObject* objUpstart =
-        dbus_test_dbus_mock_get_object(mock, "/com/ubuntu/Upstart", "com.ubuntu.Upstart0_6", NULL);
+        dbus_test_dbus_mock_get_object(mock, UPSTART_PATH, UPSTART_INTERFACE, NULL);
 
     /* Basic start */
     dbus_test_dbus_mock_object_emit_signal(
@@ -539,8 +532,6 @@ TEST_F(TestHelpers, StartHelper)
     }
 
     helper.stop();
-
-    return;
 }
 
 TEST_F(TestHelpers, StopHelper)
@@ -549,7 +540,7 @@ TEST_F(TestHelpers, StopHelper)
     startTasks();
 
     DbusTestDbusMockObject* obj =
-        dbus_test_dbus_mock_get_object(mock, "/com/test/untrusted/helper", "com.ubuntu.Upstart0_6.Job", NULL);
+        dbus_test_dbus_mock_get_object(mock, UNTRUSTED_HELPER_PATH, UPSTART_JOB, NULL);
 
     BackupHelper helper("com.bar_foo_8432.13.1");
     QSignalSpy spy(&helper, &BackupHelper::finished);
@@ -578,7 +569,7 @@ TEST_F(TestHelpers, StopHelper)
     ASSERT_TRUE(dbus_test_dbus_mock_object_clear_method_calls(mock, obj, NULL));
 
     DbusTestDbusMockObject* objUpstart =
-        dbus_test_dbus_mock_get_object(mock, "/com/ubuntu/Upstart", "com.ubuntu.Upstart0_6", NULL);
+        dbus_test_dbus_mock_get_object(mock, UPSTART_PATH, UPSTART_INTERFACE, NULL);
 
     dbus_test_dbus_mock_object_emit_signal(
         mock, objUpstart, "EventEmitted", G_VARIANT_TYPE("(sas)"),
@@ -598,10 +589,6 @@ TEST_F(TestHelpers, StopHelper)
     {
         g_main_iteration(TRUE);
     }
-
-//    ASSERT_EQ(stop_data.count, 1);
-
-    return;
 }
 
 typedef struct
@@ -637,7 +624,7 @@ TEST_F(TestHelpers, StartStopHelperObserver)
     ASSERT_TRUE(ubuntu_app_launch_observer_add_helper_stop(helper_observer_cb, "my-type-is-libra", &stop_data));
 
     DbusTestDbusMockObject* obj =
-        dbus_test_dbus_mock_get_object(mock, "/com/ubuntu/Upstart", "com.ubuntu.Upstart0_6", NULL);
+        dbus_test_dbus_mock_get_object(mock, UPSTART_PATH, UPSTART_INTERFACE, NULL);
 
     /* Basic start */
     dbus_test_dbus_mock_object_emit_signal(
@@ -695,12 +682,13 @@ TEST_F(TestHelpers, StartFullTest)
 
     // send the upstart signal so keeper-service is aware of the helper termination
     DbusTestDbusMockObject* objUpstart =
-        dbus_test_dbus_mock_get_object(mock, "/com/ubuntu/Upstart", "com.ubuntu.Upstart0_6", NULL);
+        dbus_test_dbus_mock_get_object(mock, UPSTART_PATH, UPSTART_INTERFACE, NULL);
 
+    QString eventInfoStr = QString("('stopped', ['JOB=untrusted-helper', 'INSTANCE=backup-helper::%1'])").arg(DEKKO_APP_ID);
     dbus_test_dbus_mock_object_emit_signal(
         mock, objUpstart, "EventEmitted", G_VARIANT_TYPE("(sas)"),
         g_variant_new_parsed(
-            "('stopped', ['JOB=untrusted-helper', 'INSTANCE=backup-helper::dekko.dekkoproject_dekko_0.6.20'])"),
+                eventInfoStr.toLocal8Bit().data()),
         NULL);
     g_usleep(100000);
     while (g_main_pending())
@@ -713,9 +701,7 @@ TEST_F(TestHelpers, StartFullTest)
 
     // let's leave things clean
     EXPECT_TRUE(removeHelperMarkBeforeStarting());
-    unsetenv("KEEPER_TEST_HELPER");
-
-    return;
+    g_unsetenv("KEEPER_TEST_HELPER");
 }
 
 int main(int argc, char** argv)
