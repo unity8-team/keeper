@@ -19,9 +19,10 @@
 
 #pragma once
 
+#include <QLocalSocket>
+#include <QMap>
 #include <QObject>
 #include <QVector>
-#include <QMap>
 
 #include <memory>
 
@@ -51,15 +52,17 @@ public:
     Q_DISABLE_COPY(BackupHelperImpl)
 
     void init();
-
-    void start();
+    void start(int sd);
     void stop();
 
     void emitHelperStarted();
     void emitHelperFinished();
 
+    int get_helper_socket();
+
 public Q_SLOTS:
-    void checkStatus();
+    void inactivityDetected();
+    void onSocketReadReady();
 
 Q_SIGNALS:
     void started();
@@ -71,6 +74,9 @@ private:
     QString appid_;
     QTimer * timer_;
     std::shared_ptr<ubuntu::app_launch::Registry> registry_;
+    QScopedPointer <QLocalSocket> storage_framework_socket_;
+    QScopedPointer <QLocalSocket> helper_socket_;
+    QScopedPointer <QLocalSocket> read_socket_;
 };
 
 } // namespace internal

@@ -370,7 +370,7 @@ protected:
         return true;
     }
 
-    bool waitUntilHelperFinishes(int maxTimeout = 5000)
+    bool waitUntilHelperFinishes(int maxTimeout = 15000)
     {
         // TODO create a new mock for upstart that controls the lifecycle of the
         // helper process so we can do this in a cleaner way.
@@ -493,7 +493,7 @@ TEST_F(TestHelpers, StartHelper)
 
     QSignalSpy spy(&helper, &BackupHelper::started);
 
-    helper.start();
+    helper.start(1999);
 
     guint len = 0;
     auto calls = dbus_test_dbus_mock_object_get_method_calls(mock, obj, "Start", &len, NULL);
