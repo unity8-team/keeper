@@ -28,10 +28,9 @@ class KeeperHelper : public QObject, protected QDBusContext
     Q_OBJECT
 
 public:
-    Q_DISABLE_COPY(KeeperHelper)
-
     explicit KeeperHelper(Keeper *parent);
     virtual ~KeeperHelper();
+    Q_DISABLE_COPY(KeeperHelper)
 
 public Q_SLOTS:
     QDBusUnixFileDescriptor StartBackup(quint64 nbytes);

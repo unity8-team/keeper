@@ -19,7 +19,7 @@
 
 #include "tar/tar-creator.h"
 #include "qdbus-stubs/dbus-types.h"
-#include "qdbus-stubs/keeper_interface.h"
+#include "qdbus-stubs/keeper_helper_interface.h"
 
 #include <QCommandLineParser>
 #include <QCoreApplication>
