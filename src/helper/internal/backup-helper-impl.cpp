@@ -141,11 +141,6 @@ void BackupHelperImpl::stop()
         qDebug() << "We have instances";
         instances[0]->stop();
     }
-    auto testHelper = qgetenv("KEEPER_TEST_HELPER");
-    if (testHelper != "")
-    {
-
-    }
 }
 
 void BackupHelperImpl::inactivityDetected()
