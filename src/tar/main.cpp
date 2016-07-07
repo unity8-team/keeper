@@ -72,7 +72,7 @@ get_filenames_from_file(FILE * fp, bool zero)
     QStringList filenames;
     for (const auto& token : tokens)
         filenames.append(QString::fromUtf8(token));
-  
+
     return filenames;
 }
 
@@ -127,7 +127,7 @@ main(int argc, char **argv)
         std::cerr << "Missing required argument: --bus-path " << std::endl;
         parser.showHelp(EXIT_FAILURE);
     }
-    
+
     // gotta have files
     const auto filenames = get_filenames_from_file(stdin, zero);
     for (const auto& filename : filenames)
@@ -187,11 +187,6 @@ main(int argc, char **argv)
     }
     qDebug() << "expected to write" << n_bytes;
     qDebug() << "actually wrote   " << n_sent;
-
-    // FIXME: xavi, is it util's responsibility to close() here?
-    // Keeper knows how many bytes to expect, so it should be
-    // able to handle it on its own?
-    //close(fd);
 
     return EXIT_SUCCESS;
 }
