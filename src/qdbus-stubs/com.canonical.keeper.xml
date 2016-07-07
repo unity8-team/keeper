@@ -2,11 +2,6 @@
   <interface name="com.canonical.keeper">
     <method name="start"/>
 
-    <method name="StartBackup">
-      <arg direction="in" name="nbytes" type="t"/>
-      <arg type="h" name="sd" direction="out" />
-    </method>
-
     <method name="finish"/>
   </interface>
 </node>

@@ -9,6 +9,7 @@ set(SERVICE_LIB_SOURCES
   backup-choices.cpp
   keeper.cpp
   keeper-user.cpp
+  keeper-helper.cpp
   metadata.cpp
   restore-choices.cpp
 )

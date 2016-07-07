@@ -44,6 +44,10 @@ namespace DBusTypes
 
     constexpr const char KEEPER_SERVICE_PATH[] = "/com/canonical/keeper";
 
+    constexpr const char KEEPER_HELPER_INTERFACE[] = "com.canonical.keeper.Helper";
+
+    constexpr const char KEEPER_HELPER_PATH[] = "/com/canonical/keeper/helper";
+
     constexpr const char KEEPER_USER_INTERFACE[] = "com.canonical.keeper.User";
 
     constexpr const char KEEPER_USER_PATH[]      = "/com/canonical/keeper/user";

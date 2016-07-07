@@ -1,0 +1,66 @@
+<!DOCTYPE node PUBLIC
+    "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+    "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd" >
+<node xmlns:doc="http://www.freedesktop.org/dbus/1.0/doc.dtd">
+  <interface name="com.canonical.keeper.Helper">
+    <method name="StartBackup">
+        <arg direction="in" name="nbytes" type="t">
+            <doc:doc>
+            <doc:summary>The number of bytes the helper needs to write</doc:summary>
+            <doc:description>
+            <doc:para>An unsigned 64 bits integer that holds the number of bytes to be written by the helper</doc:para>
+            </doc:description>
+            </doc:doc>
+        </arg>
+        <arg type="h" name="sd" direction="out">
+            <doc:doc>
+            <doc:summary>The socket descriptor where the helper must write its data.</doc:summary>
+            <doc:description>
+            <doc:para>A Unix file descriptor that is already connected and that the helper must use to write its data.
+                      The file descriptor is already connected, so the helper does not need to do anything in particular.</doc:para>
+            </doc:description>
+            </doc:doc>
+        </arg>
+    </method>
+
+    <method name="UpdateStatus">
+        <arg direction="in" name="app_id" type="s">
+            <doc:doc>
+            <doc:summary>The app id.</doc:summary>
+            <doc:description>
+            <doc:para>A string holding the app id of the helper that needs to update its status.</doc:para>
+            </doc:description>
+            </doc:doc>
+        </arg>
+        <arg direction="in" name="status" type="s">
+            <doc:doc>
+            <doc:summary>The status.</doc:summary>
+            <doc:description>
+            <doc:para>A string holding the status the helper.</doc:para>
+            </doc:description>
+            </doc:doc>
+        </arg>
+        <arg direction="in" name="percentage" type="d">
+            <doc:doc>
+            <doc:summary>The percent done.</doc:summary>
+            <doc:description>
+            <doc:para>A double holding the percent done by the helper.</doc:para>
+            </doc:description>
+            </doc:doc>
+        </arg>
+    </method>
+
+    <method name="StartRestore">
+        <arg type="h" name="sd" direction="out">
+            <doc:doc>
+            <doc:summary>The socket descriptor where the helper must read the restore data.</doc:summary>
+            <doc:description>
+            <doc:para>A Unix file descriptor that is already connected and that the helper must use to read its data.
+                      The file descriptor is already connected, so the helper does not need to do anything in particular.</doc:para>
+            </doc:description>
+            </doc:doc>
+        </arg>
+    </method>
+
+  </interface>
+</node>

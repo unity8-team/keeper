@@ -72,13 +72,16 @@ BackupChoices::get_backups()
     //  Click Packages
     //
 
+    qDebug() << "Click packages";
     QString manifests_str;
     GError* error {};
     auto user = click_user_new_for_user(nullptr, nullptr, &error);
     if (user != nullptr)
     {
+        qDebug() << "User is not null";
         auto tmp = click_user_get_manifests_as_string (user, &error);
         manifests_str = QString::fromUtf8(tmp);
+        qDebug() << "Manifests str: [" << manifests_str << "]";
         g_clear_pointer(&tmp, g_free);
         g_clear_object(&user);
     }

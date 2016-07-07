@@ -26,12 +26,18 @@ set(
 )
 
 set(
+  helper_xml
+  "com.canonical.keeper.Helper.xml"
+)
+
+set(
   user_xml
   "com.canonical.keeper.User.xml"
 )
 
 set_source_files_properties(
     "${keeper_xml}"
+    "${helper_xml}"
     "${user_xml}"
     PROPERTIES
     NO_NAMESPACE YES
@@ -58,6 +64,29 @@ qt5_add_dbus_adaptor(
   ${CMAKE_SOURCE_DIR}/src/service/keeper.h
   Keeper
   KeeperAdaptor
+)
+
+# Helper Object
+
+set_source_files_properties(
+  ${helper_xml}
+  PROPERTIES
+  CLASSNAME DBusInterfaceKeeperHelper
+)
+
+qt5_add_dbus_interface(
+  interface_files
+  ${helper_xml}
+  keeper_helper_interface
+)
+
+qt5_add_dbus_adaptor(
+  adaptor_files
+  ${helper_xml}
+  ${CMAKE_SOURCE_DIR}/src/service/keeper-helper.h
+  KeeperHelper
+  KeeperHelperAdaptor
+  KeeperHelperAdaptor
 )
 
 # User Object

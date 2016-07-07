@@ -28,6 +28,7 @@
 
 #include "KeeperAdaptor.h"
 #include "KeeperUserAdaptor.h"
+#include "KeeperHelperAdaptor.h"
 
 #include <QCoreApplication>
 #include <QDBusConnection>
@@ -86,6 +87,15 @@ main(int argc, char **argv)
         if (!connection.registerObject(DBusTypes::KEEPER_SERVICE_PATH, service))
         {
             qFatal("Could not register keeper dbus service object: [%s]", connection.lastError().message().toStdString().c_str());
+            return 1;
+        }
+
+        // register the helper object
+        auto helper  = new KeeperHelper(service);
+        new KeeperHelperAdaptor(helper);
+        if (!connection.registerObject(DBusTypes::KEEPER_HELPER_PATH, helper))
+        {
+            qFatal("Could not register keeper dbus helper object: [%s]", connection.lastError().message().toStdString().c_str());
             return 1;
         }
 
