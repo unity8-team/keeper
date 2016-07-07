@@ -18,7 +18,7 @@
  */
 #include <dbus-types.h>
 
-#include "keeper_interface.h"
+#include "keeper_helper_interface.h"
 #include "simple-helper-defs.h"
 
 #include <QCoreApplication>
@@ -42,8 +42,8 @@ main(int argc, char **argv)
     bindtextdomain(GETTEXT_PACKAGE, LOCALE_DIR);
     textdomain(GETTEXT_PACKAGE);
 
-    QScopedPointer<DBusInterfaceKeeper> keeperInterface(new DBusInterfaceKeeper(DBusTypes::KEEPER_SERVICE,
-                                                            DBusTypes::KEEPER_SERVICE_PATH,
+    QScopedPointer<DBusInterfaceKeeperHelper> keeperInterface(new DBusInterfaceKeeperHelper(DBusTypes::KEEPER_SERVICE,
+                                                            DBusTypes::KEEPER_HELPER_PATH,
                                                             QDBusConnection::sessionBus(), 0));
     quint64 nbytes = 0;
     QDBusReply<QDBusUnixFileDescriptor> userResp = keeperInterface->call(QLatin1String("StartBackup"), nbytes);
