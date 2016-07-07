@@ -59,8 +59,8 @@ get_filenames_from_file(FILE * fp, bool zero)
         // can't find a Qt equivalent of g_shell_parse_argv()...
         gchar** filenames_strv {};
         GError* err {};
-        auto filenames_raw_zeroterminated = QString(filenames_raw).toUtf8();
-        g_shell_parse_argv(filenames_raw_zeroterminated.constData(), nullptr, &filenames_strv, &err);
+        filenames_raw = QString(filenames_raw).toUtf8(); // ensure a trailing '\0'
+        g_shell_parse_argv(filenames_raw.constData(), nullptr, &filenames_strv, &err);
         if (err != nullptr)
             g_warning("Unable to parse file list: %s", err->message);
         for(int i=0; filenames_strv && filenames_strv[i]; ++i)
@@ -69,6 +69,7 @@ get_filenames_from_file(FILE * fp, bool zero)
         g_clear_error(&err);
     }
 
+    // massage into a QStringList
     QStringList filenames;
     for (const auto& token : tokens)
         filenames.append(QString::fromUtf8(token));
