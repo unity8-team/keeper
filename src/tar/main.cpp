@@ -140,13 +140,13 @@ int
 get_socket_from_keeper(size_t n_bytes, const QString& bus_path)
 {
     qDebug() << "asking keeper for a socket";
-    DBusInterfaceKeeper keeperInterface(
+    DBusInterfaceKeeperHelper helperInterface(
         DBusTypes::KEEPER_SERVICE,
-        bus_path,//DBusTypes::KEEPER_SERVICE_PATH,
+        bus_path,
         QDBusConnection::sessionBus()
     );
     qDebug() << "asking keeper for a socket";
-    auto fd_reply = keeperInterface.StartBackup(n_bytes);
+    auto fd_reply = helperInterface.StartBackup(n_bytes);
     fd_reply.waitForFinished();
     if (fd_reply.isError()) {
         qFatal("Call to '%s.StartBackup() at '%s' call failed: %s",
