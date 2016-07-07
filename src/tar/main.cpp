@@ -77,13 +77,9 @@ get_filenames_from_file(FILE * fp, bool zero)
     return filenames;
 }
 
-} // anonymous namespace
-
-int
-main(int argc, char **argv)
+std::tuple<bool,QString,QStringList>
+parse_args(QCoreApplication& app)
 {
-    QCoreApplication app(argc, argv);
-
     // parse the command line
     QCommandLineParser parser;
     parser.addHelpOption();
@@ -101,21 +97,21 @@ main(int argc, char **argv)
         "\n"
         "Helper usage: find /your/data/path -print0 | "  APP_NAME " -0 -a /bus/path"
     );
-    QCommandLineOption compress_option(
+    QCommandLineOption compress_option{
         QStringList() << "c" << "compress",
         QStringLiteral("Compress files before adding to archive")
-    );
+    };
     parser.addOption(compress_option);
-    QCommandLineOption zero_delimiter_option(
+    QCommandLineOption zero_delimiter_option{
         QStringList() << "0" << "null",
         QStringLiteral("Input items are terminated by a null character instead of by whitespace")
-    );
+    };
     parser.addOption(zero_delimiter_option);
-    QCommandLineOption bus_path_option(
+    QCommandLineOption bus_path_option{
         QStringList() << "a" << "bus-path",
         QStringLiteral("Keeper service's DBus path"),
         QStringLiteral("bus-path")
-    );
+    };
     parser.addOption(bus_path_option);
     parser.process(app);
     const bool compress = parser.isSet(compress_option);
@@ -137,15 +133,12 @@ main(int argc, char **argv)
         parser.showHelp(EXIT_FAILURE);
     }
 
-    // build the creator
-    TarCreator tar_creator(filenames, compress);
-    const auto n_bytes_in = tar_creator.calculate_size();
-    if (n_bytes_in < 0)
-        qFatal("Unable to estimate tar size");
-    const auto n_bytes = size_t(n_bytes_in);
-    qDebug() << "tar size will be" << n_bytes;
+    return std::make_tuple(compress, bus_path, filenames);
+}
 
-    // call StartBackup() to get a socket
+int
+get_socket_from_keeper(size_t n_bytes, const QString& bus_path)
+{
     qDebug() << "asking keeper for a socket";
     DBusInterfaceKeeper keeperInterface(
         DBusTypes::KEEPER_SERVICE,
@@ -165,9 +158,15 @@ main(int argc, char **argv)
     QDBusUnixFileDescriptor qfd = fd_reply.value();
     const auto fd = qfd.fileDescriptor();
     qDebug() << "socket is" << fd;
+    return fd;
+}
+
+size_t
+send_tar_to_keeper(TarCreator& tar_creator, int fd)
+{
+    size_t n_sent {};
 
     // send the tar to the socket piece by piece
-    size_t n_sent {};
     std::vector<char> buf;
     while(tar_creator.step(buf)) {
         if (buf.empty())
@@ -184,8 +183,35 @@ main(int argc, char **argv)
             n_left += n_written;
         }
     }
-    qDebug() << "expected to write" << n_bytes;
-    qDebug() << "actually wrote   " << n_sent;
+
+    return n_sent;
+}
+
+} // anonymous namespace
+
+int
+main(int argc, char **argv)
+{
+    QCoreApplication app(argc, argv);
+
+    // get the inputs
+    bool compress;
+    QString bus_path;
+    QStringList filenames;
+    std::tie(compress, bus_path, filenames) = parse_args(app);
+
+    // build the creator
+    TarCreator tar_creator{filenames, compress};
+    const auto n_bytes_in = tar_creator.calculate_size();
+    if (n_bytes_in < 0)
+        qFatal("Unable to estimate tar size");
+    const auto n_bytes = size_t(n_bytes_in);
+    qDebug() << "tar size should be" << n_bytes;
+
+    // do it!
+    const auto fd = get_socket_from_keeper(n_bytes, bus_path);
+    const auto n_sent = send_tar_to_keeper(tar_creator, fd);
+    qDebug() << "tar size was" << n_sent;
 
     return EXIT_SUCCESS;
 }
