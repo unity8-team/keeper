@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <QtGlobal> // quint64
+#include <QtGlobal> // qint64
 #include <QObject> // parent
 #include <QStringList>
 #include <QScopedPointer>
