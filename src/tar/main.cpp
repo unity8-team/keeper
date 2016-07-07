@@ -123,8 +123,7 @@ main(int argc, char **argv)
     const auto bus_path = parser.value(bus_path_option);
 
     // gotta have the bus path
-    if (bus_path.isEmpty())
-    {
+    if (bus_path.isEmpty()) {
         std::cerr << "Missing required argument: --bus-path " << std::endl;
         parser.showHelp(EXIT_FAILURE);
     }
@@ -132,20 +131,19 @@ main(int argc, char **argv)
     // gotta have files
     const auto filenames = get_filenames_from_file(stdin, zero);
     for (const auto& filename : filenames)
-    {
         qDebug() << "filename: " << filename;
-    }
-    if (filenames.empty())
-    {
+    if (filenames.empty()) {
         std::cerr << "no files listed" << std::endl;
         parser.showHelp(EXIT_FAILURE);
     }
 
     // build the creator
     TarCreator tar_creator(filenames, compress);
-    const auto n_bytes = tar_creator.calculate_size();
+    const auto n_bytes_in = tar_creator.calculate_size();
+    if (n_bytes_in < 0)
+        qFatal("Unable to estimate tar size");
+    const auto n_bytes = size_t(n_bytes_in);
     qDebug() << "tar size will be" << n_bytes;
-
 
     // call StartBackup() to get a socket
     qDebug() << "asking keeper for a socket";
@@ -157,8 +155,7 @@ main(int argc, char **argv)
     qDebug() << "asking keeper for a socket";
     auto fd_reply = keeperInterface.StartBackup(n_bytes);
     fd_reply.waitForFinished();
-    if (fd_reply.isError())
-    {
+    if (fd_reply.isError()) {
         qFatal("Call to '%s.StartBackup() at '%s' call failed: %s",
             DBusTypes::KEEPER_SERVICE,
             qPrintable(bus_path),
@@ -170,20 +167,21 @@ main(int argc, char **argv)
     qDebug() << "socket is" << fd;
 
     // send the tar to the socket piece by piece
-    std::remove_const<decltype(n_bytes)>::type n_sent {};
+    size_t n_sent {};
     std::vector<char> buf;
     while(tar_creator.step(buf)) {
         if (buf.empty())
             continue;
         const char* walk = &buf.front();
-        auto n_left = buf.size();
+        auto n_left = size_t{buf.size()};
         while(n_left > 0) {
-            const auto n_written = write(fd, walk, n_left);
-            if (n_written < 0)
+            const auto n_written_in = write(fd, walk, n_left);
+            if (n_written_in < 0)
                 qFatal("error sending binary blob to Keeper: %s", strerror(errno));
+            const auto n_written = size_t(n_written_in);
             walk += n_written;
-            n_left += n_written;
             n_sent += n_written;
+            n_left += n_written;
         }
     }
     qDebug() << "expected to write" << n_bytes;

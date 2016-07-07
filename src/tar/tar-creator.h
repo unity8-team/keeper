@@ -19,11 +19,11 @@
 
 #pragma once
 
-#include <QtGlobal> // qint64
 #include <QObject> // parent
 #include <QStringList>
 #include <QScopedPointer>
 
+#include <cstddef> // ssize_t
 #include <vector>
 
 
@@ -39,7 +39,7 @@ public:
     TarCreator(const QStringList& files, bool compress, QObject* parent=nullptr);
     ~TarCreator();
 
-    qint64 calculate_size() const;
+    ssize_t calculate_size() const;
     bool step(std::vector<char>& fillme);
 
 private:

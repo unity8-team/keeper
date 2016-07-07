@@ -42,7 +42,7 @@ public:
     {
     }
 
-    qint64 calculate_size() const
+    ssize_t calculate_size() const
     {
         return compress_ ? calculate_compressed_size() : calculate_uncompressed_size();
     }
@@ -70,14 +70,14 @@ public:
             // if we don't have a file we're working on, then get one
             if (!step_file_)
             {
-                if (step_filenum_ >= filenames_.size()) // read past end
+                if (step_filenum_ >= filenames_.size()) // tried to read past the end
                 {
                     success = false;
                     break;
                 }
 
                 // step to next file
-                if (++step_filenum_ == filenames_.size())
+                if (++step_filenum_ == filenames_.size()) // we made it to the end!
                 {
                     archive_write_close(step_archive_.get());
                     break;
@@ -96,11 +96,12 @@ public:
                 step_file_->open(QIODevice::ReadOnly);
             }
 
-            char inbuf[1024*10];
+            static constexpr int BUFSIZE {1024*10};
+            char inbuf[BUFSIZE];
             const auto n = step_file_->read(inbuf, sizeof(inbuf));
             if (n > 0) // got data
             {
-                if (archive_write_data(step_archive_.get(), inbuf, n) == -1)
+                if (archive_write_data(step_archive_.get(), inbuf, size_t(n)) == -1)
                 {
                     qWarning() << archive_error_string(step_archive_.get());
                     success = false;
@@ -114,7 +115,8 @@ public:
             }
             else if (step_file_->atEnd()) // eof
             {
-                step_file_.reset(); // go to next file
+                // loop to next file
+                step_file_.reset();
                 continue;
             }
         }
@@ -141,7 +143,7 @@ private:
                                         const void *,
                                         size_t len)
     {
-        *static_cast<qint64*>(userdata) += len;
+        *static_cast<ssize_t*>(userdata) += len;
         return ssize_t(len);
     }
 
@@ -151,6 +153,7 @@ private:
         struct stat st;
         const auto filename_utf8 = filename.toUtf8();
         stat(filename_utf8.constData(), &st);
+
         auto entry = archive_entry_new();
         archive_entry_copy_stat(entry, &st);
         archive_entry_set_pathname(entry, filename_utf8.constData());
@@ -168,9 +171,9 @@ private:
         return ret;
     }
 
-    qint64 calculate_uncompressed_size() const
+    ssize_t calculate_uncompressed_size() const
     {
-        qint64 archive_size {};
+        ssize_t archive_size {};
 
         auto a = archive_write_new();
         archive_write_set_format_pax(a);
@@ -181,7 +184,7 @@ private:
             add_file_header_to_archive(a, filename);
 
             // libarchive pads any missing data,
-            // don't bother calling archive_write_data()
+            // so we don't need to call archive_write_data()
         }
 
         archive_write_close(a);
@@ -189,9 +192,9 @@ private:
         return archive_size;
     }
 
-    qint64 calculate_compressed_size() const
+    ssize_t calculate_compressed_size() const
     {
-        qint64 archive_size {};
+        ssize_t archive_size {};
 
         auto a = archive_write_new();
         archive_write_set_format_pax(a);
@@ -205,13 +208,14 @@ private:
             // process the file
             QFile file(filename);
             file.open(QIODevice::ReadOnly);
-            char buf[4096];
+            static constexpr int BUFSIZE {4096};
+            char buf[BUFSIZE];
             for(;;) {
                 const auto n_read = file.read(buf, sizeof(buf));
                 if (n_read == 0)
                     break;
                 if (n_read > 0)
-                    archive_write_data(a, buf, n_read);
+                    archive_write_data(a, buf, size_t(n_read));
             }
         }
 
@@ -220,7 +224,7 @@ private:
         return archive_size;
     }
 
-    const QStringList filenames_ {};
+    const QStringList filenames_;
     const bool compress_ {};
 
     std::shared_ptr<struct archive> step_archive_;
@@ -241,7 +245,7 @@ TarCreator::TarCreator(const QStringList& filenames, bool compress, QObject* par
 
 TarCreator::~TarCreator() =default;
 
-qint64
+ssize_t
 TarCreator::calculate_size() const
 {
     Q_D(const TarCreator);
