@@ -28,11 +28,11 @@
 
 #include <memory>
 
-class TarCreatorPrivate
+class TarCreator::Impl
 {
 public:
 
-    TarCreatorPrivate(const QStringList& filenames, bool compress)
+    Impl(const QStringList& filenames, bool compress)
         : filenames_(filenames)
         , compress_(compress)
         , step_archive_()
@@ -148,7 +148,7 @@ private:
     }
 
     static int add_file_header_to_archive(struct archive* archive,
-                                           const QString& filename)
+                                          const QString& filename)
     {
         struct stat st;
         const auto filename_utf8 = filename.toUtf8();
@@ -237,9 +237,8 @@ private:
 ***
 **/
 
-TarCreator::TarCreator(const QStringList& filenames, bool compress, QObject* parent)
-    : QObject(parent)
-    , d_ptr(new TarCreatorPrivate(filenames, compress))
+TarCreator::TarCreator(const QStringList& filenames, bool compress)
+    : impl_{new Impl{filenames, compress}}
 {
 }
 
@@ -248,15 +247,11 @@ TarCreator::~TarCreator() =default;
 ssize_t
 TarCreator::calculate_size() const
 {
-    Q_D(const TarCreator);
-
-    return d->calculate_size();
+    return impl_->calculate_size();
 }
 
 bool
 TarCreator::step(std::vector<char>& fillme)
 {
-    Q_D(TarCreator);
-
-    return d->step(fillme);
+    return impl_->step(fillme);
 }

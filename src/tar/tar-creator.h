@@ -19,29 +19,24 @@
 
 #pragma once
 
-#include <QObject> // parent
 #include <QStringList>
-#include <QScopedPointer>
 
 #include <cstddef> // ssize_t
+#include <memory> // shared_ptr
 #include <vector>
 
 
-class TarCreatorPrivate;
-class TarCreator : public QObject
+class TarCreator
 {
-    Q_OBJECT
-    Q_DECLARE_PRIVATE(TarCreator)
-
 public:
-    Q_DISABLE_COPY(TarCreator)
-
-    TarCreator(const QStringList& files, bool compress, QObject* parent=nullptr);
+    TarCreator(const QStringList& files, bool compress);
     ~TarCreator();
 
     ssize_t calculate_size() const;
     bool step(std::vector<char>& fillme);
 
 private:
-    QScopedPointer<TarCreatorPrivate> const d_ptr;
+    class Impl;
+    friend class Impl;
+    std::shared_ptr<Impl> impl_;
 };
