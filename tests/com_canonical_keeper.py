@@ -1,5 +1,9 @@
+import copy
 import dbus
-import time
+import select
+import socket
+import subprocess
+import threading
 from dbusmock import mockobject
 
 '''com.canonical.keeper mock template
@@ -16,281 +20,376 @@ __email__ = 'charles.kerr@canonical.com'
 __copyright__ = '(c) 2016 Canonical Ltd.'
 __license__ = 'LGPL 3+'
 
+SERVICE_PATH = '/com/canonical/keeper'
+SERVICE_IFACE = 'com.canonical.keeper'
+USER_PATH = '/com/canonical/keeper/User'
+USER_IFACE = 'com.canonical.keeper.User'
+HELPER_PATH = '/com/canonical/keeper/Helper'
+HELPER_IFACE = 'com.canonical.keeper.Helper'
+
+# magic keys used by dbusmock
 BUS_NAME = 'com.canonical.keeper'
-MAIN_OBJ = '/com/canonical/keeper'
-MAIN_IFACE = 'com.canonical.keeper'
+MAIN_IFACE = SERVICE_IFACE
+MAIN_OBJ = SERVICE_PATH
 SYSTEM_BUS = False
 
-STORE_PATH_PREFIX = MAIN_OBJ
-STORE_IFACE = 'com.canonical.pay.store'
+ACTION_QUEUED = 0
+ACTION_SAVING = 1
+ACTION_RESTORING = 2
+ACTION_COMPLETE = 3
+ACTION_STOPPED = 4
 
-ERR_PREFIX = 'org.freedesktop.DBus.Error'
-ERR_INVAL = ERR_PREFIX + '.InvalidArgs'
-ERR_ACCESS = ERR_PREFIX + '.AccessDenied'
+#
+#  Utils
+#
+
+
+def fail(msg):
+    raise dbus.exceptions.DBusException(
+        'org.freedesktop.DBus.Error.Failed',
+        msg
+    )
+
+
+def raise_not_supported_if_active():
+    user = mockobject.objects[USER_PATH]
+    if user.is_active(user):
+        raise dbus.exceptions.DBusException(
+            "org.freedesktop.DBus.Error.NotSupported",
+            "can't do that while service is active"
+        )
+
+#
+#  Main Obj
+#
+
+
+def main_clear_backup_choices(self):
+    self.raise_not_supported_if_active()
+
+    user = mockobject.objects[USER_PATH]
+    user.backup_choices = {}
+
+
+def main_add_backup_choice(self, uuid, properties):
+    self.raise_not_supported_if_active()
+    user = mockobject.objects[USER_PATH]
+
+    if 'display-name' not in properties:
+        fail('choice must contain a "display-name" property')
+    if 'type' not in properties:
+        fail('choice must contain a "type" property')
+    if properties['type'] not in user.defined_types:
+        fail('type must be one of %s' % (user.defined_types))
+
+    user.backup_choices[uuid] = properties
+
+
+def main_clear_restore_choices(self):
+    self.raise_not_supported_if_active()
+
+    user = mockobject.objects[USER_PATH]
+    user.restore_choices = {}
+
+
+def main_add_restore_choice(self, uuid, properties):
+    self.raise_not_supported_if_active()
+
+    user = mockobject.objects[USER_PATH]
+    user.restore_choices[uuid] = properties
+
+
+def main_add_helper(self, backup_type, executable):
+    self.raise_not_supported_if_active()
+    user = mockobject.objects[USER_PATH]
+    if backup_type not in user.defined_types:
+        fail('Undefined type "%s"' % (backup_type))
+    user.helpers[backup_type] = executable
 
 
 #
-# Util
+#  User Obj
 #
 
-def encode_path_element(element):
-    encoded = []
-    first = True
-    for ch in element:
-        if (ch.isalpha() or (ch.isdigit() and not first)):
-            encoded.append(ch)
+
+def user_is_active(user):
+    return len(user.all_tasks) != 0
+
+
+def user_get_backup_choices(user):
+    return dbus.Array(
+        user.backup_choices,
+        signature='a{sa{sv}}',
+        variant_level=1
+    )
+
+
+def user_get_restore_choices(user):
+    return dbus.Array(
+        user.restore_choices,
+        signature='a{sa{sv}}',
+        variant_level=1
+    )
+
+
+def user_task_worker(user, helper_exec):
+    # FIXME: set real metainfo in my_env
+    # FIXME: threading issues abound
+    my_env = {}
+    my_env['KEEPER_FOO'] = 'bar'
+    subprocess.Popen(helper_exec, env=my_env)
+
+
+def user_start_next_task(user):
+    if not len(user.remaining_tasks):
+        user.current_task = None
+        user.all_tasks = None
+    else:
+        uuid = user.remaining_tasks.pop(0)
+        user.current_task = uuid
+        user.update_state_property()
+
+        # kick of the helper executable in a worker thread
+        choice = user.backup_choices.get(uuid, None)
+        if not choice:
+            choice = user.restore_choices.get(uuid)
+        choice_type = choice['type']
+        helper_exec = user.helpers[choice_type]
+        thread = threading.Thread(target=user.task_worker, args=(helper_exec))
+        thread.start()
+
+
+def user_start_backup(user, uuids):
+
+    # sanity checks
+    user.raise_not_supported_if_active()
+    for uuid in uuids:
+        if uuid not in user.backup_choices:
+            fail('uuid %s is not a valid backup choice' % (uuid))
+
+    user.all_tasks = uuids
+    user.remaining_tasks = copy.copy(uuids)
+    user.start_next_task()
+
+
+def user_finish_current_task(user, data):
+    if not user.current_task:
+        user.fail('There is no current task!')
+    if not user.tasks[user.current_task]:
+        user.fail('Current task %s is invalid' % (user.current_task))
+    user.backup_data[user.current_task] = data
+    user.start_next_task()
+
+
+def user_start_restore(user, uuids):
+
+    # sanity checks
+    user.raise_not_supported_if_active()
+    for uuid in uuids:
+        if uuid not in user.restore_choices:
+            fail('uuid %s is not a valid backup choice' % (uuid))
+
+    user.all_tasks = uuids
+    user.remaining_tasks = copy.copy(uuids)
+    user.start_next_task()
+
+
+def user_cancel(user):
+    # FIXME
+    pass
+
+
+def user_build_state(user):
+    """Returns a generated state dictionary.
+
+    State is a map of opaque backup keys to property maps,
+    which will contain a 'display-name' string and 'action' int
+    whose possible values are queued(0), saving(1),
+    restoring(2), complete(3), and stopped(4).
+
+    Some property maps may also have an 'item' string
+    and a 'percent-done' double [0..1.0].
+    For example if these are set to (1, "Photos", 0.36),
+    the user interface could show "Backing up Photos (36%)".
+    Clients should gracefully handle missing properties;
+    eg a missing percent-done could instead show
+    "Backing up Photos".
+
+    A failed task's property map may also contain an 'error'
+    string if set by the backup helpers.
+    """
+
+    tasks_states = {}
+    for uuid in user.all_tasks:
+        task_state = {}
+        user.log('uuid is %1' % (uuid))
+
+        # get the task's action
+        if uuid in user.remaining_tasks:
+            action = ACTION_QUEUED
+        elif user.current_task in user.backup_choices:
+            action = ACTION_SAVING
+        elif user.current_task in user.restore_choices:
+            action = ACTION_RESTORING
+        else:  # FIXME: 'ACTION_STOPPED' not handled yet
+            action = ACTION_COMPLETE
+        task_state['action'] = dbus.Int32(action)
+
+        # get the task's display-name
+        display_name = user.backup_choices.get('display-name', None)
+        if not display_name:
+            display_name = user.restore_choices.get('display-name', None)
+        if not display_name:
+            display_name = 'Cynthia Rose'
+        task_state['display-name'] = dbus.String(display_name)
+
+        # FIXME: use a real percentage here
+        if action == ACTION_COMPLETE:
+            percent_done = dbus.Double(1.0)
+        elif action == ACTION_SAVING or action == ACTION_RESTORING:
+            percent_done = dbus.Double(0.5)
         else:
-            encoded.append('_{:02x}'.format(ord(ch)))
-    return ''.join(encoded)
+            percent_done = dbus.Double(0.0)
+        task_state['percent-done'] = percent_done
+
+        tasks_states[uuid] = dbus.Dictionary(task_state)
+
+    return dbus.Dictionary(
+        tasks_states,
+        signature='sa{sv}',
+        variant_level=1
+    )
 
 
-def build_store_path(package_name):
-    return STORE_PATH_PREFIX + '/' + encode_path_element(package_name)
+def user_update_state_property(user):
+    user.Set(USER_IFACE, 'State', user.build_state())
+
 
 #
-#  Store
-#
-
-
-class Item:
-    __default_bus_properties = {
-        'acknowledged_timestamp': dbus.UInt64(0.0),
-        'completed_timestamp': dbus.UInt64(0.0),
-        'description': dbus.String('The is a default item'),
-        'price': dbus.String('$1'),
-        'purchase_id': dbus.UInt64(0.0),
-        'refundable_until': dbus.UInt64(0.0),
-        'sku': dbus.String('default_item'),
-        'state': dbus.String('available'),
-        'type': dbus.String('unlockable'),
-        'title': dbus.String('Default Item')
-    }
-
-    def __init__(self, sku):
-        self.bus_properties = Item.__default_bus_properties.copy()
-        self.bus_properties['sku'] = sku
-
-    def serialize(self):
-        return dbus.Dictionary(self.bus_properties)
-
-    def set_property(self, key, value):
-        if key not in self.bus_properties:
-            raise dbus.exceptions.DBusException(
-                ERR_INVAL,
-                'Invalid item property {0}'.format(key))
-        self.bus_properties[key] = value
-
-
-def store_add_item(store, properties):
-    if 'sku' not in properties:
-        raise dbus.exceptions.DBusException(
-            ERR_INVAL,
-            'item has no sku property')
-
-    sku = properties['sku']
-    if sku in store.items:
-        raise dbus.exceptions.DBusException(
-            ERR_INVAL,
-            'store {0} already has item {1}'.format(store.name, sku))
-
-    item = Item(sku)
-    store.items[sku] = item
-    store.set_item(store, sku, properties)
-
-
-def store_set_item(store, sku, properties):
-    try:
-        item = store.items[sku]
-        for key, value in properties.items():
-            item.set_property(key, value)
-    except KeyError:
-        raise dbus.exceptions.DBusException(
-            ERR_INVAL,
-            'store {0} has no such item {1}'.format(store.name, sku))
-
-
-def store_get_item(store, sku):
-    try:
-        return store.items[sku].serialize()
-    except KeyError:
-        if store.path.endswith(encode_path_element('click-scope')):
-            return dbus.Dictionary(
-                {
-                    'sku': sku,
-                    'state': 'available',
-                    'refundable_until': 0,
-                })
-        else:
-            raise dbus.exceptions.DBusException(
-                ERR_INVAL,
-                'store {0} has no such item {1}'.format(store.name, sku))
-
-
-def store_get_purchased_items(store):
-    items = []
-    for sku, item in store.items.items():
-        if item.bus_properties['state'] in ('approved', 'purchased'):
-            items.append(item.serialize())
-    return dbus.Array(items, signature='a{sv}', variant_level=1)
-
-
-def store_purchase_item(store, sku):
-    if store.path.endswith(encode_path_element('click-scope')):
-        if sku != 'cancel':
-            item = Item(sku)
-            item.bus_properties = {
-                'state': 'purchased',
-                'refundable_until': dbus.UInt64(time.time() + 15*60),
-                'sku': sku,
-            }
-            store.items[sku] = item
-
-        return store_get_item(store, sku)
-    try:
-        if sku == 'denied':
-            raise dbus.exceptions.DBusException(
-                ERR_ACCESS,
-                'User denied access.')
-        elif sku != 'cancel':
-            item = store.items[sku]
-            item.set_property('state', 'approved')
-            item.set_property('purchase_id',
-                              dbus.UInt64(store.next_purchase_id))
-            item.set_property('completed_timestamp', dbus.UInt64(time.time()))
-            store.next_purchase_id += 1
-        return store_get_item(store, sku)
-    except KeyError:
-        raise dbus.exceptions.DBusException(
-            ERR_INVAL,
-            'store {0} has no such item {1}'.format(store.name, sku))
-
-
-def store_refund_item(store, sku):
-    if not store.path.endswith(encode_path_element('click-scope')):
-        raise dbus.exceptions.DBusException(
-            ERR_INVAL,
-            'Refunds are only available for packages')
-
-    try:
-        item = store.items[sku]
-        if (item.bus_properties['state'] == 'purchased' and
-            (item.bus_properties['refundable_until'] >
-             dbus.UInt64(time.time()))):
-            del store.items[sku]
-            return dbus.Dictionary({
-                'state': 'available',
-                'sku': sku,
-                'refundable_until': 0
-            })
-        else:
-            return dbus.Dictionary({
-                'state': 'purchased',
-                'sku': sku,
-                'refundable_until': 0
-            })
-    except KeyError:
-        return dbus.Dictionary({'state': 'available', 'sku': sku,
-                                'refundable_until': 0})
-
-
-def store_acknowledge_item(store, sku):
-    if store.path.endswith(encode_path_element('click-scope')):
-        raise dbus.exceptions.DBusException(
-            ERR_INVAL,
-            'Only in-app purchase items can be acknowledged')
-
-    try:
-        item = store.items[sku]
-        item.set_property('acknowledged_timestamp', dbus.UInt64(time.time()))
-        item.set_property('state', dbus.String('purchased'))
-        return item.serialize()
-    except KeyError:
-        raise dbus.exceptions.DBusException(
-            ERR_INVAL,
-            'store {0} has no such item {1}'.format(store.name, sku))
-
-#
-#  Main 'Storemock' Obj
+#  Helper Obj
 #
 
 
-def main_add_store(mock, package_name, items):
-    path = build_store_path(package_name)
-    mock.AddObject(path, STORE_IFACE, {}, [])
-    store = mockobject.objects[path]
-    store.name = package_name
-    store.items = {}
-    store.next_purchase_id = 1
+def helper_backup_worker(helper):
+    n_read = 0
+    backup_buf = []
+    user = mockobject.objects[USER_PATH]
 
-    store.add_item = store_add_item
-    store.set_item = store_set_item
-    store.get_item = store_get_item
-    store.get_purchased_items = store_get_purchased_items
-    store.purchase_item = store_purchase_item
-    store.refund_item = store_refund_item
-    store.acknowledge_item = store_acknowledge_item
-    store.AddMethods(STORE_IFACE, [
-        ('AddItem', 'a{sv}', '',
-         'self.add_item(self, args[0])'),
-        ('SetItem', 'sa{sv}', '',
-         'self.set_item(self, args[0], args[1])'),
-        ('GetItem', 's', 'a{sv}',
-         'ret = self.get_item(self, args[0])'),
-        ('GetPurchasedItems', '', 'aa{sv}',
-         'ret = self.get_purchased_items(self)'),
-        ('PurchaseItem', 's', 'a{sv}',
-         'ret = self.purchase_item(self, args[0])'),
-        ('RefundItem', 's', 'a{sv}',
-         'ret = self.refund_item(self, args[0])'),
-        ('AcknowledgeItem', 's', 'a{sv}',
-         'ret = self.acknowledge_item(self, args[0])'),
-    ])
+    while n_read < helper.n_bytes:
+        inputs = [helper.parent]
+        readable, writable, exceptional = select.select(inputs, [], inputs)
+        for s in readable:
+            data = s.recv(4096)
+            if data:
+                # a readable client socket has data
+                helper.log('received "%s" from %s' % (data, s.getpeername()))
+                backup_buf.append(data)
+                n_read += len(data)
+                user.update_state_property()
+        # FIXME: handle exceptions
+        # FIXME: threading issues here in update_state, finish_backup
 
-    for item in items:
-        store.add_item(store, item)
+    helper.finish_backup(''.join(backup_buf))
 
 
-def main_get_stores(mock):
-    names = []
-    for key, val in mockobject.objects.items():
-        try:
-            names.append(val.name)
-        except AttributeError:
-            pass
-    return dbus.Array(names, signature='s', variant_level=1)
+def helper_start_backup(helper, n_bytes):
+    helper.parent, child = socket.socketpair()
+    helper.backup_n_bytes = n_bytes
+    helper.thread = threading.Thread(target=helper.backup_worker)
+    helper.thread.start()
+    return child
 
 
-def main_add_item(mock, package_name, item):
-    try:
-        path = build_store_path(package_name)
-        # mock.log('store {0} adding item {1}'.format(path, item))
-        mockobject.objects[path].StoreAddItem(item)
-    except KeyError:
-        raise dbus.exceptions.DBusException(
-            ERR_INVAL,
-            'no such package {0}'.format(package_name))
+def helper_finish_backup(helper, backup_data):
+    user = mockobject.objects[USER_PATH]
+    user.finish_current_task(backup_data)
+    helper.parent.shutdown()
+    helper.parent.close()
+    helper.parent = None
 
 
-def main_set_item(mock, package_name, item):
-    try:
-        path = build_store_path(package_name)
-        store = mock.objects[path]
-        store.set_item(store, item)
-    except KeyError:
-        raise dbus.exceptions.DBusException(
-            ERR_INVAL,
-            'error adding item to package {0}'.format(package_name))
+def helper_start_restore(helper):
+    helper.parent, child = socket.socketpair()
+    return child
 
+
+#
+#
+#
 
 def load(main, parameters):
 
-    main.add_store = main_add_store
-    main.add_item = main_add_item
-    main.set_item = main_set_item
-    main.get_stores = main_get_stores
-    main.AddMethods(MAIN_IFACE, [
-        ('AddStore', 'saa{sv}', '', 'self.add_store(self, args[0], args[1])'),
-        ('AddItem', 'sa{sv}', '', 'self.add_item(self, args[0], args[1])'),
-        ('SetItem', 'sa{sv}', '', 'self.set_item(self, args[0], args[1])'),
-        ('GetStores', '', 'as', 'ret = self.get_stores(self)'),
+    main.add_backup_choice = main_add_backup_choice
+    main.add_restore_choice = main_add_restore_choice
+    main.add_helper = main_add_helper
+    main.clear_backup_choices = main_clear_backup_choices
+    main.clear_restore_choices = main_clear_restore_choices
+    main.raise_not_supported_if_active = raise_not_supported_if_active
+    main.fail = fail
+    main.AddMethods(SERVICE_IFACE, [
+        ('AddBackupChoice', 'sa{sv}', '',
+         'self.add_backup_choice(self, args[0], args[1])'),
+        ('AddRestoreChoice', 'sa{sv}', '',
+         'self.add_restore_choice(self, args[0], args[1])'),
+        ('AddHelper', 'ss', '',
+         'self.add_helper(self, args[0], args[1])'),
+        ('ClearBackupChoices', '', '',
+         'self.clear_backup_choices(self)'),
+        ('ClearRestoreChoices', '', '',
+         'self.clear_restore_choices(self)'),
+    ])
+
+    path = USER_PATH
+    main.AddObject(path, USER_IFACE, {}, [])
+    user = mockobject.objects[path]
+    user.get_backup_choices = user_get_backup_choices
+    user.start_backup = user_start_backup
+    user.get_restore_choices = user_get_restore_choices
+    user.start_restore = user_start_restore
+    user.is_active = user_is_active
+    user.cancel = user_cancel
+    user.build_state = user_build_state
+    user.update_state_property = user_update_state_property
+    user.finish_current_task = user_finish_current_task
+    user.raise_not_supported_if_active = raise_not_supported_if_active
+    user.start_next_task = user_start_next_task
+    user.task_worker = user_task_worker
+    user.fail = fail
+    user.all_tasks = []
+    user.remaining_tasks = []
+    user.backup_choices = {}
+    user.backup_data = {}
+    user.restore_choices = {}
+    user.helpers = {}
+    user.current_task = None
+    user.defined_types = ['application', 'system-data', 'folder']
+    user.AddMethods(USER_IFACE, [
+        ('GetBackupChoices', '', 'a{sa{sv}}',
+         'ret = self.get_backup_choices(self)'),
+        ('StartBackup', 'as', '',
+         'self.start_backup(self, args[0])'),
+        ('GetRestoreChoices', '', 'a{sa{sv}}',
+         'ret = self.get_restore_choices(self)'),
+        ('StartRestore', 'as', '',
+         'self.start_restore(self, args[0])'),
+        ('Cancel', '', '',
+         'self.cancel(self)'),
+    ])
+    user.AddProperty(USER_IFACE, "State", user.build_state(user))
+
+    path = HELPER_PATH
+    main.AddObject(path, HELPER_IFACE, {}, [])
+    helper = mockobject.objects[path]
+    helper.start_backup = helper_start_backup
+    helper.finish_backup = helper_finish_backup
+    helper.start_restore = helper_start_restore
+    helper.backup_worker = helper_backup_worker
+    helper.parent = None
+    helper.thread = None
+    helper.backup_n_bytes = None
+    helper.AddMethods(USER_IFACE, [
+        ('StartBackup', 't', 'sd',
+         'ret = self.start_backup(self, args[0])'),
+        ('StartRestore', '', 'sd',
+         'ret = self.start_restore(self)')
     ])
