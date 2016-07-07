@@ -18,6 +18,7 @@
  */
 
 #include "tar/tar-creator.h"
+#include "qdbus-stubs/dbus-types.h"
 #include "qdbus-stubs/keeper_interface.h"
 
 #include <QCommandLineParser>
@@ -35,6 +36,7 @@
 
 #include <ctime>
 #include <iostream>
+#include <type_traits>
 
 namespace
 {
@@ -82,14 +84,27 @@ main(int argc, char **argv)
     QCoreApplication app(argc, argv);
 
     // parse the command line
-    // FIXME: do we want i18n?
     QCommandLineParser parser;
-    parser.setApplicationDescription("Backup files helper for Keeper");
     parser.addHelpOption();
+    parser.setApplicationDescription(
+        "\n"
+        "Reads filenames from the standard input, delimited either by blanks (which can\n"
+        "be protected with double or single quotes or a backslash), builds an in-memory\n"
+        "archive of those files, and sends them to the Keeper service to store remotely.\n"
+        "\n"
+        "Because Unix filenames can contain blanks and newlines, it is generally better\n"
+        "to use the -0 option, which prevents such problems. When using this option you\n"
+        "will need to ensure the program which produces input also uses a null character\n"
+        "a separator. If that program is GNU find, for example, the -print0 option does\n"
+        "this for you.\n"
+        "\n"
+        "Helper usage: find /your/data/path -print0 | "  APP_NAME " -0 -a /bus/path"
+    );
     QCommandLineOption compress_option(
         QStringList() << "c" << "compress",
         QStringLiteral("Compress files before adding to archive")
     );
+    parser.addOption(compress_option);
     QCommandLineOption zero_delimiter_option(
         QStringList() << "0" << "null",
         QStringLiteral("Input items are terminated by a null character instead of by whitespace")
@@ -101,9 +116,6 @@ main(int argc, char **argv)
         QStringLiteral("bus-path")
     );
     parser.addOption(bus_path_option);
-#if 0
-    parser.addPositionalArgument("files", "The files/directories to back up.");
-#endif
     parser.process(app);
     const bool compress = parser.isSet(compress_option);
     const bool zero = parser.isSet(zero_delimiter_option);
@@ -112,8 +124,8 @@ main(int argc, char **argv)
     // gotta have the bus path
     if (bus_path.isEmpty())
     {
-        std::cerr << "bus-path not listed" << std::endl;
-        return EXIT_FAILURE;
+        std::cerr << "Missing required argument: --bus-path " << std::endl;
+        parser.showHelp(EXIT_FAILURE);
     }
     
     // gotta have files
@@ -125,7 +137,7 @@ main(int argc, char **argv)
     if (filenames.empty())
     {
         std::cerr << "no files listed" << std::endl;
-        return EXIT_FAILURE;
+        parser.showHelp(EXIT_FAILURE);
     }
 
     // build the creator
@@ -135,19 +147,29 @@ main(int argc, char **argv)
 
 
     // call StartBackup() to get a socket
+    qDebug() << "asking keeper for a socket";
     DBusInterfaceKeeper keeperInterface(
         DBusTypes::KEEPER_SERVICE,
         bus_path,//DBusTypes::KEEPER_SERVICE_PATH,
         QDBusConnection::sessionBus()
     );
+    qDebug() << "asking keeper for a socket";
     auto fd_reply = keeperInterface.StartBackup(n_bytes);
     fd_reply.waitForFinished();
     if (fd_reply.isError())
-        qFatal("StartBackup() bus call failed: %s", fd_reply.error().message().toUtf8().constData());
+    {
+        qFatal("Call to '%s.StartBackup() at '%s' call failed: %s",
+            DBusTypes::KEEPER_SERVICE,
+            qPrintable(bus_path),
+            qPrintable(fd_reply.error().message())
+        );
+    }
     QDBusUnixFileDescriptor qfd = fd_reply.value();
     const auto fd = qfd.fileDescriptor();
+    qDebug() << "socket is" << fd;
 
     // send the tar to the socket piece by piece
+    std::remove_const<decltype(n_bytes)>::type n_sent {};
     std::vector<char> buf;
     while(tar_creator.step(buf)) {
         if (buf.empty())
@@ -158,13 +180,18 @@ main(int argc, char **argv)
             const auto n_written = write(fd, walk, n_left);
             if (n_written < 0)
                 qFatal("error sending binary blob to Keeper: %s", strerror(errno));
-            n_left += n_written;
             walk += n_written;
+            n_left += n_written;
+            n_sent += n_written;
         }
     }
+    qDebug() << "expected to write" << n_bytes;
+    qDebug() << "actually wrote   " << n_sent;
 
     // FIXME: xavi, is it util's responsibility to close() here?
     // Keeper knows how many bytes to expect, so it should be
     // able to handle it on its own?
     //close(fd);
+
+    return EXIT_SUCCESS;
 }

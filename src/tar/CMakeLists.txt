@@ -1,22 +1,27 @@
-set(APP_LIB "keepertar")
-set(APP_EXEC "keeper-tar-creator")
+set(LIB_NAME "keepertar")
+set(APP_NAME "keeper-tar-create")
 
-set(APP_LIB_SOURCES
+set(LIB_SOURCES
     tar-creator.cpp
 )
 add_library(
-    ${APP_LIB}
+    ${LIB_NAME}
     STATIC
-    ${APP_LIB_SOURCES}
+    ${LIB_SOURCES}
 )
 
-set(APP_EXEC_SOURCES
+set_property(
+    SOURCE main.cpp
+    PROPERTIES APPEND_STRING PROPERTY COMPILE_DEFINITIONS APP_NAME=\"${APP_NAME}\"
+)
+
+set(APP_SOURCES
     main.cpp
 )
 
 add_executable(
-    ${APP_EXEC}
-    ${APP_EXEC_SOURCES}
+    ${APP_NAME}
+    ${APP_SOURCES}
 )
 
 link_directories(
@@ -24,8 +29,8 @@ link_directories(
 )
 
 target_link_libraries(
-    ${APP_EXEC}
-    ${APP_LIB}
+    ${APP_NAME}
+    ${LIB_NAME}
     qdbus-stubs
     storage-framework
     backup-helper
@@ -36,6 +41,6 @@ target_link_libraries(
 
 install(
     TARGETS
-        ${APP_EXEC}
+        ${APP_NAME}
     RUNTIME DESTINATION ${CMAKE_INSTALL_FULL_PKGLIBEXECDIR}
 )
