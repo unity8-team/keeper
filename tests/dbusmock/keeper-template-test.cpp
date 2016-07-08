@@ -153,6 +153,21 @@ TEST_F(KeeperTemplateTest, BackupChoices)
     EXPECT_EQ(backup_choices, pending_reply.value());
 }
 
+/* Confirm that StartBackup() fails if we pass an invalid arg */
+TEST_F(KeeperTemplateTest, StartBackupWithInvalidArg)
+{
+    const auto invalid_uuid = QStringLiteral("yccXoXICC0ugEhMJCkQN");
+    ASSERT_FALSE(backup_choices.contains(invalid_uuid));
+
+    auto connection = test_runner_->sessionConnection();
+    auto pending_reply = user_iface_->StartBackup(QStringList{invalid_uuid});
+    pending_reply.waitForFinished();
+    auto error = pending_reply.error();
+    EXPECT_FALSE(pending_reply.isValid()) << qPrintable(error.message());
+    EXPECT_TRUE(error.isValid());
+    EXPECT_EQ(QDBusError::InvalidArgs, error.type());
+}
+
 /* Confirm that RestoreChoices() returns the choices we created the template with */
 TEST_F(KeeperTemplateTest, RestoreChoices)
 {
@@ -163,14 +178,14 @@ TEST_F(KeeperTemplateTest, RestoreChoices)
     EXPECT_EQ(restore_choices, pending_reply.value());
 }
 
-/* Confirm that StartBackup() fails if we pass an invalid arg */
-TEST_F(KeeperTemplateTest, StartBackupWithInvalidArg)
+/* Confirm that StartRestore() fails if we pass an invalid arg */
+TEST_F(KeeperTemplateTest, StartRestoreWithInvalidArg)
 {
-    const auto invalid_uuid = QStringLiteral("yccXoXICC0ugEhMJCkQN");
-    ASSERT_FALSE(backup_choices.contains(invalid_uuid));
+    const auto invalid_uuid = QStringLiteral("meJjH5H2yWrmeTkjqNhw");
+    ASSERT_FALSE(restore_choices.contains(invalid_uuid));
 
     auto connection = test_runner_->sessionConnection();
-    auto pending_reply = user_iface_->StartBackup(QStringList{invalid_uuid});
+    auto pending_reply = user_iface_->StartRestore(QStringList{invalid_uuid});
     pending_reply.waitForFinished();
     auto error = pending_reply.error();
     EXPECT_FALSE(pending_reply.isValid()) << qPrintable(error.message());

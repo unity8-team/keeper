@@ -146,7 +146,7 @@ def user_start_restore(user, uuids):
     user.raise_not_supported_if_active()
     for uuid in uuids:
         if uuid not in user.restore_choices:
-            fail('uuid %s is not a valid backup choice' % (uuid))
+            badarg('uuid %s is not a valid backup choice' % (uuid))
 
     user.all_tasks = uuids
     user.remaining_tasks = copy.copy(uuids)
