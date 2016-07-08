@@ -219,6 +219,13 @@ private:
                     break;
                 if (n_read > 0)
                     archive_write_data(a, buf, size_t(n_read));
+                if (n_read < 0) {
+                    qCritical() << QStringLiteral("Reading '%1' returned %2 (%3)")
+                                      .arg(file.fileName())
+                                      .arg(n_read)
+                                      .arg(file.errorString());
+                    break;
+                }
             }
         }
 
