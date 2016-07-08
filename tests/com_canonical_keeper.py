@@ -22,9 +22,9 @@ __license__ = 'LGPL 3+'
 
 SERVICE_PATH = '/com/canonical/keeper'
 SERVICE_IFACE = 'com.canonical.keeper'
-USER_PATH = '/com/canonical/keeper/User'
+USER_PATH = '/com/canonical/keeper/user'
 USER_IFACE = 'com.canonical.keeper.User'
-HELPER_PATH = '/com/canonical/keeper/Helper'
+HELPER_PATH = '/com/canonical/keeper/helper'
 HELPER_IFACE = 'com.canonical.keeper.Helper'
 
 # magic keys used by dbusmock
@@ -60,54 +60,6 @@ def raise_not_supported_if_active():
         )
 
 #
-#  Main Obj
-#
-
-
-def main_clear_backup_choices(self):
-    self.raise_not_supported_if_active()
-
-    user = mockobject.objects[USER_PATH]
-    user.backup_choices = {}
-
-
-def main_add_backup_choice(self, uuid, properties):
-    self.raise_not_supported_if_active()
-    user = mockobject.objects[USER_PATH]
-
-    if 'display-name' not in properties:
-        fail('choice must contain a "display-name" property')
-    if 'type' not in properties:
-        fail('choice must contain a "type" property')
-    if properties['type'] not in user.defined_types:
-        fail('type must be one of %s' % (user.defined_types))
-
-    user.backup_choices[uuid] = properties
-
-
-def main_clear_restore_choices(self):
-    self.raise_not_supported_if_active()
-
-    user = mockobject.objects[USER_PATH]
-    user.restore_choices = {}
-
-
-def main_add_restore_choice(self, uuid, properties):
-    self.raise_not_supported_if_active()
-
-    user = mockobject.objects[USER_PATH]
-    user.restore_choices[uuid] = properties
-
-
-def main_add_helper(self, backup_type, executable):
-    self.raise_not_supported_if_active()
-    user = mockobject.objects[USER_PATH]
-    if backup_type not in user.defined_types:
-        fail('Undefined type "%s"' % (backup_type))
-    user.helpers[backup_type] = executable
-
-
-#
 #  User Obj
 #
 
@@ -117,17 +69,17 @@ def user_is_active(user):
 
 
 def user_get_backup_choices(user):
-    return dbus.Array(
+    return dbus.Dictionary(
         user.backup_choices,
-        signature='a{sa{sv}}',
+        signature='sa{sv}',
         variant_level=1
     )
 
 
 def user_get_restore_choices(user):
-    return dbus.Array(
+    return dbus.Dictionary(
         user.restore_choices,
-        signature='a{sa{sv}}',
+        signature='sa{sv}',
         variant_level=1
     )
 
@@ -319,25 +271,7 @@ def helper_start_restore(helper):
 
 def load(main, parameters):
 
-    main.add_backup_choice = main_add_backup_choice
-    main.add_restore_choice = main_add_restore_choice
-    main.add_helper = main_add_helper
-    main.clear_backup_choices = main_clear_backup_choices
-    main.clear_restore_choices = main_clear_restore_choices
-    main.raise_not_supported_if_active = raise_not_supported_if_active
-    main.fail = fail
-    main.AddMethods(SERVICE_IFACE, [
-        ('AddBackupChoice', 'sa{sv}', '',
-         'self.add_backup_choice(self, args[0], args[1])'),
-        ('AddRestoreChoice', 'sa{sv}', '',
-         'self.add_restore_choice(self, args[0], args[1])'),
-        ('AddHelper', 'ss', '',
-         'self.add_helper(self, args[0], args[1])'),
-        ('ClearBackupChoices', '', '',
-         'self.clear_backup_choices(self)'),
-        ('ClearRestoreChoices', '', '',
-         'self.clear_restore_choices(self)'),
-    ])
+    main.log('hello world. parameters is: "' + str(parameters) + '"')
 
     path = USER_PATH
     main.AddObject(path, USER_IFACE, {}, [])
@@ -357,10 +291,11 @@ def load(main, parameters):
     user.fail = fail
     user.all_tasks = []
     user.remaining_tasks = []
-    user.backup_choices = {}
     user.backup_data = {}
-    user.restore_choices = {}
-    user.helpers = {}
+    foo = parameters.get('backup-choices', {})
+    user.backup_choices = foo
+    user.restore_choices = parameters.get('restore-choices', {})
+    user.helpers = parameters.get('helpers', {}),
     user.current_task = None
     user.defined_types = ['application', 'system-data', 'folder']
     user.AddMethods(USER_IFACE, [
@@ -387,7 +322,7 @@ def load(main, parameters):
     helper.parent = None
     helper.thread = None
     helper.backup_n_bytes = None
-    helper.AddMethods(USER_IFACE, [
+    helper.AddMethods(HELPER_IFACE, [
         ('StartBackup', 't', 'sd',
          'ret = self.start_backup(self, args[0])'),
         ('StartRestore', '', 'sd',
