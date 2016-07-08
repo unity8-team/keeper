@@ -51,13 +51,13 @@ protected:
         //not sure why this can't happen automatically... :P
         QVariantMap helpers_qvm;
         for (auto it=helpers.cbegin(), end=helpers.cend(); it!=end; ++it)
-            helpers_qvm[it.key()] = it.value();
+            helpers_qvm.insert(it.key(), it.value());
         QVariantMap backup_choices_qvm;
         for (auto it=backup_choices.cbegin(), end=backup_choices.cend(); it!=end; ++it)
-            backup_choices_qvm[it.key()] = it.value();
+            backup_choices_qvm.insert(it.key(), it.value());
         QVariantMap restore_choices_qvm;
         for (auto it=restore_choices.cbegin(), end=restore_choices.cend(); it!=end; ++it)
-            restore_choices_qvm[it.key()] = it.value();
+            restore_choices_qvm.insert(it.key(), it.value());
 
         dbus_mock_.reset(new DBusMock(*test_runner_));
         dbus_mock_->registerTemplate(
@@ -151,4 +151,14 @@ TEST_F(KeeperTemplateTest, BackupChoices)
     pending_reply.waitForFinished();
     EXPECT_TRUE(pending_reply.isValid()) << qPrintable(connection.lastError().message());
     EXPECT_EQ(backup_choices, pending_reply.value());
+}
+
+/* Confirm that RestoreChoices() returns the choices we created the template with */
+TEST_F(KeeperTemplateTest, RestoreChoices)
+{
+    auto connection = test_runner_->sessionConnection();
+    auto pending_reply = user_iface_->GetRestoreChoices();
+    pending_reply.waitForFinished();
+    EXPECT_TRUE(pending_reply.isValid()) << qPrintable(connection.lastError().message());
+    EXPECT_EQ(restore_choices, pending_reply.value());
 }
