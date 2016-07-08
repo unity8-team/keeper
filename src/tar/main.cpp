@@ -136,7 +136,7 @@ parse_args(QCoreApplication& app)
     return std::make_tuple(compress, bus_path, filenames);
 }
 
-int
+QDBusUnixFileDescriptor
 get_socket_from_keeper(size_t n_bytes, const QString& bus_path)
 {
     qDebug() << "asking keeper for a socket";
@@ -145,7 +145,6 @@ get_socket_from_keeper(size_t n_bytes, const QString& bus_path)
         bus_path,
         QDBusConnection::sessionBus()
     );
-    qDebug() << "asking keeper for a socket";
     auto fd_reply = helperInterface.StartBackup(n_bytes);
     fd_reply.waitForFinished();
     if (fd_reply.isError()) {
@@ -155,10 +154,7 @@ get_socket_from_keeper(size_t n_bytes, const QString& bus_path)
             qPrintable(fd_reply.error().message())
         );
     }
-    QDBusUnixFileDescriptor qfd = fd_reply.value();
-    const auto fd = qfd.fileDescriptor();
-    qDebug() << "socket is" << fd;
-    return fd;
+    return fd_reply.value();
 }
 
 size_t
@@ -209,7 +205,8 @@ main(int argc, char **argv)
     qDebug() << "tar size should be" << n_bytes;
 
     // do it!
-    const auto fd = get_socket_from_keeper(n_bytes, bus_path);
+    const auto qfd = get_socket_from_keeper(n_bytes, bus_path);
+    const auto fd = qfd.fileDescriptor();
     const auto n_sent = send_tar_to_keeper(tar_creator, fd);
     qDebug() << "tar size was" << n_sent;
 
