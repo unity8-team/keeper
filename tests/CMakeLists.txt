@@ -15,7 +15,7 @@ set(CMAKE_CXX_FLAGS ${old_cxx_flags})
 ###
 
 set(SERVICE_TEMPLATE_FILE "${CMAKE_CURRENT_SOURCE_DIR}/com_canonical_keeper.py")
-add_definitions(-DSTORE_TEMPLATE_PATH="${STORE_TEMPLATE_FILE}")
+add_definitions(-DSERVICE_TEMPLATE_FILE="${SERVICE_TEMPLATE_FILE}")
 
 # get the python3 package directory
 execute_process (
@@ -25,7 +25,7 @@ execute_process (
 )
 
 install(
-  FILES ${STORE_TEMPLATE_FILE}
+  FILES ${SERVICE_TEMPLATE_FILE}
   DESTINATION "${PYTHON_PACKAGE_DIR}/dbusmock/templates/"
 )
 
@@ -49,5 +49,6 @@ include_directories(
 )
 
 add_subdirectory(surface)
+add_subdirectory(dbusmock)
 add_subdirectory(unit)
 add_subdirectory(utils)
