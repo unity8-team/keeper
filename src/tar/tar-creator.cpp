@@ -85,11 +85,9 @@ public:
 
                 // write the file's header
                 const auto& filename = filenames_[step_filenum_];
-                if (add_file_header_to_archive(step_archive_.get(), filename) != ARCHIVE_OK)
-                {
-                    success = false;
+                success = add_file_header_to_archive(step_archive_.get(), filename);
+                if (!success)
                     break;
-                }
 
                 // prep it for reading
                 step_file_.reset(new QFile(filename));
@@ -152,8 +150,8 @@ private:
         return ssize_t(len);
     }
 
-    static int add_file_header_to_archive(struct archive* archive,
-                                          const QString& filename)
+    static bool add_file_header_to_archive(struct archive* archive,
+                                           const QString& filename)
     {
         struct stat st;
         const auto filename_utf8 = filename.toUtf8();
@@ -173,7 +171,7 @@ private:
         } while (ret == ARCHIVE_RETRY);
 
         archive_entry_free(entry);
-        return ret;
+        return (ret == ARCHIVE_OK) || (ret == ARCHIVE_WARN);
     }
 
     ssize_t calculate_uncompressed_size() const
