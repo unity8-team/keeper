@@ -36,7 +36,7 @@
 using namespace QtDBusMock;
 using namespace QtDBusTest;
 
-class ServiceTemplateTest : public ::testing::Test
+class KeeperTemplateTest : public ::testing::Test
 {
 protected:
 
@@ -139,12 +139,12 @@ protected:
 };
 
 /* Confirm that the dbusmock scaffolding starts up and exits ok */
-TEST_F(ServiceTemplateTest, HelloWorld)
+TEST_F(KeeperTemplateTest, HelloWorld)
 {
 }
 
 /* Confirm that BackupChoices() returns the choices we created the template with */
-TEST_F(ServiceTemplateTest, BackupChoices)
+TEST_F(KeeperTemplateTest, BackupChoices)
 {
     auto connection = test_runner_->sessionConnection();
     auto pending_reply = user_iface_->GetBackupChoices();

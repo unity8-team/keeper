@@ -6,12 +6,12 @@ include_directories(
 
 set(
     TEST_NAME
-    service-template-test
+    keeper-template-test
 )
 
 add_executable(
     ${TEST_NAME}
-    service-template-test.cpp
+    keeper-template-test.cpp
 )
 
 target_link_libraries(
