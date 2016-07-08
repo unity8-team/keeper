@@ -111,6 +111,11 @@ public:
             else if (n < 0) // read error
             {
                 success = false;
+                qWarning() << QStringLiteral("read()ing %1 returned %2 (%3)")
+                                  .arg(step_file_->fileName())
+                                  .arg(n)
+                                  .arg(step_file_->errorString());
+
                 break;
             }
             else if (step_file_->atEnd()) // eof
