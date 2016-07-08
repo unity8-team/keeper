@@ -72,26 +72,26 @@ protected:
         );
 
         test_runner_->startServices();
-        auto connection = test_runner_->sessionConnection();
-        qDebug() << "session bus is" << qPrintable(connection.name());
+        auto conn = connection();
+        qDebug() << "session bus is" << qPrintable(conn.name());
 
         keeper_iface_.reset(
             new DBusInterfaceKeeper(
                 DBusTypes::KEEPER_SERVICE,
                 DBusTypes::KEEPER_SERVICE_PATH,
-                connection
+                conn
             )
         );
-        ASSERT_TRUE(keeper_iface_->isValid()) << qPrintable(connection.lastError().message());
+        ASSERT_TRUE(keeper_iface_->isValid()) << qPrintable(conn.lastError().message());
 
         user_iface_.reset(
             new DBusInterfaceKeeperUser(
                 DBusTypes::KEEPER_SERVICE,
                 DBusTypes::KEEPER_USER_PATH,
-                connection
+                conn
             )
         );
-        ASSERT_TRUE(user_iface_->isValid()) << qPrintable(connection.lastError().message());
+        ASSERT_TRUE(user_iface_->isValid()) << qPrintable(conn.lastError().message());
     }
 
     virtual void TearDown() override
@@ -102,6 +102,10 @@ protected:
         test_runner_.reset();
     }
 
+    const QDBusConnection& connection()
+    {
+        return test_runner_->sessionConnection();
+    }
 
     std::unique_ptr<DBusTestRunner> test_runner_;
     std::unique_ptr<DBusMock> dbus_mock_;
@@ -138,28 +142,30 @@ protected:
 
 };
 
-/* Confirm that the dbusmock scaffolding starts up and exits ok */
+/***
+****  Quick surface-level tests
+***/
+
+/* Test that the dbusmock scaffolding starts up and exits ok */
 TEST_F(KeeperTemplateTest, HelloWorld)
 {
 }
 
-/* Confirm that BackupChoices() returns the choices we created the template with */
+/* Test that BackupChoices() returns the choices we created the template with */
 TEST_F(KeeperTemplateTest, BackupChoices)
 {
-    auto connection = test_runner_->sessionConnection();
     auto pending_reply = user_iface_->GetBackupChoices();
     pending_reply.waitForFinished();
-    EXPECT_TRUE(pending_reply.isValid()) << qPrintable(connection.lastError().message());
+    EXPECT_TRUE(pending_reply.isValid()) << qPrintable(connection().lastError().message());
     EXPECT_EQ(backup_choices, pending_reply.value());
 }
 
-/* Confirm that StartBackup() fails if we pass an invalid arg */
+/* Test that StartBackup() fails if we pass an invalid arg */
 TEST_F(KeeperTemplateTest, StartBackupWithInvalidArg)
 {
     const auto invalid_uuid = QStringLiteral("yccXoXICC0ugEhMJCkQN");
     ASSERT_FALSE(backup_choices.contains(invalid_uuid));
 
-    auto connection = test_runner_->sessionConnection();
     auto pending_reply = user_iface_->StartBackup(QStringList{invalid_uuid});
     pending_reply.waitForFinished();
     auto error = pending_reply.error();
@@ -168,27 +174,31 @@ TEST_F(KeeperTemplateTest, StartBackupWithInvalidArg)
     EXPECT_EQ(QDBusError::InvalidArgs, error.type());
 }
 
-/* Confirm that RestoreChoices() returns the choices we created the template with */
+/* Test that RestoreChoices() returns the choices we created the template with */
 TEST_F(KeeperTemplateTest, RestoreChoices)
 {
-    auto connection = test_runner_->sessionConnection();
     auto pending_reply = user_iface_->GetRestoreChoices();
     pending_reply.waitForFinished();
-    EXPECT_TRUE(pending_reply.isValid()) << qPrintable(connection.lastError().message());
+    EXPECT_TRUE(pending_reply.isValid()) << qPrintable(connection().lastError().message());
     EXPECT_EQ(restore_choices, pending_reply.value());
 }
 
-/* Confirm that StartRestore() fails if we pass an invalid arg */
+/* Test that StartRestore() fails if we pass an invalid arg */
 TEST_F(KeeperTemplateTest, StartRestoreWithInvalidArg)
 {
     const auto invalid_uuid = QStringLiteral("meJjH5H2yWrmeTkjqNhw");
     ASSERT_FALSE(restore_choices.contains(invalid_uuid));
 
-    auto connection = test_runner_->sessionConnection();
     auto pending_reply = user_iface_->StartRestore(QStringList{invalid_uuid});
     pending_reply.waitForFinished();
     auto error = pending_reply.error();
     EXPECT_FALSE(pending_reply.isValid()) << qPrintable(error.message());
     EXPECT_TRUE(error.isValid());
     EXPECT_EQ(QDBusError::InvalidArgs, error.type());
+}
+
+/* Test that Status() returns empty if we haven't done anything yet */
+TEST_F(KeeperTemplateTest, TestEmptyStatus)
+{
+    EXPECT_TRUE(user_iface_->state().isEmpty());
 }
