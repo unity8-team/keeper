@@ -254,8 +254,8 @@ def helper_backup_worker(helper, uuid, sock, n_bytes):
             'len(r) %s len(w) %s len(x) %s' %
             (len(readable), len(writable), len(exceptional))
         )
-        for s in readable:
-            chunk = s.recv(4096)
+        if sock in readable:
+            chunk = sock.recv(4096)
             helper.log('recv got %s bytes' % (len(chunk)))
             if len(chunk):
                 helper.log('received "%s"' % (chunk))
@@ -263,6 +263,8 @@ def helper_backup_worker(helper, uuid, sock, n_bytes):
                 n_read += len(chunk)
                 # FIXME: threading issues here in update_state
                 user.update_state_property(user)
+            else:
+                break
 
     sock.shutdown(socket.SHUT_RDWR)
     sock.close()
