@@ -44,10 +44,17 @@ ACTION_STOPPED = 4
 #
 
 
+def badarg(msg):
+    raise dbus.exceptions.DBusException(
+        msg,
+        name='org.freedesktop.DBus.Error.InvalidArgs'
+    )
+
+
 def fail(msg):
     raise dbus.exceptions.DBusException(
-        'org.freedesktop.DBus.Error.Failed',
-        msg
+        msg,
+        name='org.freedesktop.DBus.Error.Failed'
     )
 
 
@@ -55,8 +62,8 @@ def raise_not_supported_if_active():
     user = mockobject.objects[USER_PATH]
     if user.is_active(user):
         raise dbus.exceptions.DBusException(
-            "org.freedesktop.DBus.Error.NotSupported",
-            "can't do that while service is active"
+            "can't do that while service is active",
+            name='org.freedesktop.DBus.Error.NotSupported'
         )
 
 #
@@ -117,7 +124,7 @@ def user_start_backup(user, uuids):
     user.raise_not_supported_if_active()
     for uuid in uuids:
         if uuid not in user.backup_choices:
-            fail('uuid %s is not a valid backup choice' % (uuid))
+            badarg('uuid %s is not a valid backup choice' % (uuid))
 
     user.all_tasks = uuids
     user.remaining_tasks = copy.copy(uuids)
@@ -126,9 +133,9 @@ def user_start_backup(user, uuids):
 
 def user_finish_current_task(user, data):
     if not user.current_task:
-        user.fail('There is no current task!')
+        fail('There is no current task!')
     if not user.tasks[user.current_task]:
-        user.fail('Current task %s is invalid' % (user.current_task))
+        fail('Current task %s is invalid' % (user.current_task))
     user.backup_data[user.current_task] = data
     user.start_next_task()
 
@@ -288,6 +295,7 @@ def load(main, parameters):
     user.raise_not_supported_if_active = raise_not_supported_if_active
     user.start_next_task = user_start_next_task
     user.task_worker = user_task_worker
+    user.badarg = badarg
     user.fail = fail
     user.all_tasks = []
     user.remaining_tasks = []
