@@ -176,7 +176,7 @@ send_tar_to_keeper(TarCreator& tar_creator, int fd)
             const auto n_written = size_t(n_written_in);
             walk += n_written;
             n_sent += n_written;
-            n_left += n_written;
+            n_left -= n_written;
         }
     }
 
