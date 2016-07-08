@@ -36,6 +36,19 @@
 using namespace QtDBusMock;
 using namespace QtDBusTest;
 
+namespace
+{
+
+QVariantMap toQVariantMap(const QMap<QString,QMap<QString,QVariant>>& in)
+{
+    QVariantMap out;
+    for (auto it=in.cbegin(), end=in.cend(); it!=end; ++it)
+        out.insert(it.key(), it.value());
+    return out;
+}
+
+}
+
 class KeeperTemplateTest : public ::testing::Test
 {
 protected:
@@ -52,21 +65,15 @@ protected:
         QVariantMap helpers_qvm;
         for (auto it=helpers.cbegin(), end=helpers.cend(); it!=end; ++it)
             helpers_qvm.insert(it.key(), it.value());
-        QVariantMap backup_choices_qvm;
-        for (auto it=backup_choices.cbegin(), end=backup_choices.cend(); it!=end; ++it)
-            backup_choices_qvm.insert(it.key(), it.value());
-        QVariantMap restore_choices_qvm;
-        for (auto it=restore_choices.cbegin(), end=restore_choices.cend(); it!=end; ++it)
-            restore_choices_qvm.insert(it.key(), it.value());
 
         dbus_mock_.reset(new DBusMock(*test_runner_));
         dbus_mock_->registerTemplate(
             DBusTypes::KEEPER_SERVICE,
             SERVICE_TEMPLATE_FILE,
             QVariantMap {
-                { "backup-choices", backup_choices_qvm },
+                { "backup-choices", toQVariantMap(backup_choices) },
                 { "helpers", helpers_qvm },
-                { "restore-choices", restore_choices_qvm }
+                { "restore-choices", toQVariantMap(restore_choices) }
             },
             QDBusConnection::SessionBus
         );
@@ -112,6 +119,19 @@ protected:
     std::unique_ptr<DBusInterfaceKeeper> keeper_iface_;
     std::unique_ptr<DBusInterfaceKeeperUser> user_iface_;
 
+    void EXPECT_EVENTUALLY(std::function<bool()>&& test, qint64 timeout_msec=5000)
+    {
+        QElapsedTimer timer;
+        timer.start();
+        bool passed;
+        do {
+            passed = test();
+            if (!passed)
+                QThread::usleep(200000);
+        } while (!passed && !timer.hasExpired(timeout_msec));
+        EXPECT_TRUE(passed);
+    }
+
     /***
     ****
     ****  The template parameters
@@ -123,7 +143,8 @@ protected:
     // Waiting on final design now.
     const QMap<QString,QString> helpers {
         {"application", "app-helper-stub"},
-        {"folder", "folder-helper-stub"}, {"system-data", "system-data-helper-stub"}
+        {"folder", FOLDER_HELPER_EXEC },
+        {"system-data", "system-data-helper-stub"}
     };
 
     const QMap<QString,QMap<QString,QVariant>> backup_choices {
@@ -201,4 +222,39 @@ TEST_F(KeeperTemplateTest, StartRestoreWithInvalidArg)
 TEST_F(KeeperTemplateTest, TestEmptyStatus)
 {
     EXPECT_TRUE(user_iface_->state().isEmpty());
+}
+
+/***
+****  Okay let's try a backup
+***/
+
+// FIXME: this should go in a shared header
+enum {
+    ACTION_QUEUED = 0,
+    ACTION_SAVING = 1,
+    ACTION_RESTORING = 2,
+    ACTION_IDLE = 3
+};
+
+TEST_F(KeeperTemplateTest, SingleFolderBackup)
+{
+    // get the pictures uuid
+    const auto uuid = QStringLiteral("sRVJlx00QyalHUvsBrWo");
+    ASSERT_EQ(QString::fromUtf8("Pictures"), backup_choices.value(uuid).value("display-name"));
+
+    // start backing it up
+    auto state = user_iface_->state();
+    auto pending_reply = user_iface_->StartBackup(QStringList{uuid});
+    pending_reply.waitForFinished();
+    EXPECT_TRUE(pending_reply.isValid()) << qPrintable(pending_reply.error().message());
+
+    // wait for the task's percent_done to reach 100%
+    EXPECT_EVENTUALLY([this,uuid]{
+        const auto state = user_iface_->state();
+        const auto task = state.value(uuid);
+        const auto percent_done = task.value("percent-done").toDouble();
+        const auto action = task.value("action", -1).toInt();
+        qInfo() << "action" << action << "percent_done" << percent_done;
+        return int(percent_done)==1 && action==ACTION_IDLE;
+    });
 }

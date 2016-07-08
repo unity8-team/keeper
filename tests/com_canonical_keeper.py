@@ -1,8 +1,11 @@
 import copy
 import dbus
+import dbus.service
+import os
 import select
 import socket
 import subprocess
+import sys
 import threading
 from dbusmock import mockobject
 
@@ -91,22 +94,29 @@ def user_get_restore_choices(user):
     )
 
 
-def user_task_worker(user, helper_exec):
-    # FIXME: set real metainfo in my_env
+def user_task_worker(user, helper_exec, my_env):
     # FIXME: threading issues abound
-    my_env = {}
-    my_env['KEEPER_FOO'] = 'bar'
-    subprocess.Popen(helper_exec, env=my_env)
+    user.log('starting "%s" with environment "%s"' % (helper_exec, my_env))
+    p = subprocess.Popen(
+        [helper_exec, HELPER_PATH],
+        env=my_env, stdout=sys.stdout, stderr=sys.stderr
+    )
+    p.wait()
+    user.log('process is done')
+    user.start_next_task(user)
 
 
 def user_start_next_task(user):
     if not len(user.remaining_tasks):
+        user.log('last task finished')
         user.current_task = None
-        user.all_tasks = None
+        user.log('setting user.current_task to None')
+        user.update_state_property(user)
     else:
         uuid = user.remaining_tasks.pop(0)
+        user.log('setting user.current_task to %s' % (uuid))
         user.current_task = uuid
-        user.update_state_property()
+        user.update_state_property(user)
 
         # kick of the helper executable in a worker thread
         choice = user.backup_choices.get(uuid, None)
@@ -114,7 +124,18 @@ def user_start_next_task(user):
             choice = user.restore_choices.get(uuid)
         choice_type = choice['type']
         helper_exec = user.helpers[choice_type]
-        thread = threading.Thread(target=user.task_worker, args=(helper_exec))
+        my_env = {}
+        my_env['QDBUS_DEBUG'] = '1'
+        for key in ['DBUS_SESSION_BUS_ADDRESS', 'DBUS_SYSTEM_BUS_ADDRESS']:
+            user.log(key)
+            val = os.environ.get(key, None)
+            if val:
+                my_env[key] = val
+        # FIXME: set real metainfo in my_env
+        thread = threading.Thread(
+            target=user.task_worker,
+            args=(user, helper_exec, my_env)
+        )
         thread.start()
 
 
@@ -128,16 +149,7 @@ def user_start_backup(user, uuids):
 
     user.all_tasks = uuids
     user.remaining_tasks = copy.copy(uuids)
-    user.start_next_task()
-
-
-def user_finish_current_task(user, data):
-    if not user.current_task:
-        fail('There is no current task!')
-    if not user.tasks[user.current_task]:
-        fail('Current task %s is invalid' % (user.current_task))
-    user.backup_data[user.current_task] = data
-    user.start_next_task()
+    user.start_next_task(user)
 
 
 def user_start_restore(user, uuids):
@@ -181,15 +193,15 @@ def user_build_state(user):
     tasks_states = {}
     for uuid in user.all_tasks:
         task_state = {}
-        user.log('uuid is %1' % (uuid))
 
         # get the task's action
-        if uuid in user.remaining_tasks:
+        if uuid == user.current_task:
+            if uuid in user.backup_choices:
+                action = ACTION_SAVING
+            else:
+                action = ACTION_RESTORING
+        elif uuid in user.remaining_tasks:
             action = ACTION_QUEUED
-        elif user.current_task in user.backup_choices:
-            action = ACTION_SAVING
-        elif user.current_task in user.restore_choices:
-            action = ACTION_RESTORING
         else:  # FIXME: 'ACTION_STOPPED' not handled yet
             action = ACTION_COMPLETE
         task_state['action'] = dbus.Int32(action)
@@ -221,7 +233,7 @@ def user_build_state(user):
 
 
 def user_update_state_property(user):
-    user.Set(USER_IFACE, 'State', user.build_state())
+    user.Set(USER_IFACE, 'State', user.build_state(user))
 
 
 #
@@ -229,42 +241,48 @@ def user_update_state_property(user):
 #
 
 
-def helper_backup_worker(helper):
+def helper_backup_worker(helper, uuid, sock, n_bytes):
     n_read = 0
-    backup_buf = []
+    chunks = []
     user = mockobject.objects[USER_PATH]
 
-    while n_read < helper.n_bytes:
-        inputs = [helper.parent]
+    while n_read < n_bytes:
+        inputs = [sock]
+        helper.log('waiting for helper to write to us')
         readable, writable, exceptional = select.select(inputs, [], inputs)
+        helper.log(
+            'len(r) %s len(w) %s len(x) %s' %
+            (len(readable), len(writable), len(exceptional))
+        )
         for s in readable:
-            data = s.recv(4096)
-            if data:
-                # a readable client socket has data
-                helper.log('received "%s" from %s' % (data, s.getpeername()))
-                backup_buf.append(data)
-                n_read += len(data)
-                user.update_state_property()
-        # FIXME: handle exceptions
-        # FIXME: threading issues here in update_state, finish_backup
+            chunk = s.recv(4096)
+            helper.log('recv got %s bytes' % (len(chunk)))
+            if len(chunk):
+                helper.log('received "%s"' % (chunk))
+                chunks.append(chunk)
+                n_read += len(chunk)
+                # FIXME: threading issues here in update_state
+                user.update_state_property(user)
 
-    helper.finish_backup(''.join(backup_buf))
+    sock.shutdown(socket.SHUT_RDWR)
+    sock.close()
+
+    user = mockobject.objects[USER_PATH]
+    user.backup_data[uuid] = b''.join(chunks)
+    user.log('backup %s done; %s bytes' % (uuid, len(user.backup_data[uuid])))
+    user.update_state_property(user)
 
 
 def helper_start_backup(helper, n_bytes):
-    helper.parent, child = socket.socketpair()
-    helper.backup_n_bytes = n_bytes
-    helper.thread = threading.Thread(target=helper.backup_worker)
-    helper.thread.start()
-    return child
-
-
-def helper_finish_backup(helper, backup_data):
+    helper.log("got start_backup request for %s bytes" % (n_bytes))
+    parent, child = socket.socketpair()
     user = mockobject.objects[USER_PATH]
-    user.finish_current_task(backup_data)
-    helper.parent.shutdown()
-    helper.parent.close()
-    helper.parent = None
+    t = threading.Thread(
+        target=helper.backup_worker,
+        args=(helper, user.current_task, parent, n_bytes)
+    )
+    t.start()
+    return dbus.types.UnixFd(child.fileno())
 
 
 def helper_start_restore(helper):
@@ -291,7 +309,6 @@ def load(main, parameters):
     user.cancel = user_cancel
     user.build_state = user_build_state
     user.update_state_property = user_update_state_property
-    user.finish_current_task = user_finish_current_task
     user.raise_not_supported_if_active = raise_not_supported_if_active
     user.start_next_task = user_start_next_task
     user.task_worker = user_task_worker
@@ -300,10 +317,9 @@ def load(main, parameters):
     user.all_tasks = []
     user.remaining_tasks = []
     user.backup_data = {}
-    foo = parameters.get('backup-choices', {})
-    user.backup_choices = foo
+    user.backup_choices = parameters.get('backup-choices', {})
     user.restore_choices = parameters.get('restore-choices', {})
-    user.helpers = parameters.get('helpers', {}),
+    user.helpers = parameters.get('helpers', {})
     user.current_task = None
     user.defined_types = ['application', 'system-data', 'folder']
     user.AddMethods(USER_IFACE, [
@@ -324,15 +340,11 @@ def load(main, parameters):
     main.AddObject(path, HELPER_IFACE, {}, [])
     helper = mockobject.objects[path]
     helper.start_backup = helper_start_backup
-    helper.finish_backup = helper_finish_backup
     helper.start_restore = helper_start_restore
     helper.backup_worker = helper_backup_worker
-    helper.parent = None
-    helper.thread = None
-    helper.backup_n_bytes = None
     helper.AddMethods(HELPER_IFACE, [
-        ('StartBackup', 't', 'sd',
+        ('StartBackup', 't', 'h',
          'ret = self.start_backup(self, args[0])'),
-        ('StartRestore', '', 'sd',
+        ('StartRestore', '', 'h',
          'ret = self.start_restore(self)')
     ])
