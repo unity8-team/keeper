@@ -24,6 +24,7 @@
 
 #include <QDebug>
 #include <QFile>
+#include <QSharedPointer>
 #include <QString>
 
 #include <memory>
@@ -239,7 +240,7 @@ private:
 
     std::shared_ptr<struct archive> step_archive_;
     int step_filenum_ {-1};
-    std::shared_ptr<QFile> step_file_;
+    QSharedPointer<QFile> step_file_;
     std::vector<char> step_buf_;
 };
 
