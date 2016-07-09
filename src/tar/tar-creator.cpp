@@ -24,6 +24,7 @@
 
 #include <QDebug>
 #include <QFile>
+#include <QSharedPointer>
 #include <QString>
 
 #include <memory>
@@ -85,11 +86,9 @@ public:
 
                 // write the file's header
                 const auto& filename = filenames_[step_filenum_];
-                if (add_file_header_to_archive(step_archive_.get(), filename) != ARCHIVE_OK)
-                {
-                    success = false;
+                success = add_file_header_to_archive(step_archive_.get(), filename);
+                if (!success)
                     break;
-                }
 
                 // prep it for reading
                 step_file_.reset(new QFile(filename));
@@ -111,6 +110,11 @@ public:
             else if (n < 0) // read error
             {
                 success = false;
+                qWarning() << QStringLiteral("read()ing %1 returned %2 (%3)")
+                                  .arg(step_file_->fileName())
+                                  .arg(n)
+                                  .arg(step_file_->errorString());
+
                 break;
             }
             else if (step_file_->atEnd()) // eof
@@ -147,8 +151,8 @@ private:
         return ssize_t(len);
     }
 
-    static int add_file_header_to_archive(struct archive* archive,
-                                          const QString& filename)
+    static bool add_file_header_to_archive(struct archive* archive,
+                                           const QString& filename)
     {
         struct stat st;
         const auto filename_utf8 = filename.toUtf8();
@@ -168,7 +172,7 @@ private:
         } while (ret == ARCHIVE_RETRY);
 
         archive_entry_free(entry);
-        return ret;
+        return (ret == ARCHIVE_OK) || (ret == ARCHIVE_WARN);
     }
 
     ssize_t calculate_uncompressed_size() const
@@ -216,6 +220,13 @@ private:
                     break;
                 if (n_read > 0)
                     archive_write_data(a, buf, size_t(n_read));
+                if (n_read < 0) {
+                    qCritical() << QStringLiteral("Reading '%1' returned %2 (%3)")
+                                      .arg(file.fileName())
+                                      .arg(n_read)
+                                      .arg(file.errorString());
+                    break;
+                }
             }
         }
 
@@ -229,7 +240,7 @@ private:
 
     std::shared_ptr<struct archive> step_archive_;
     int step_filenum_ {-1};
-    std::shared_ptr<QFile> step_file_;
+    QSharedPointer<QFile> step_file_;
     std::vector<char> step_buf_;
 };
 
