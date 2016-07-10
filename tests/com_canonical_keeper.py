@@ -2,12 +2,11 @@ import copy
 import dbus
 import dbus.service
 import os
-import select
 import socket
 import subprocess
 import sys
-import threading
 from dbusmock import mockobject
+from gi.repository import GLib
 
 '''com.canonical.keeper mock template
 '''
@@ -94,18 +93,6 @@ def user_get_restore_choices(user):
     )
 
 
-def user_task_worker(user, helper_exec, my_env):
-    # FIXME: threading issues abound
-    user.log('starting "%s" with environment "%s"' % (helper_exec, my_env))
-    p = subprocess.Popen(
-        [helper_exec, HELPER_PATH],
-        env=my_env, stdout=sys.stdout, stderr=sys.stderr
-    )
-    p.wait()
-    user.log('process is done')
-    user.start_next_task(user)
-
-
 def user_start_next_task(user):
     if not len(user.remaining_tasks):
         user.log('last task finished')
@@ -114,29 +101,31 @@ def user_start_next_task(user):
         user.update_state_property(user)
     else:
         uuid = user.remaining_tasks.pop(0)
-        user.log('setting user.current_task to %s' % (uuid))
         user.current_task = uuid
         user.update_state_property(user)
 
-        # kick of the helper executable in a worker thread
+        # find the helper to run
         choice = user.backup_choices.get(uuid, None)
         if not choice:
             choice = user.restore_choices.get(uuid)
         choice_type = choice['type']
         helper_exec = user.helpers[choice_type]
+
+        # build the env that we'll pass to the helper
         my_env = {}
         my_env['QDBUS_DEBUG'] = '1'
+        my_env['G_DBUS_DEBUG'] = 'call,message,signal,return'
         for key in ['DBUS_SESSION_BUS_ADDRESS', 'DBUS_SYSTEM_BUS_ADDRESS']:
-            user.log(key)
             val = os.environ.get(key, None)
             if val:
                 my_env[key] = val
-        # FIXME: set real metainfo in my_env
-        thread = threading.Thread(
-            target=user.task_worker,
-            args=(user, helper_exec, my_env)
+
+        # spawn the helper
+        user.log('starting %s for %s, env %s' % (helper_exec, uuid, my_env))
+        subprocess.Popen(
+            [helper_exec, HELPER_PATH],
+            env=my_env, stdout=sys.stdout, stderr=sys.stderr
         )
-        thread.start()
 
 
 def user_start_backup(user, uuids):
@@ -233,57 +222,76 @@ def user_build_state(user):
 
 
 def user_update_state_property(user):
-    user.Set(USER_IFACE, 'State', user.build_state(user))
+    old_state = user.Get(USER_IFACE, 'State')
+    new_state = user.build_state(user)
+    if old_state != new_state:
+        user.Set(USER_IFACE, 'State', new_state)
 
 
 #
 #  Helper Obj
 #
 
+class HelperWork:
+    chunks = None
+    n_bytes = None
+    n_left = None
+    sock = None
+    uuid = None
 
-def helper_backup_worker(helper, uuid, sock, n_bytes):
-    n_read = 0
-    chunks = []
-    user = mockobject.objects[USER_PATH]
 
-    while n_read < n_bytes:
-        inputs = [sock]
-        helper.log('waiting for helper to write to us')
-        readable, writable, exceptional = select.select(inputs, [], inputs)
-        helper.log(
-            'len(r) %s len(w) %s len(x) %s' %
-            (len(readable), len(writable), len(exceptional))
+def helper_periodic_func(helper):
+
+    if not helper.work:
+        fail("bug: helper_periodic_func called w/o helper.work")
+
+    # try to read a bit
+    chunk = helper.work.sock.recv(4096)
+    if len(chunk):
+        helper.work.chunks.append(chunk)
+        helper.work.n_left -= len(chunk)
+        helper.log('got %s bytes; %s left' % (len(chunk), helper.work.n_left))
+
+    # cleanup if done
+    done = helper.work.n_left <= 0
+    if done:
+        helper.work.sock.shutdown(socket.SHUT_RDWR)
+        helper.work.sock.close()
+        user = mockobject.objects[USER_PATH]
+        user.backup_data[helper.work.uuid] = b''.join(helper.work.chunks)
+        user.log(
+            'backup %s done; %s bytes' %
+            (helper.work.uuid, len(user.backup_data[helper.work.uuid]))
         )
-        if sock in readable:
-            chunk = sock.recv(4096)
-            helper.log('recv got %s bytes' % (len(chunk)))
-            if len(chunk):
-                helper.log('received "%s"' % (chunk))
-                chunks.append(chunk)
-                n_read += len(chunk)
-                # FIXME: threading issues here in update_state
-                user.update_state_property(user)
-            else:
-                break
+        user.start_next_task(user)
+        helper.work = None
 
-    sock.shutdown(socket.SHUT_RDWR)
-    sock.close()
+    if len(chunk) or done:
+        user = mockobject.objects[USER_PATH]
+        user.update_state_property(user)
 
-    user = mockobject.objects[USER_PATH]
-    user.backup_data[uuid] = b''.join(chunks)
-    user.log('backup %s done; %s bytes' % (uuid, len(user.backup_data[uuid])))
-    user.update_state_property(user)
+    return not done
 
 
 def helper_start_backup(helper, n_bytes):
+
     helper.log("got start_backup request for %s bytes" % (n_bytes))
+    if helper.work:
+        fail("can't start a new backup while one's already active")
+
     parent, child = socket.socketpair()
-    user = mockobject.objects[USER_PATH]
-    t = threading.Thread(
-        target=helper.backup_worker,
-        args=(helper, user.current_task, parent, n_bytes)
-    )
-    t.start()
+
+    # set up helper's workarea
+    work = HelperWork()
+    work.chunks = []
+    work.n_bytes = n_bytes
+    work.n_left = n_bytes
+    work.sock = parent
+    work.uuid = mockobject.objects[USER_PATH].current_task
+    helper.work = work
+
+    # start checking periodically
+    GLib.timeout_add(10, helper.periodic_func, helper)
     return dbus.types.UnixFd(child.fileno())
 
 
@@ -313,7 +321,6 @@ def load(main, parameters):
     user.update_state_property = user_update_state_property
     user.raise_not_supported_if_active = raise_not_supported_if_active
     user.start_next_task = user_start_next_task
-    user.task_worker = user_task_worker
     user.badarg = badarg
     user.fail = fail
     user.all_tasks = []
@@ -343,7 +350,8 @@ def load(main, parameters):
     helper = mockobject.objects[path]
     helper.start_backup = helper_start_backup
     helper.start_restore = helper_start_restore
-    helper.backup_worker = helper_backup_worker
+    helper.periodic_func = helper_periodic_func
+    helper.work = None
     helper.AddMethods(HELPER_IFACE, [
         ('StartBackup', 't', 'h',
          'ret = self.start_backup(self, args[0])'),
