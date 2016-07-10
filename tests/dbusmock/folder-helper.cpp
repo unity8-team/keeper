@@ -38,10 +38,10 @@ main(int argc, char **argv)
     // dump the inputs to stdout
     std::cout << " argc: " << argc << std::endl;
     for(int i=0; i<argc; ++i)
-        std::cout << " argv[" << i << "]: " << argv[i] << std::endl;;
+        std::cout << " argv[" << i << "]: " << argv[i] << std::endl;
     const auto env = QProcessEnvironment::systemEnvironment();
     for(const auto& key : env.keys())
-       std::cout << " env key [" << qPrintable(key) << "] val [" << qPrintable(env.value(key)) << ']' << std::endl;;
+       std::cout << " env " << qPrintable(key) << "=\"" << qPrintable(env.value(key)) << '"' << std::endl;
 
     // ask the service for a socket
     auto connection = QDBusConnection::connectToBus(

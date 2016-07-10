@@ -88,11 +88,12 @@ def user_get_restore_choices(user):
 
 
 def user_start_next_task(user):
-    if not len(user.remaining_tasks):
+    if not user.remaining_tasks:
         user.log('last task finished')
         user.current_task = None
         user.log('setting user.current_task to None')
         user.update_state_property(user)
+
     else:
         uuid = user.remaining_tasks.pop(0)
         user.current_task = uuid
