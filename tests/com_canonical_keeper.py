@@ -60,13 +60,11 @@ def fail(msg):
     )
 
 
-def raise_not_supported_if_active():
+def fail_if_active():
     user = mockobject.objects[USER_PATH]
     if user.is_active(user):
-        raise dbus.exceptions.DBusException(
-            "can't do that while service is active",
-            name='org.freedesktop.DBus.Error.NotSupported'
-        )
+        fail("can't do that while service is active")
+
 
 #
 #  User Obj
@@ -131,7 +129,7 @@ def user_start_next_task(user):
 def user_start_backup(user, uuids):
 
     # sanity checks
-    user.raise_not_supported_if_active()
+    fail_if_active()
     for uuid in uuids:
         if uuid not in user.backup_choices:
             badarg('uuid %s is not a valid backup choice' % (uuid))
@@ -144,7 +142,7 @@ def user_start_backup(user, uuids):
 def user_start_restore(user, uuids):
 
     # sanity checks
-    user.raise_not_supported_if_active()
+    fail_if_active()
     for uuid in uuids:
         if uuid not in user.restore_choices:
             badarg('uuid %s is not a valid backup choice' % (uuid))
@@ -319,10 +317,7 @@ def load(main, parameters):
     user.cancel = user_cancel
     user.build_state = user_build_state
     user.update_state_property = user_update_state_property
-    user.raise_not_supported_if_active = raise_not_supported_if_active
     user.start_next_task = user_start_next_task
-    user.badarg = badarg
-    user.fail = fail
     user.all_tasks = []
     user.remaining_tasks = []
     user.backup_data = {}
