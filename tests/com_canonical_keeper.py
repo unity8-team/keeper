@@ -60,19 +60,15 @@ def fail(msg):
     )
 
 
-def fail_if_active():
+def fail_if_busy():
     user = mockobject.objects[USER_PATH]
-    if user.is_active(user):
-        fail("can't do that while service is active")
+    if user.all_tasks:
+        fail("can't do that while service is busy")
 
 
 #
 #  User Obj
 #
-
-
-def user_is_active(user):
-    return len(user.all_tasks) != 0
 
 
 def user_get_backup_choices(user):
@@ -110,26 +106,27 @@ def user_start_next_task(user):
         helper_exec = user.helpers[choice_type]
 
         # build the env that we'll pass to the helper
-        my_env = {}
-        my_env['QDBUS_DEBUG'] = '1'
-        my_env['G_DBUS_DEBUG'] = 'call,message,signal,return'
+        henv = {}
+        henv['QDBUS_DEBUG'] = '1'
+        henv['G_DBUS_DEBUG'] = 'call,message,signal,return'
         for key in ['DBUS_SESSION_BUS_ADDRESS', 'DBUS_SYSTEM_BUS_ADDRESS']:
             val = os.environ.get(key, None)
             if val:
-                my_env[key] = val
+                henv[key] = val
+        # FIXME: add PWD
 
         # spawn the helper
-        user.log('starting %s for %s, env %s' % (helper_exec, uuid, my_env))
+        user.log('starting %s for %s, env %s' % (helper_exec, uuid, henv))
         subprocess.Popen(
             [helper_exec, HELPER_PATH],
-            env=my_env, stdout=sys.stdout, stderr=sys.stderr
+            env=henv, stdout=sys.stdout, stderr=sys.stderr
         )
 
 
 def user_start_backup(user, uuids):
 
     # sanity checks
-    fail_if_active()
+    fail_if_busy()
     for uuid in uuids:
         if uuid not in user.backup_choices:
             badarg('uuid %s is not a valid backup choice' % (uuid))
@@ -142,7 +139,7 @@ def user_start_backup(user, uuids):
 def user_start_restore(user, uuids):
 
     # sanity checks
-    fail_if_active()
+    fail_if_busy()
     for uuid in uuids:
         if uuid not in user.restore_choices:
             badarg('uuid %s is not a valid backup choice' % (uuid))
@@ -304,7 +301,7 @@ def helper_start_restore(helper):
 
 def load(main, parameters):
 
-    main.log('hello world. parameters is: "' + str(parameters) + '"')
+    main.log('Keeper template paramers: "' + str(parameters) + '"')
 
     path = USER_PATH
     main.AddObject(path, USER_IFACE, {}, [])
@@ -313,7 +310,6 @@ def load(main, parameters):
     user.start_backup = user_start_backup
     user.get_restore_choices = user_get_restore_choices
     user.start_restore = user_start_restore
-    user.is_active = user_is_active
     user.cancel = user_cancel
     user.build_state = user_build_state
     user.update_state_property = user_update_state_property
