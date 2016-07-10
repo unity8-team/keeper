@@ -28,6 +28,9 @@ Build-Depends: cmake,
                libdbustest1-dev,
                libqtdbusmock1-dev (>= 0.4),
                libqtdbustest1-dev,
+# for the dbusmock template:
+               python3-gi,
+               gir1.2-glib-2.0 (>= 1.32),
 Standards-Version: 3.9.5
 Homepage: https://launchpad.net/keeper
 # If you aren't a member of ~indicator-applet-developers but need to upload
