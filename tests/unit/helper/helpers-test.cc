@@ -664,7 +664,7 @@ TEST_F(TestHelpers, StartStopHelperObserver)
 
 TEST_F(TestHelpers, StartFullTest)
 {
-    g_setenv("KEEPER_TEST_HELPER", TEST_SIMPLE_HELPER, TRUE);
+    g_setenv("KEEPER_TEST_HELPER", TEST_SIMPLE_HELPER_SH, TRUE);
 
     // remove any previous marks that may exist.
     EXPECT_TRUE(removeHelperMarkBeforeStarting());
