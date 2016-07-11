@@ -17,20 +17,18 @@
  *   Charles Kerr <charles.kerr@canonical.com>
  */
 
+#include "tests/utils/xdg-user-dirs-sandbox.h"
+
 #include "service/backup-choices.h"
 
 #include <gtest/gtest.h>
 
-#include <QCoreApplication>
 #include <QDebug>
-#include <QDir>
-#include <QFile>
-#include <QSignalSpy>
 #include <QString>
-#include <QTemporaryDir>
 
 #include <cstdio>
 #include <memory>
+#include <set>
 
 inline void PrintTo(const QString& s, std::ostream* os)
 {
@@ -45,13 +43,13 @@ inline void PrintTo(const std::set<QString>& s, std::ostream* os)
     *os << " }";
 }
 
-class UserDirProviderTest : public ::testing::Test
+class UserDirsProviderTest : public ::testing::Test
 {
 protected:
 
     virtual void SetUp() override
     {
-        init_xdg_sandbox();
+        temporary_dir_.reset(new XdgUserDirsSandbox());
     }
 
     virtual void TearDown() override
@@ -59,60 +57,13 @@ protected:
         temporary_dir_.reset();
     }
 
-    void init_xdg_sandbox()
-    {
-        // create the sandbox dir
-
-        temporary_dir_.reset(new QTemporaryDir());
-        const auto top = QDir(temporary_dir_->path());
-
-        // create the user dirs
-
-        const struct {
-            const char * key;
-            const char * dirname;
-        } user_dirs[] = {
-            { "XDG_DESKTOP_DIR", "Desktop" },
-            { "XDG_DOWNLOAD_DIR", "Downloads" },
-            { "XDG_TEMPLATES_DIR", "Templates" },
-            { "XDG_PUBLICSHARE_DIR", "Public" },
-            { "XDG_DOCUMENTS_DIR", "Documents" },
-            { "XDG_MUSIC_DIR", "Music" },
-            { "XDG_PICTURES_DIR", "Pictures" },
-            { "XDG_VIDEOS_DIR", "Videos" }
-        };
-        for(const auto& user_dir : user_dirs)
-            top.mkdir(QString::fromUtf8(user_dir.dirname));
-
-        // create user-dirs.dirs
-
-        const auto config_dirname = QStringLiteral(".config");
-        top.mkdir(config_dirname);
-        auto config_dir = QDir(top.absoluteFilePath(config_dirname));
-        qDebug() << "config_dir is " << qPrintable(config_dir.path());
-        qputenv("XDG_CONFIG_HOME", config_dir.path().toUtf8());
-
-        const auto dirs_filename = QStringLiteral("user-dirs.dirs");
-        QFile dirs_file(config_dir.absoluteFilePath(dirs_filename));
-        ASSERT_TRUE(dirs_file.open(QIODevice::Text | QIODevice::WriteOnly));
-        QString contents;
-        for(const auto& user_dir : user_dirs) {
-            contents += QStringLiteral("%1=\"%2/%3\"\n")
-                            .arg(user_dir.key)
-                            .arg(top.path())
-                            .arg(user_dir.dirname);
-        }
-        dirs_file.write(contents.toUtf8());
-        dirs_file.close();
-    }
-
 private:
 
-    std::shared_ptr<QTemporaryDir> temporary_dir_;
+    std::shared_ptr<XdgUserDirsSandbox> temporary_dir_;
 };
 
 
-TEST_F(UserDirProviderTest, UserDirs)
+TEST_F(UserDirsProviderTest, UserDirs)
 {
     BackupChoices tmp;
     const auto choices = tmp.get_backups();

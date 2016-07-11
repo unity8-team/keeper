@@ -26,6 +26,8 @@ include_directories(
 add_executable(
     unit-tests
 
+    tar/tar-creator-test.cpp
+
     storage/test-factory.cpp
 
     helper/helpers-test.cc
@@ -46,6 +48,7 @@ target_link_libraries(
     backup-helper
     test-utils
     keeperservice
+    keepertar
     ${SERVICE_DEPS_LDFLAGS}
     ${HELPERS_TEST_DEPS_LDFLAGS}
     ${TEST_DEPENDENCIES_LDFLAGS}

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Canonical, Ltd.
+ * Copyright 2016 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 3, as published
@@ -13,31 +13,22 @@
  * You should have received a copy of the GNU General Public License along
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Author: Xavi Garcia <xavi.garcia.mena@canonical.com>
+ * Authors:
+ *   Charles Kerr <charles.kerr@canonical.com>
  */
 
 #pragma once
 
-#include <QDBusContext>
-#include <QDBusUnixFileDescriptor>
-#include <QObject>
+#include <memory> // std::shared_ptr
 
-class Keeper;
-class KeeperHelper : public QObject, protected QDBusContext
+class QTemporaryDir;
+
+class XdgUserDirsSandbox
 {
-    Q_OBJECT
-
 public:
-    explicit KeeperHelper(Keeper *parent);
-    virtual ~KeeperHelper();
-    Q_DISABLE_COPY(KeeperHelper)
-
-public Q_SLOTS:
-    QDBusUnixFileDescriptor StartBackup(quint64 nbytes);
-    QDBusUnixFileDescriptor StartRestore();
-
-    void UpdateStatus(const QString &app_id, const QString &status, double percentage);
+    XdgUserDirsSandbox();
 
 private:
-    Keeper& keeper_;
+    void init();
+    std::shared_ptr<QTemporaryDir> temporary_dir_;
 };

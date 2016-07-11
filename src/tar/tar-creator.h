@@ -13,31 +13,30 @@
  * You should have received a copy of the GNU General Public License along
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Author: Xavi Garcia <xavi.garcia.mena@canonical.com>
+ * Authors:
+ *   Charles Kerr <charles.kerr@canoincal.com>
  */
 
 #pragma once
 
-#include <QDBusContext>
-#include <QDBusUnixFileDescriptor>
-#include <QObject>
+#include <QStringList>
 
-class Keeper;
-class KeeperHelper : public QObject, protected QDBusContext
+#include <cstddef> // ssize_t
+#include <memory> // shared_ptr
+#include <vector>
+
+
+class TarCreator
 {
-    Q_OBJECT
-
 public:
-    explicit KeeperHelper(Keeper *parent);
-    virtual ~KeeperHelper();
-    Q_DISABLE_COPY(KeeperHelper)
+    TarCreator(const QStringList& files, bool compress);
+    ~TarCreator();
 
-public Q_SLOTS:
-    QDBusUnixFileDescriptor StartBackup(quint64 nbytes);
-    QDBusUnixFileDescriptor StartRestore();
-
-    void UpdateStatus(const QString &app_id, const QString &status, double percentage);
+    ssize_t calculate_size() const;
+    bool step(std::vector<char>& fillme);
 
 private:
-    Keeper& keeper_;
+    class Impl;
+    friend class Impl;
+    std::shared_ptr<Impl> impl_;
 };

@@ -47,6 +47,8 @@ int main(int argc, char **argv)
     bindtextdomain(GETTEXT_PACKAGE, LOCALE_DIR);
     textdomain(GETTEXT_PACKAGE);
 
+    qsrand(time(nullptr));
+
     QCoreApplication application(argc, argv);
     DBusMock::registerMetaTypes();
     ::testing::InitGoogleTest(&argc, argv);
