@@ -33,7 +33,7 @@ DummyFile::create(const QDir& dir, qint64 filesize)
     int filename_len = qrand() % MAX_BASENAME_LEN;
     QString basename;
     for (int i=0; i<filename_len; ++i)
-        basename += ('a' + char(qrand() % ('z'-'a'));
+        basename += ('a' + char(qrand() % ('z'-'a')));
     basename += QStringLiteral("-XXXXXX");
     auto template_name = dir.absoluteFilePath(basename);
 
