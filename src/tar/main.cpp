@@ -72,7 +72,8 @@ get_filenames_from_file(FILE * fp, bool zero)
     // massage into a QStringList
     QStringList filenames;
     for (const auto& token : tokens)
-        filenames.append(QString::fromUtf8(token));
+        if (!token.isEmpty())
+            filenames.append(QString::fromUtf8(token));
 
     return filenames;
 }
