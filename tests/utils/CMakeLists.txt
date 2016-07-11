@@ -6,6 +6,7 @@ add_library(
     test-utils
     STATIC
     main.cpp
+    dummy-file.cpp
     xdg-user-dirs-sandbox.cpp
 )
 
