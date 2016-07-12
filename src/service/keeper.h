@@ -47,13 +47,12 @@ public:
     QVector<Metadata> get_backup_choices();
     QVector<Metadata> get_restore_choices();
 
-public Q_SLOTS:
-
-    void start();
     QDBusUnixFileDescriptor StartBackup(quint64 nbytes);
 
+public Q_SLOTS:
     // FOR TESTING PURPOSES ONLY
     // we should finish when the helper finishes
+    void start();
     void finish();
 
     void socketReady(int sd);
