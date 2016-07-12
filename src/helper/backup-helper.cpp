@@ -39,11 +39,6 @@ extern "C" {
 typedef void* gpointer;
 typedef char gchar;
 
-namespace
-{
-    const int MAX_TIME_WAITING_FOR_DATA = 10000;
-}
-
 class BackupHelperPrivate
 {
 public:
@@ -72,7 +67,7 @@ public:
 
     Q_DISABLE_COPY(BackupHelperPrivate)
 
-    void start(int sd)
+    void start()
     {
         qDebug() << "Starting helper for app: " << appid_;
 
@@ -85,9 +80,16 @@ public:
             ubuntu::app_launch::Helper::URL::from_raw(get_helper_path(appid_).toStdString())
         };
 
-        storage_framework_socket_->setSocketDescriptor(sd, QLocalSocket::ConnectedState, QIODevice::WriteOnly);
-        timer_->start(MAX_TIME_WAITING_FOR_DATA);
         helper->launch(urls);
+
+        reset_inactivity_timer();
+    }
+
+    void set_storage_framework_socket(qint64 /*n_bytes*/, int sd)
+    {
+        storage_framework_socket_->setSocketDescriptor(sd, QLocalSocket::ConnectedState, QIODevice::WriteOnly);
+
+        reset_inactivity_timer();
     }
 
     void stop()
@@ -203,6 +205,13 @@ private:
                 return;
             }
         }
+
+        reset_inactivity_timer();
+    }
+
+    void reset_inactivity_timer()
+    {
+        static constexpr int MAX_TIME_WAITING_FOR_DATA {10000};
         timer_->start(MAX_TIME_WAITING_FOR_DATA);
     }
 
@@ -231,18 +240,27 @@ BackupHelper::BackupHelper(
 BackupHelper::~BackupHelper() =default;
 
 void
-BackupHelper::start(int sd)
+BackupHelper::start()
 {
     Q_D(BackupHelper);
 
-    d->start(sd);
+    d->start();
 }
 
-void BackupHelper::stop()
+void
+BackupHelper::stop()
 {
     Q_D(BackupHelper);
 
     d->stop();
+}
+
+void
+BackupHelper::set_storage_framework_socket(qint64 n_bytes, int sd)
+{
+    Q_D(BackupHelper);
+
+    d->set_storage_framework_socket(n_bytes, sd);
 }
 
 int

@@ -34,7 +34,7 @@ public:
     // we'll need to get it from a UI, but the result should be the same
     // As the storage framework works async, we'll receive the Uploader in a signal
     // coming from a QFutureWatcher
-    void getNewFileForBackup();
+    void getNewFileForBackup(quint64 n_bytes);
 
     void closeUploader();
 

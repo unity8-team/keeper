@@ -492,7 +492,7 @@ TEST_F(TestHelpers, StartHelper)
 
     QSignalSpy spy(&helper, &BackupHelper::stateChanged);
 
-    helper.start(1999);
+    helper.start();
 
     guint len = 0;
     auto calls = dbus_test_dbus_mock_object_get_method_calls(mock, obj, "Start", &len, NULL);

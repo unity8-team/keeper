@@ -30,7 +30,7 @@ class Metadata;
 class MetadataProvider;
 
 class KeeperPrivate;
-class Keeper : public QObject, protected QDBusContext
+class Keeper : public QObject
 {
     Q_OBJECT
     Q_DECLARE_PRIVATE(Keeper)
@@ -47,7 +47,7 @@ public:
     QVector<Metadata> get_backup_choices();
     QVector<Metadata> get_restore_choices();
 
-    QDBusUnixFileDescriptor StartBackup(quint64 nbytes);
+    QDBusUnixFileDescriptor StartBackup(QDBusConnection, const QDBusMessage& message, quint64 nbytes);
 
 public Q_SLOTS:
     // FOR TESTING PURPOSES ONLY
@@ -55,7 +55,6 @@ public Q_SLOTS:
     void start();
     void finish();
 
-    void socketReady(int sd);
     void socketClosed();
 
 private:
