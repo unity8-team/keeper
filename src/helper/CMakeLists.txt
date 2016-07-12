@@ -8,7 +8,9 @@ include_directories(SYSTEM ${PROP-CPP_INCLUDE_DIRS})
 add_library(
   backup-helper
   STATIC
+  helper.cpp
   backup-helper.cpp
+  ${CMAKE_SOURCE_DIR}/include/helper/helper.h
   ${CMAKE_SOURCE_DIR}/include/helper/backup-helper.h
 )
 
