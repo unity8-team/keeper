@@ -60,6 +60,9 @@ public:
         , helper_socket_(new QLocalSocket())
         , read_socket_(new QLocalSocket())
         , upload_buffer_{}
+        , n_read_{}
+        , n_uploaded_{}
+        , n_expected_{}
         , read_error_{}
         , write_error_{}
         , helper_stopped_{}
@@ -110,8 +113,11 @@ public:
         reset_inactivity_timer();
     }
 
-    void set_storage_framework_socket(qint64 /*n_bytes*/, int sd)
+    void set_storage_framework_socket(qint64 n_bytes, int sd)
     {
+        n_read_ = 0;
+        n_uploaded_ = 0;
+        n_expected_ = n_bytes;
         read_error_ = false;
         write_error_ = false;
         helper_stopped_ = false;
@@ -144,8 +150,11 @@ private:
         process_more();
     }
 
-    void on_data_uploaded(qint64 /*n*/)
+    void on_data_uploaded(qint64 n)
     {
+        n_uploaded_ += n;
+        qDebug("n_read %zu n_uploaded %zu (newly uploaded %zu)", size_t(n_read_), size_t(n_uploaded_), size_t(n));
+        check_for_done();
         process_more();
     }
 
@@ -160,6 +169,7 @@ private:
             if (max_bytes > 0) {
                 const auto n = read_socket_->read(readbuf, max_bytes);
                 if (n > 0) {
+                    n_read_ += n;
                     upload_buffer_.append(readbuf, int(n));
                     qDebug("upload_buffer_.size() is %zu after reading %zu from helper", size_t(upload_buffer_.size()), size_t(n));
                 }
@@ -195,7 +205,11 @@ private:
 
     void check_for_done()
     {
-        if (read_error_ || write_error_)
+        if (n_uploaded_ == n_expected_)
+        {
+            q_ptr->setState(Helper::State::COMPLETE);
+        }
+        else if (read_error_ || write_error_)
         {
             q_ptr->setState(Helper::State::FAILED);
         }
@@ -301,6 +315,9 @@ private:
     QScopedPointer<QLocalSocket> helper_socket_;
     QScopedPointer<QLocalSocket> read_socket_;
     QByteArray upload_buffer_;
+    qint64 n_read_;
+    qint64 n_uploaded_;
+    qint64 n_expected_;
     bool read_error_;
     bool write_error_;
     bool helper_stopped_;
