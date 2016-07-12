@@ -19,25 +19,30 @@
  */
 
 #include <helper/backup-helper.h>
+#include <service/app-const.h> // HELPER_TYPE
 
+#include <QByteArray>
 #include <QDebug>
 #include <QLocalSocket>
+#include <QMap>
+#include <QObject>
 #include <QScopedPointer>
 #include <QString>
 #include <QTimer>
+#include <QVector>
 
 #include <ubuntu-app-launch/registry.h>
 #include <service/app-const.h>
-
 extern "C" {
     #include <ubuntu-app-launch.h>
 }
 
 #include <fcntl.h>
+#include <sys/types.h>
 #include <sys/socket.h>
 
-typedef void* gpointer;
-typedef char gchar;
+#include <functional> // std::bind()
+
 
 class BackupHelperPrivate
 {
@@ -55,33 +60,45 @@ public:
         , helper_socket_(new QLocalSocket())
         , read_socket_(new QLocalSocket())
     {
-        init();
+        ual_init();
+
+        // listen for inactivity
+        QObject::connect(timer_.data(), &QTimer::timeout,
+            std::bind(&BackupHelperPrivate::on_inactivity_detected, this)
+        );
+
+
+        // listen for data ready to read
+        QObject::connect(read_socket_.data(), &QLocalSocket::readyRead,
+            std::bind(&BackupHelperPrivate::on_ready_read, this)
+        );
+
+        // fire up the sockets
+        int fds[2];
+        int rc = socketpair(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0, fds);
+        if (rc == -1)
+        {
+            // TODO throw exception.
+            qWarning() << "BackupHelperPrivate: error creating socket pair to communicate with helper ";
+            return;
+        }
+
+        // helper socket is for the client.
+        helper_socket_->setSocketDescriptor(fds[1], QLocalSocket::ConnectedState, QIODevice::WriteOnly);
+
+        read_socket_->setSocketDescriptor(fds[0], QLocalSocket::ConnectedState, QIODevice::ReadOnly);
     }
 
     ~BackupHelperPrivate()
     {
-        // Remove the observers
-        ubuntu_app_launch_observer_delete_helper_started(helper_observer_cb, HELPER_TYPE, this);
-        ubuntu_app_launch_observer_delete_helper_stop(helper_observer_stop_cb, HELPER_TYPE, this);
+        ual_uninit();
     }
 
     Q_DISABLE_COPY(BackupHelperPrivate)
 
     void start()
     {
-        qDebug() << "Starting helper for app: " << appid_;
-
-        auto backupType = ubuntu::app_launch::Helper::Type::from_raw(HELPER_TYPE);
-
-        auto appid = ubuntu::app_launch::AppID::parse(appid_.toStdString());
-        auto helper = ubuntu::app_launch::Helper::create(backupType, appid, registry_);
-
-        std::vector<ubuntu::app_launch::Helper::URL> urls = {
-            ubuntu::app_launch::Helper::URL::from_raw(get_helper_path(appid_).toStdString())
-        };
-
-        helper->launch(urls);
-
+        ual_start();
         reset_inactivity_timer();
     }
 
@@ -94,19 +111,7 @@ public:
 
     void stop()
     {
-        qDebug() << "Stopping helper for app: " << appid_;
-        auto backupType = ubuntu::app_launch::Helper::Type::from_raw(HELPER_TYPE);
-
-        auto appid = ubuntu::app_launch::AppID::parse(appid_.toStdString());
-        auto helper = ubuntu::app_launch::Helper::create(backupType, appid, registry_);
-
-        auto instances = helper->instances();
-
-        if (instances.size() > 0 )
-        {
-            qDebug() << "We have instances";
-            instances[0]->stop();
-        }
+        ual_stop();
     }
 
     int get_helper_socket() const
@@ -116,81 +121,13 @@ public:
 
 private:
 
-    void init()
-    {
-        // listen for inactivity
-        QObject::connect(timer_.data(), &QTimer::timeout,
-            std::bind(&BackupHelperPrivate::inactivityDetected, this)
-        );
-
-        // install the start observer
-        ubuntu_app_launch_observer_add_helper_started(helper_observer_cb, HELPER_TYPE, this);
-        ubuntu_app_launch_observer_add_helper_stop(helper_observer_stop_cb, HELPER_TYPE, this);
-
-        int fds[2];
-        int rc = socketpair(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0, fds);
-        if (rc == -1)
-        {
-            // TODO throw exception.
-            qWarning() << "BackupHelperImpl::init(): error creating socket pair to communicate with helper ";
-            return;
-        }
-
-        // helper socket is for the client.
-        helper_socket_->setSocketDescriptor(fds[1], QLocalSocket::ConnectedState, QIODevice::WriteOnly);
-
-        read_socket_->setSocketDescriptor(fds[0], QLocalSocket::ConnectedState, QIODevice::ReadOnly);
-
-        // listen for data ready to read
-        QObject::connect(read_socket_.data(), &QLocalSocket::readyRead,
-            std::bind(&BackupHelperPrivate::onSocketReadReady, this)
-        );
-    }
-
-    static void helper_observer_cb(const gchar* appid, const gchar* /*instance*/, const gchar* /*type*/, gpointer user_data)
-    {
-        qDebug() << "HELPER STARTED +++++++++++++++++++++++++++++++++++++ " << appid;
-        auto obj = static_cast<BackupHelperPrivate*>(user_data);
-        if (obj)
-        {
-            qDebug() << "I have a valid object";
-            obj->q_ptr->setState(Helper::State::STARTED);
-        }
-    }
-
-    static void helper_observer_stop_cb(const gchar* appid, const gchar* /*instance*/, const gchar* /*type*/, gpointer user_data)
-    {
-        qDebug() << "HELPER FINISHED +++++++++++++++++++++++++++++++++++++ " << appid;
-        auto obj = static_cast<BackupHelperPrivate*>(user_data);
-        if (obj)
-        {
-            qDebug() << "I have a valid object";
-            obj->q_ptr->setState(Helper::State::COMPLETE);
-        }
-    }
-
-    void inactivityDetected()
+    void on_inactivity_detected()
     {
         qWarning() << "Inactivity detected in the helper...stopping it";
         stop();
     }
 
-    QString get_helper_path(QString const & /*appId*/)
-    {
-        //TODO retrieve the helper path from the package information
-
-        // This is added for testing purposes only
-        auto testHelper = qgetenv("KEEPER_TEST_HELPER");
-        if (!testHelper.isEmpty())
-        {
-            qDebug() << "BackupHelperImpl::getHelperPath: returning the helper: " << testHelper;
-            return testHelper;
-        }
-
-        return DEKKO_HELPER_BIN;
-    }
-
-    void onSocketReadReady()
+    void on_ready_read()
     {
         timer_->stop();
         qDebug() << "BackupHelperImpl::onSocketReadReady() " << read_socket_->socketDescriptor();
@@ -214,6 +151,92 @@ private:
         static constexpr int MAX_TIME_WAITING_FOR_DATA {10000};
         timer_->start(MAX_TIME_WAITING_FOR_DATA);
     }
+
+
+    /***
+    ****  UAL
+    ***/
+
+    void ual_init()
+    {
+        ubuntu_app_launch_observer_add_helper_started(on_helper_started, HELPER_TYPE, this);
+        ubuntu_app_launch_observer_add_helper_stop(on_helper_stopped, HELPER_TYPE, this);
+    }
+
+    void ual_uninit()
+    {
+        if (q_ptr->getState() == Helper::State::STARTED)
+            ual_stop();
+
+        ubuntu_app_launch_observer_delete_helper_started(on_helper_started, HELPER_TYPE, this);
+        ubuntu_app_launch_observer_delete_helper_stop(on_helper_stopped, HELPER_TYPE, this);
+    }
+
+    void ual_start()
+    {
+        qDebug() << "Starting helper for app: " << appid_;
+
+        auto backupType = ubuntu::app_launch::Helper::Type::from_raw(HELPER_TYPE);
+
+        auto appid = ubuntu::app_launch::AppID::parse(appid_.toStdString());
+        auto helper = ubuntu::app_launch::Helper::create(backupType, appid, registry_);
+
+        std::vector<ubuntu::app_launch::Helper::URL> urls = {
+            ubuntu::app_launch::Helper::URL::from_raw(get_helper_path(appid_).toStdString())
+        };
+
+        helper->launch(urls);
+    }
+
+    void ual_stop()
+    {
+        qDebug() << "Stopping helper for app: " << appid_;
+        auto backupType = ubuntu::app_launch::Helper::Type::from_raw(HELPER_TYPE);
+
+        auto appid = ubuntu::app_launch::AppID::parse(appid_.toStdString());
+        auto helper = ubuntu::app_launch::Helper::create(backupType, appid, registry_);
+
+        auto instances = helper->instances();
+
+        if (instances.size() > 0 )
+        {
+            qDebug() << "We have instances";
+            instances[0]->stop();
+        }
+    }
+
+    static void on_helper_started(const char* appid, const char* /*instance*/, const char* /*type*/, void* vself)
+    {
+        qDebug() << "HELPER STARTED +++++++++++++++++++++++++++++++++++++ " << appid;
+        auto self = static_cast<BackupHelperPrivate*>(vself);
+        self->q_ptr->setState(Helper::State::STARTED);
+    }
+
+    static void on_helper_stopped(const char* appid, const char* /*instance*/, const char* /*type*/, void* vself)
+    {
+        qDebug() << "HELPER STOPPED +++++++++++++++++++++++++++++++++++++ " << appid;
+        auto self = static_cast<BackupHelperPrivate*>(vself);
+        self->q_ptr->setState(Helper::State::COMPLETE);
+    }
+
+    QString get_helper_path(QString const & /*appId*/)
+    {
+        //TODO retrieve the helper path from the package information
+
+        // This is added for testing purposes only
+        auto testHelper = qgetenv("KEEPER_TEST_HELPER");
+        if (!testHelper.isEmpty())
+        {
+            qDebug() << "BackupHelperImpl::getHelperPath: returning the helper: " << testHelper;
+            return testHelper;
+        }
+
+        return DEKKO_HELPER_BIN;
+    }
+
+    /***
+    ****
+    ***/
 
     BackupHelper * const q_ptr;
     const QString appid_;
