@@ -42,19 +42,26 @@ main(int argc, char **argv)
     bindtextdomain(GETTEXT_PACKAGE, LOCALE_DIR);
     textdomain(GETTEXT_PACKAGE);
 
-    QScopedPointer<DBusInterfaceKeeperHelper> keeperInterface(new DBusInterfaceKeeperHelper(DBusTypes::KEEPER_SERVICE,
-                                                            DBusTypes::KEEPER_HELPER_PATH,
-                                                            QDBusConnection::sessionBus(), 0));
-    quint64 nbytes = 0;
-    QDBusReply<QDBusUnixFileDescriptor> userResp = keeperInterface->call(QLatin1String("StartBackup"), nbytes);
+    QScopedPointer<DBusInterfaceKeeperHelper> helperInterface(
+        new DBusInterfaceKeeperHelper(
+            DBusTypes::KEEPER_SERVICE,
+            DBusTypes::KEEPER_HELPER_PATH,
+            QDBusConnection::sessionBus()
+        )
+    );
 
-    if (!userResp.isValid())
+    const quint64 n_bytes = sizeof(SIMPLE_HELPER_TEXT_TO_WRITE);
+    qDebug("simple helper calling Helper.StartBackup(%zu)", size_t(n_bytes));
+    auto reply = helperInterface->StartBackup(n_bytes);
+    reply.waitForFinished();
+
+    if (!reply.isValid())
     {
-        qWarning() << "Error getting backup socket: " << userResp.error().message();
+        qWarning() << "Error getting backup socket: " << reply.error().message();
     }
     else
     {
-        auto backupSocket = userResp.value().fileDescriptor();
+        auto backupSocket = reply.value().fileDescriptor();
         qDebug() << "I've got the following socket descriptor: " << backupSocket;
 
         QLocalSocket localSocket;
