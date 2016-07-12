@@ -130,7 +130,7 @@ protected:
         registry = std::make_shared<ubuntu::app_launch::Registry>();
     }
 
-    virtual void SetUp()
+    virtual void SetUp() override
     {
         /* Click DB test mode */
         g_setenv("TEST_CLICK_DB", "click-db-dir", TRUE);
@@ -275,7 +275,7 @@ protected:
         dbus_test_service_add_task(service, DBUS_TEST_TASK(cgmock));
     }
 
-    virtual void TearDown()
+    virtual void TearDown() override
     {
         registry.reset();
 

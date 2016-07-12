@@ -17,12 +17,14 @@
  *     Xavi Garcia <xavi.garcia.mena@canonical.com>
  *     Charles Kerr <charles.kerr@canonical.com>
  */
+
 #pragma once
 
-#include <helper/helper.h>
+#include <helper/helper.h> // parent class
 
 #include <QObject>
 #include <QScopedPointer>
+#include <QString>
 
 class BackupHelperPrivate;
 class BackupHelper : public Helper
