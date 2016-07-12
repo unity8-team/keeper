@@ -19,11 +19,13 @@
  */
 #pragma once
 
+#include <helper/helper.h>
+
 #include <QObject>
 #include <QScopedPointer>
 
 class BackupHelperPrivate;
-class BackupHelper : public QObject
+class BackupHelper : public Helper
 {
     Q_OBJECT
     Q_DECLARE_PRIVATE(BackupHelper)
@@ -36,14 +38,6 @@ public:
     void start(int sd);
     void stop();
     int get_helper_socket() const;
-
-    void emitHelperStarted();
-    void emitHelperFinished();
-
-Q_SIGNALS:
-    void started();
-    void finished();
-    void stalled();
 
 private:
     QScopedPointer<BackupHelperPrivate> const d_ptr;

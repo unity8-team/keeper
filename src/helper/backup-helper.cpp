@@ -152,7 +152,7 @@ private:
         if (obj)
         {
             qDebug() << "I have a valid object";
-            obj->q_ptr->emitHelperStarted();
+            obj->q_ptr->setState(Helper::State::STARTED);
         }
     }
 
@@ -163,7 +163,7 @@ private:
         if (obj)
         {
             qDebug() << "I have a valid object";
-            obj->q_ptr->emitHelperFinished();
+            obj->q_ptr->setState(Helper::State::COMPLETE);
         }
     }
 
@@ -223,7 +223,7 @@ BackupHelper::BackupHelper(
     QString const & appid,
     QObject * parent
 )
-    : QObject(parent)
+    : Helper(parent)
     , d_ptr(new BackupHelperPrivate(this, appid))
 {
 }
@@ -251,18 +251,4 @@ BackupHelper::get_helper_socket() const
     Q_D(const BackupHelper);
 
     return d->get_helper_socket();
-}
-
-void
-BackupHelper::emitHelperStarted()
-{
-    qDebug() << "BACKUP STARTED SIGNAL";
-    Q_EMIT started();
-}
-
-void
-BackupHelper::emitHelperFinished()
-{
-    qDebug() << "BACKUP FINISHED SIGNAL";
-    Q_EMIT finished();
 }

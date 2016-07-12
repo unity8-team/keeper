@@ -36,8 +36,7 @@
 
 class KeeperPrivate
 {
-    Q_DISABLE_COPY(KeeperPrivate)
-    Q_DECLARE_PUBLIC(Keeper)
+public:
 
     Keeper * const q_ptr;
     QSharedPointer<MetadataProvider> backup_choices_;
@@ -60,8 +59,39 @@ class KeeperPrivate
     {
         QObject::connect(storage_.data(), &StorageFrameworkClient::socketReady, q_ptr, &Keeper::socketReady);
         QObject::connect(storage_.data(), &StorageFrameworkClient::socketClosed, q_ptr, &Keeper::socketClosed);
-        QObject::connect(backup_helper_.data(), &BackupHelper::started, q_ptr, &Keeper::helperStarted);
-        QObject::connect(backup_helper_.data(), &BackupHelper::finished, q_ptr, &Keeper::helperFinished);
+
+        // listen for backup helper state changes
+        QObject::connect(backup_helper_.data(), &Helper::stateChanged,
+            std::bind(&KeeperPrivate::on_backup_helper_state_changed, this, std::placeholders::_1)
+        );
+    }
+
+    ~KeeperPrivate()
+    {
+    }
+
+    Q_DISABLE_COPY(KeeperPrivate)
+
+private:
+
+    void on_backup_helper_state_changed(Helper::State state)
+    {
+        switch (state)
+        {
+            case Helper::State::NOT_STARTED:
+                break;
+
+            case Helper::State::STARTED:
+                qDebug() << "Backup helper started";
+                break;
+
+            case Helper::State::CANCELLED:
+            case Helper::State::FAILED:
+            case Helper::State::COMPLETE:
+                qDebug() << "Backup helper finished... closing the socket.";
+                storage_->closeUploader();
+                break;
+        }
     }
 };
 
@@ -113,20 +143,6 @@ void Keeper::socketReady(int sd)
     qDebug() << "I've got a new socket: " << sd;
     qDebug() << "Starting the backup helper";
     d->backup_helper_->start(sd);
-}
-
-void Keeper::helperStarted()
-{
-    qDebug() << "Backup helper started";
-}
-
-void Keeper::helperFinished()
-{
-    Q_D(Keeper);
-
-    qDebug() << "Backup helper finished";
-    qDebug() << "Closing the socket";
-    d->storage_->closeUploader();
 }
 
 void Keeper::socketClosed()

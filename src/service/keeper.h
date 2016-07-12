@@ -57,8 +57,6 @@ public Q_SLOTS:
     void finish();
 
     void socketReady(int sd);
-    void helperStarted();
-    void helperFinished();
     void socketClosed();
 
 private:
