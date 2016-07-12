@@ -13,30 +13,32 @@
  * You should have received a copy of the GNU General Public License along
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Author: Xavi Garcia <xavi.garcia.mena@canonical.com>
+ * Authors:
+ *     Xavi Garcia <xavi.garcia.mena@canonical.com>
+ *     Charles Kerr <charles.kerr@canonical.com>
  */
 #pragma once
 
 #include <QObject>
+#include <QScopedPointer>
 
-namespace internal
-{
-class BackupHelperImpl;
-}
-
+class BackupHelperPrivate;
 class BackupHelper : public QObject
 {
     Q_OBJECT
-public:
-    Q_DISABLE_COPY(BackupHelper)
+    Q_DECLARE_PRIVATE(BackupHelper)
 
+public:
     BackupHelper(QString const &appid, QObject * parent=nullptr);
     virtual ~BackupHelper();
+    Q_DISABLE_COPY(BackupHelper)
 
     void start(int sd);
     void stop();
+    int get_helper_socket() const;
 
-    int get_helper_socket();
+    void emitHelperStarted();
+    void emitHelperFinished();
 
 Q_SIGNALS:
     void started();
@@ -44,5 +46,5 @@ Q_SIGNALS:
     void stalled();
 
 private:
-    QScopedPointer<internal::BackupHelperImpl> p_;
+    QScopedPointer<BackupHelperPrivate> const d_ptr;
 };

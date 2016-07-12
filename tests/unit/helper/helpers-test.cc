@@ -36,7 +36,6 @@
 
 #include "mir-mock.h"
 #include <helper/backup-helper.h>
-#include <helper/internal/backup-helper-impl.h>
 #include <qdbus-stubs/dbus-types.h>
 #include <simple-helper/simple-helper-defs.h>
 #include "../../../src/service/app-const.h"
