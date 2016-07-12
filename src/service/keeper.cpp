@@ -134,6 +134,7 @@ Keeper::StartBackup(QDBusConnection bus, const QDBusMessage& msg, quint64 n_byte
         bus.send(reply);
         delete conn;
     };
+    // cppcheck-suppress deallocuse
     *conn = QObject::connect(d->storage_.data(), &StorageFrameworkClient::socketReady, on_socket_ready);
 
     // ask storage framework for a new socket
