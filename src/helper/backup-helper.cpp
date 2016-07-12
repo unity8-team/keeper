@@ -60,6 +60,9 @@ public:
         , helper_socket_(new QLocalSocket())
         , read_socket_(new QLocalSocket())
         , upload_buffer_{}
+        , read_error_{}
+        , write_error_{}
+        , helper_stopped_{}
     {
         ual_init();
 
@@ -109,6 +112,10 @@ public:
 
     void set_storage_framework_socket(qint64 /*n_bytes*/, int sd)
     {
+        read_error_ = false;
+        write_error_ = false;
+        helper_stopped_ = false;
+
         storage_framework_socket_->setSocketDescriptor(sd, QLocalSocket::ConnectedState, QIODevice::WriteOnly);
 
         reset_inactivity_timer();
@@ -156,6 +163,11 @@ private:
                     upload_buffer_.append(readbuf, int(n));
                     qDebug("upload_buffer_.size() is %zu after reading %zu from helper", size_t(upload_buffer_.size()), size_t(n));
                 }
+                else if (n < 0) {
+                    read_error_ = true;
+                    stop();
+                    return;
+                }
             }
 
             // try to empty the upload buf
@@ -163,6 +175,11 @@ private:
             if (n > 0) {
                 upload_buffer_.remove(0, int(n));
                 qDebug("upload_buffer_.size() is %zu after writing %zu to cloud", size_t(upload_buffer_.size()), size_t(n));
+            }
+            if (n < 0) {
+                write_error_ = true;
+                stop();
+                return;
             }
         }
         while (bytes_uploaded > 0);
@@ -176,6 +193,17 @@ private:
         timer_->start(MAX_TIME_WAITING_FOR_DATA);
     }
 
+    void check_for_done()
+    {
+        if (read_error_ || write_error_)
+        {
+            q_ptr->setState(Helper::State::FAILED);
+        }
+        else if (helper_stopped_)
+        {
+            q_ptr->setState(Helper::State::CANCELLED);
+        }
+    }
 
     /***
     ****  UAL
@@ -240,7 +268,8 @@ private:
     {
         qDebug() << "HELPER STOPPED +++++++++++++++++++++++++++++++++++++ " << appid;
         auto self = static_cast<BackupHelperPrivate*>(vself);
-        self->q_ptr->setState(Helper::State::COMPLETE);
+        self->helper_stopped_ = true;
+        self->check_for_done();
     }
 
     QString get_helper_path(QString const & /*appId*/)
@@ -272,6 +301,9 @@ private:
     QScopedPointer<QLocalSocket> helper_socket_;
     QScopedPointer<QLocalSocket> read_socket_;
     QByteArray upload_buffer_;
+    bool read_error_;
+    bool write_error_;
+    bool helper_stopped_;
 };
 
 /***
