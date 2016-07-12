@@ -59,6 +59,7 @@ public:
         , storage_framework_socket_(new QLocalSocket())
         , helper_socket_(new QLocalSocket())
         , read_socket_(new QLocalSocket())
+        , upload_buffer_{}
     {
         ual_init();
 
@@ -67,6 +68,10 @@ public:
             std::bind(&BackupHelperPrivate::on_inactivity_detected, this)
         );
 
+        // listen for data uploaded
+        QObject::connect(storage_framework_socket_.data(), &QLocalSocket::bytesWritten,
+            std::bind(&BackupHelperPrivate::on_data_uploaded, this, std::placeholders::_1)
+        );
 
         // listen for data ready to read
         QObject::connect(read_socket_.data(), &QLocalSocket::readyRead,
@@ -129,19 +134,38 @@ private:
 
     void on_ready_read()
     {
-        timer_->stop();
-        qDebug() << "BackupHelperImpl::onSocketReadReady() " << read_socket_->socketDescriptor();
-        auto buf = read_socket_->read(read_socket_->bytesAvailable());
-        if (buf.size() != 0)
+        process_more();
+    }
+
+    void on_data_uploaded(qint64 /*n*/)
+    {
+        process_more();
+    }
+
+    void process_more()
+    {
+        qint64 bytes_uploaded {};
+        char readbuf[UPLOAD_BUFFER_MAX_];
+        do
         {
-            auto bytes_written = storage_framework_socket_->write(buf);
-            if (bytes_written != buf.size())
-            {
-                // TODO: Store error details.
-                qWarning() << "Error writing to the storage framework socket: " << storage_framework_socket_->errorString();
-                return;
+            // try to fill the upload buf
+            int max_bytes = UPLOAD_BUFFER_MAX_ - upload_buffer_.size();
+            if (max_bytes > 0) {
+                const auto n = read_socket_->read(readbuf, max_bytes);
+                if (n > 0) {
+                    upload_buffer_.append(readbuf, int(n));
+                    qDebug("upload_buffer_.size() is %zu after reading %zu from helper", size_t(upload_buffer_.size()), size_t(n));
+                }
+            }
+
+            // try to empty the upload buf
+            const auto n = storage_framework_socket_->write(upload_buffer_);
+            if (n > 0) {
+                upload_buffer_.remove(0, int(n));
+                qDebug("upload_buffer_.size() is %zu after writing %zu to cloud", size_t(upload_buffer_.size()), size_t(n));
             }
         }
+        while (bytes_uploaded > 0);
 
         reset_inactivity_timer();
     }
@@ -238,6 +262,8 @@ private:
     ****
     ***/
 
+    static constexpr int UPLOAD_BUFFER_MAX_ {1024*16};
+
     BackupHelper * const q_ptr;
     const QString appid_;
     QScopedPointer<QTimer> timer_;
@@ -245,6 +271,7 @@ private:
     QScopedPointer<QLocalSocket> storage_framework_socket_;
     QScopedPointer<QLocalSocket> helper_socket_;
     QScopedPointer<QLocalSocket> read_socket_;
+    QByteArray upload_buffer_;
 };
 
 /***
