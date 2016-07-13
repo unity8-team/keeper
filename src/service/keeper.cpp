@@ -130,7 +130,7 @@ Keeper::StartBackup(QDBusConnection bus, const QDBusMessage& msg, quint64 n_byte
             d->backup_helper_->set_storage_framework_socket(n_bytes, sd);
         }
         auto reply = msg.createReply();
-        reply << QVariant::fromValue(QDBusUnixFileDescriptor(sd));
+        reply << QVariant::fromValue(QDBusUnixFileDescriptor(d->backup_helper_->get_helper_socket()));
         bus.send(reply);
         delete conn;
     };
