@@ -66,8 +66,8 @@ main(int argc, char **argv)
 
         QLocalSocket localSocket;
         localSocket.setSocketDescriptor(backupSocket);
-
-        qDebug() << "Wrote " << localSocket.write(SIMPLE_HELPER_TEXT_TO_WRITE) << " bytes to it.";
+        QByteArray writeme (SIMPLE_HELPER_TEXT_TO_WRITE, sizeof(SIMPLE_HELPER_TEXT_TO_WRITE));
+        qDebug() << "Wrote" << localSocket.write(writeme) << "bytes to it.";
         localSocket.flush();
         localSocket.disconnectFromServer();
 
