@@ -65,7 +65,7 @@ public:
         , n_expected_{}
         , read_error_{}
         , write_error_{}
-        , helper_stopped_{}
+        , cancelled_{}
     {
         ual_init();
 
@@ -120,7 +120,7 @@ public:
         n_expected_ = n_bytes;
         read_error_ = false;
         write_error_ = false;
-        helper_stopped_ = false;
+        cancelled_ = false;
 
         storage_framework_socket_->setSocketDescriptor(sd, QLocalSocket::ConnectedState, QIODevice::WriteOnly);
 
@@ -129,6 +129,7 @@ public:
 
     void stop()
     {
+        cancelled_ = true;
         ual_stop();
     }
 
@@ -160,9 +161,8 @@ private:
 
     void process_more()
     {
-        qint64 bytes_uploaded {};
         char readbuf[UPLOAD_BUFFER_MAX_];
-        do
+        for(;;)
         {
             // try to fill the upload buf
             int max_bytes = UPLOAD_BUFFER_MAX_ - upload_buffer_.size();
@@ -185,14 +185,16 @@ private:
             if (n > 0) {
                 upload_buffer_.remove(0, int(n));
                 qDebug("upload_buffer_.size() is %zu after writing %zu to cloud", size_t(upload_buffer_.size()), size_t(n));
+                continue;
             }
-            if (n < 0) {
-                write_error_ = true;
-                stop();
-                return;
+            else {
+                if (n < 0) {
+                    write_error_ = true;
+                    stop();
+                }
+                break;
             }
         }
-        while (bytes_uploaded > 0);
 
         reset_inactivity_timer();
     }
@@ -213,7 +215,7 @@ private:
         {
             q_ptr->setState(Helper::State::FAILED);
         }
-        else if (helper_stopped_)
+        else if (cancelled_)
         {
             q_ptr->setState(Helper::State::CANCELLED);
         }
@@ -282,7 +284,6 @@ private:
     {
         qDebug() << "HELPER STOPPED +++++++++++++++++++++++++++++++++++++ " << appid;
         auto self = static_cast<BackupHelperPrivate*>(vself);
-        self->helper_stopped_ = true;
         self->check_for_done();
     }
 
@@ -320,7 +321,7 @@ private:
     qint64 n_expected_;
     bool read_error_;
     bool write_error_;
-    bool helper_stopped_;
+    bool cancelled_;
 };
 
 /***
