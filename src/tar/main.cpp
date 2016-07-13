@@ -172,12 +172,16 @@ send_tar_to_keeper(TarCreator& tar_creator, int fd)
         auto n_left = size_t{buf.size()};
         while(n_left > 0) {
             const auto n_written_in = write(fd, walk, n_left);
-            if ((n_written_in < 0) && (errno != EAGAIN))
+            if (n_written_in > 0) {
+                const auto n_written = size_t(n_written_in);
+                walk += n_written;
+                n_sent += n_written;
+                n_left -= n_written;
+            } else if (errno == EAGAIN) {
+                QThread::msleep(100);
+            } else {
                 qFatal("error sending binary blob to Keeper: %s", strerror(errno));
-            const auto n_written = size_t(n_written_in);
-            walk += n_written;
-            n_sent += n_written;
-            n_left -= n_written;
+            }
         }
     }
 

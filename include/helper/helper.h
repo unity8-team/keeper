@@ -14,34 +14,32 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authors:
- *     Xavi Garcia <xavi.garcia.mena@canonical.com>
  *     Charles Kerr <charles.kerr@canonical.com>
  */
 
 #pragma once
 
-#include <helper/helper.h> // parent class
-
 #include <QObject>
-#include <QScopedPointer>
-#include <QString>
 
-class BackupHelperPrivate;
-class BackupHelper : public Helper
+class Helper: public QObject
 {
     Q_OBJECT
-    Q_DECLARE_PRIVATE(BackupHelper)
 
 public:
-    BackupHelper(QString const &appid, QObject * parent=nullptr);
-    virtual ~BackupHelper();
-    Q_DISABLE_COPY(BackupHelper)
+    virtual ~Helper();
+    Q_DISABLE_COPY(Helper)
 
-    void set_storage_framework_socket(qint64 n_bytes, int sd);
-    void start();
-    void stop();
-    int get_helper_socket() const;
+    enum class State {NOT_STARTED, STARTED, CANCELLED, FAILED, COMPLETE};
+    State getState() const;
+    Q_PROPERTY(State state READ getState NOTIFY stateChanged)
+
+Q_SIGNALS:
+    void stateChanged(const State& new_state);
+
+protected:
+    Helper(QObject *parent=nullptr);
+    void setState(State);
 
 private:
-    QScopedPointer<BackupHelperPrivate> const d_ptr;
+    State state_;
 };

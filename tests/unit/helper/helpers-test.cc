@@ -36,7 +36,6 @@
 
 #include "mir-mock.h"
 #include <helper/backup-helper.h>
-#include <helper/internal/backup-helper-impl.h>
 #include <qdbus-stubs/dbus-types.h>
 #include <simple-helper/simple-helper-defs.h>
 #include "../../../src/service/app-const.h"
@@ -131,7 +130,7 @@ protected:
         registry = std::make_shared<ubuntu::app_launch::Registry>();
     }
 
-    virtual void SetUp()
+    virtual void SetUp() override
     {
         /* Click DB test mode */
         g_setenv("TEST_CLICK_DB", "click-db-dir", TRUE);
@@ -276,7 +275,7 @@ protected:
         dbus_test_service_add_task(service, DBUS_TEST_TASK(cgmock));
     }
 
-    virtual void TearDown()
+    virtual void TearDown() override
     {
         registry.reset();
 
@@ -296,16 +295,20 @@ protected:
             cleartry++;
         }
 
+        // if the test failed, keep the artifacts so devs can examine them
         QDir data_home_dir(CMAKE_SOURCE_DIR "/libertine-home");
-        if (data_home_dir.exists())
-        {
+        const auto passed = ::testing::UnitTest::GetInstance()->current_test_info()->result()->Passed();
+        if (passed)
             data_home_dir.removeRecursively();
-        }
+        else
+            qDebug("test failed; leaving '%s'", data_home_dir.path().toUtf8().constData());
+
         ASSERT_EQ(nullptr, bus);
     }
 
     bool startKeeperClient()
     {
+        qDebug("starting keeper client '%s'", KEEPER_CLIENT_BIN);
         keeper_client.start(KEEPER_CLIENT_BIN, QStringList());
 
         if (!keeper_client.waitForStarted())
@@ -355,9 +358,18 @@ protected:
             return false;
         }
 
-        QString file_content = storage_framework_file.readAll();
+        const QString file_content = storage_framework_file.readAll();
+        if (file_content != content)
+        {
+            qWarning("unexpected data in file '%s':\n\texpected: '%s'\n\tgot:     '%s'",
+                lastFile.absoluteFilePath().toUtf8().constData(),
+                content.toUtf8().constData(),
+                file_content.toUtf8().constData()
+            );
+            return false;
+        }
 
-        return file_content == content;
+        return true;
     }
 
     bool removeHelperMarkBeforeStarting()
@@ -491,9 +503,9 @@ TEST_F(TestHelpers, StartHelper)
 
     BackupHelper helper("com.test.multiple_first_1.2.3");
 
-    QSignalSpy spy(&helper, &BackupHelper::started);
+    QSignalSpy spy(&helper, &BackupHelper::stateChanged);
 
-    helper.start(1999);
+    helper.start();
 
     guint len = 0;
     auto calls = dbus_test_dbus_mock_object_get_method_calls(mock, obj, "Start", &len, NULL);
@@ -543,7 +555,7 @@ TEST_F(TestHelpers, StopHelper)
         dbus_test_dbus_mock_get_object(mock, UNTRUSTED_HELPER_PATH, UPSTART_JOB, NULL);
 
     BackupHelper helper("com.bar_foo_8432.13.1");
-    QSignalSpy spy(&helper, &BackupHelper::finished);
+    QSignalSpy spy(&helper, &BackupHelper::stateChanged);
 
     helper.stop();
     ASSERT_EQ(dbus_test_dbus_mock_object_check_method_call(mock, obj, "Stop", NULL, NULL), 1);
