@@ -177,7 +177,9 @@ send_tar_to_keeper(TarCreator& tar_creator, int fd)
                 walk += n_written;
                 n_sent += n_written;
                 n_left -= n_written;
-            } else if (errno != EAGAIN) {
+            } else if (errno == EAGAIN) {
+                QThread::msleep(100);
+            } else {
                 qFatal("error sending binary blob to Keeper: %s", strerror(errno));
             }
         }
