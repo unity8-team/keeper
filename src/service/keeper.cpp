@@ -119,7 +119,7 @@ Keeper::StartBackup(QDBusConnection bus, const QDBusMessage& msg, quint64 n_byte
 {
     Q_D(Keeper);
 
-    qDebug("Helper::StartBackup() got a request for a socket to take %zu bytes", size_t(n_bytes));
+    qDebug("Helper::StartBackup(n_bytes=%zu)", size_t(n_bytes));
 
     // the next time we get a socket from storage-framework, return it to our caller
     auto conn = new QMetaObject::Connection();

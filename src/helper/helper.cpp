@@ -65,7 +65,6 @@ Helper::setState(State state)
 {
     if (state_ != state)
     {
-
         qDebug() << "changing state of helper" << static_cast<void*>(this) << "from" << toString(state_) << "to" << toString(state);
 
         state_ = state;
