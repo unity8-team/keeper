@@ -295,11 +295,14 @@ protected:
             cleartry++;
         }
 
+        // if the test failed, keep the artifacts so devs can examine them
         QDir data_home_dir(CMAKE_SOURCE_DIR "/libertine-home");
-        if (data_home_dir.exists())
-        {
+        const auto passed = ::testing::UnitTest::GetInstance()->current_test_info()->result()->Passed();
+        if (passed)
             data_home_dir.removeRecursively();
-        }
+        else
+            qDebug("test failed; leaving '%s'", data_home_dir.path().toUtf8().constData());
+
         ASSERT_EQ(nullptr, bus);
     }
 
