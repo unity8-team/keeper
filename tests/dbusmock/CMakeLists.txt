@@ -30,7 +30,7 @@ set(
 
 add_executable(
     ${FOLDER_HELPER}
-    folder-helper.cpp
+    fake-folder-helper.cpp
 )
 target_link_libraries(
     ${FOLDER_HELPER}
