@@ -305,6 +305,7 @@ protected:
 
     bool startKeeperClient()
     {
+        qDebug("starting keeper client '%s'", KEEPER_CLIENT_BIN);
         keeper_client.start(KEEPER_CLIENT_BIN, QStringList());
 
         if (!keeper_client.waitForStarted())
@@ -354,9 +355,18 @@ protected:
             return false;
         }
 
-        QString file_content = storage_framework_file.readAll();
+        const QString file_content = storage_framework_file.readAll();
+        if (file_content != content)
+        {
+            qWarning("unexpected data in file '%s':\n\texpected: '%s'\n\tgot:     '%s'",
+                lastFile.absoluteFilePath().toUtf8().constData(),
+                content.toUtf8().constData(),
+                file_content.toUtf8().constData()
+            );
+            return false;
+        }
 
-        return file_content == content;
+        return true;
     }
 
     bool removeHelperMarkBeforeStarting()
