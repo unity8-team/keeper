@@ -29,12 +29,16 @@ public:
     virtual ~Helper();
     Q_DISABLE_COPY(Helper)
 
+    Q_ENUMS(State)
     enum class State {NOT_STARTED, STARTED, CANCELLED, FAILED, COMPLETE};
+
+    Q_PROPERTY(Helper::State state READ getState NOTIFY stateChanged)
     State getState() const;
-    Q_PROPERTY(State state READ getState NOTIFY stateChanged)
+
+    static void registerMetaTypes();
 
 Q_SIGNALS:
-    void stateChanged(const State& new_state);
+    void stateChanged(State new_state);
 
 protected:
     Helper(QObject *parent=nullptr);
@@ -43,3 +47,5 @@ protected:
 private:
     State state_;
 };
+
+Q_DECLARE_METATYPE(Helper::State)

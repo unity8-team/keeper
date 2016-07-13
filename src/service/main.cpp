@@ -25,6 +25,7 @@
 #include "service/keeper-user.h"
 #include "util/logging.h"
 #include "util/unix-signal-handler.h"
+#include "helper/helper.h"
 
 #include "KeeperAdaptor.h"
 #include "KeeperUserAdaptor.h"
@@ -45,7 +46,7 @@ main(int argc, char **argv)
 
     QCoreApplication app(argc, argv);
     DBusTypes::registerMetaTypes();
-//    Variant::registerMetaTypes();
+//    Helper::registerMetaTypes();
     std::srand(unsigned(std::time(nullptr)));
 
     util::UnixSignalHandler handler([]{

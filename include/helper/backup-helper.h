@@ -45,3 +45,4 @@ public:
 private:
     QScopedPointer<BackupHelperPrivate> const d_ptr;
 };
+

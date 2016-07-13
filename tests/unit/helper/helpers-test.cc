@@ -130,8 +130,10 @@ protected:
         registry = std::make_shared<ubuntu::app_launch::Registry>();
     }
 
-    virtual void SetUp() override
+    virtual void SetUp()
     {
+        Helper::registerMetaTypes();
+
         /* Click DB test mode */
         g_setenv("TEST_CLICK_DB", "click-db-dir", TRUE);
         g_setenv("TEST_CLICK_USER", "test-user", TRUE);
@@ -275,7 +277,7 @@ protected:
         dbus_test_service_add_task(service, DBUS_TEST_TASK(cgmock));
     }
 
-    virtual void TearDown() override
+    virtual void TearDown()
     {
         registry.reset();
 
@@ -295,20 +297,16 @@ protected:
             cleartry++;
         }
 
-        // if the test failed, keep the artifacts so devs can examine them
         QDir data_home_dir(CMAKE_SOURCE_DIR "/libertine-home");
-        const auto passed = ::testing::UnitTest::GetInstance()->current_test_info()->result()->Passed();
-        if (passed)
-            data_home_dir.removeRecursively();
-        else
-            qDebug("test failed; leaving '%s'", data_home_dir.path().toUtf8().constData());
-
+        if (data_home_dir.exists())
+        {
+            // data_home_dir.removeRecursively();
+        }
         ASSERT_EQ(nullptr, bus);
     }
 
     bool startKeeperClient()
     {
-        qDebug("starting keeper client '%s'", KEEPER_CLIENT_BIN);
         keeper_client.start(KEEPER_CLIENT_BIN, QStringList());
 
         if (!keeper_client.waitForStarted())
@@ -317,21 +315,65 @@ protected:
         return true;
     }
 
-    bool checkStorageFrameworkContent(QString const & content)
+    bool checkLastStorageFrameworkFile( QString const & sourceDir)
+    {
+        QString lastFile = getLastStorageFrameworkFile();
+        if (lastFile.isEmpty())
+        {
+            return false;
+        }
+        return compareTarContent(lastFile, sourceDir);
+    }
+
+    bool compareTarContent(QString const & tarPath, QString const & sourceDir)
+    {
+        QTemporaryDir tempDir;
+
+        QFileInfo checkFile(tarPath);
+//        ASSERT_TRUE(checkFile.exists());
+//        ASSERT_TRUE(checkFile.isFile());
+//        ASSERT_TRUE(tempDir.isValid());
+//        ASSERT_TRUE(extractTarContents(tarPath, tempDir.path()));
+    }
+
+    bool extractTarContents(QString const & tarPath, QString const & destination, bool compression=false)
+    {
+        QProcess tarProcess;
+        QString tarParams = compression ? QString("xvf") : QString("xzvf");
+        tarProcess.start("tar", QStringList()
+                                        << "-C"
+                                        << destination
+                                        << tarParams
+                                        << tarPath);
+        if (!tarProcess.waitForStarted())
+            return false;
+
+        if (!tarProcess.waitForFinished())
+            return false;
+
+        return tarProcess.exitCode() == 0;
+    }
+
+    bool compareDirectories(QString const & dir1, QString const & dir2)
+    {
+
+    }
+
+    QString getLastStorageFrameworkFile()
     {
         // search the storage framework file that the helper created
         auto data_home = qgetenv("XDG_DATA_HOME");
         if (data_home == "")
         {
             qWarning() << "ERROR: XDG_DATA_HOME is not defined";
-            return false;
+            return QString();
         }
         QString storage_framework_dir_path = QString("%1%2storage-framework").arg(QString(data_home)).arg(QDir::separator());
         QDir storage_framework_dir(storage_framework_dir_path);
         if (!storage_framework_dir.exists())
         {
             qWarning() << "ERROR: Storage framework directory: [" << storage_framework_dir_path << "] does not exist.";
-            return false;
+            return QString();
         }
         QFileInfo lastFile;
         QFileInfoList files = storage_framework_dir.entryInfoList();
@@ -349,27 +391,29 @@ protected:
         if (!lastFile.isFile())
         {
             qWarning() << "ERROR: last file in the storage-framework directory was not found";
+            return QString();
+        }
+
+        return lastFile.absoluteFilePath();
+    }
+
+    bool checkStorageFrameworkContent(QString const & content)
+    {
+        QString lastFile = getLastStorageFrameworkFile();
+        if (lastFile.isEmpty())
+        {
             return false;
         }
-        QFile storage_framework_file(lastFile.absoluteFilePath());
+        QFile storage_framework_file(lastFile);
         if(!storage_framework_file.open(QFile::ReadOnly))
         {
-            qWarning() << "ERROR: opening file: " << lastFile.absoluteFilePath();
+            qWarning() << "ERROR: opening file: " << lastFile;
             return false;
         }
 
-        const QString file_content = storage_framework_file.readAll();
-        if (file_content != content)
-        {
-            qWarning("unexpected data in file '%s':\n\texpected: '%s'\n\tgot:     '%s'",
-                lastFile.absoluteFilePath().toUtf8().constData(),
-                content.toUtf8().constData(),
-                file_content.toUtf8().constData()
-            );
-            return false;
-        }
+        QString file_content = storage_framework_file.readAll();
 
-        return true;
+        return file_content == content;
     }
 
     bool removeHelperMarkBeforeStarting()
@@ -493,58 +537,61 @@ protected:
 #define EXPECT_ENV(expected, envvars, key) EXPECT_EQ(expected, get_env(envvars, key)) << "for key " << key
 #define ASSERT_ENV(expected, envvars, key) ASSERT_EQ(expected, get_env(envvars, key)) << "for key " << key
 
-TEST_F(TestHelpers, StartHelper)
-{
-    // starts the services, including keeper-service
-    startTasks();
-
-    DbusTestDbusMockObject* obj =
-        dbus_test_dbus_mock_get_object(mock, UNTRUSTED_HELPER_PATH, UPSTART_JOB, NULL);
-
-    BackupHelper helper("com.test.multiple_first_1.2.3");
-
-    QSignalSpy spy(&helper, &BackupHelper::stateChanged);
-
-    helper.start();
-
-    guint len = 0;
-    auto calls = dbus_test_dbus_mock_object_get_method_calls(mock, obj, "Start", &len, NULL);
-    EXPECT_NE(nullptr, calls);
-    EXPECT_EQ(1, len);
-
-    auto env = g_variant_get_child_value(calls->params, 0);
-    EXPECT_ENV("com.test.multiple_first_1.2.3", env, "APP_ID");
-
-    QString appUrisStr = QString("'%1'").arg(DEKKO_HELPER_BIN);
-    EXPECT_ENV(appUrisStr.toLocal8Bit().data(), env, "APP_URIS");
-    EXPECT_ENV("backup-helper", env, "HELPER_TYPE");
-    EXPECT_TRUE(have_env(env, "INSTANCE_ID"));
-    g_variant_unref(env);
-
-    DbusTestDbusMockObject* objUpstart =
-        dbus_test_dbus_mock_get_object(mock, UPSTART_PATH, UPSTART_INTERFACE, NULL);
-
-    /* Basic start */
-    dbus_test_dbus_mock_object_emit_signal(
-        mock, objUpstart, "EventEmitted", G_VARIANT_TYPE("(sas)"),
-        g_variant_new_parsed("('started', ['JOB=untrusted-helper', 'INSTANCE=backup-helper::com.test.multiple_first_1.2.3'])"),
-        NULL);
-
-    // we set a timeout of 5 seconds waiting for the signal to be emitted,
-    // which should never be reached
-    ASSERT_TRUE(spy.wait(5000));
-
-    // check that we've got exactly one signal
-    ASSERT_EQ(spy.count(), 1);
-
-    g_usleep(100000);
-    while (g_main_pending())
-    {
-        g_main_iteration(TRUE);
-    }
-
-    helper.stop();
-}
+//TEST_F(TestHelpers, StartHelper)
+//{
+//    // starts the services, including keeper-service
+//    startTasks();
+//
+//    DbusTestDbusMockObject* obj =
+//        dbus_test_dbus_mock_get_object(mock, UNTRUSTED_HELPER_PATH, UPSTART_JOB, NULL);
+//
+//    BackupHelper helper("com.test.multiple_first_1.2.3");
+//
+//    QSignalSpy spy(&helper, &BackupHelper::stateChanged);
+//
+//    helper.start();
+//
+//    guint len = 0;
+//    auto calls = dbus_test_dbus_mock_object_get_method_calls(mock, obj, "Start", &len, NULL);
+//    EXPECT_NE(nullptr, calls);
+//    EXPECT_EQ(1, len);
+//
+//    auto env = g_variant_get_child_value(calls->params, 0);
+//    EXPECT_ENV("com.test.multiple_first_1.2.3", env, "APP_ID");
+//
+//    QString appUrisStr = QString("'%1'").arg(DEKKO_HELPER_BIN);
+//    EXPECT_ENV(appUrisStr.toLocal8Bit().data(), env, "APP_URIS");
+//    EXPECT_ENV("backup-helper", env, "HELPER_TYPE");
+//    EXPECT_TRUE(have_env(env, "INSTANCE_ID"));
+//    g_variant_unref(env);
+//
+//    DbusTestDbusMockObject* objUpstart =
+//        dbus_test_dbus_mock_get_object(mock, UPSTART_PATH, UPSTART_INTERFACE, NULL);
+//
+//    /* Basic start */
+//    dbus_test_dbus_mock_object_emit_signal(
+//        mock, objUpstart, "EventEmitted", G_VARIANT_TYPE("(sas)"),
+//        g_variant_new_parsed("('started', ['JOB=untrusted-helper', 'INSTANCE=backup-helper::com.test.multiple_first_1.2.3'])"),
+//        NULL);
+//
+//    // we set a timeout of 5 seconds waiting for the signal to be emitted,
+//    // which should never be reached
+//    ASSERT_TRUE(spy.wait(5000));
+//
+//    // check that we've got exactly one signal
+//    ASSERT_EQ(spy.count(), 1);
+//    // Check the state
+//    QList<QVariant> arguments = spy.takeFirst();
+//    EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::COMPLETE);
+//
+//    g_usleep(100000);
+//    while (g_main_pending())
+//    {
+//        g_main_iteration(TRUE);
+//    }
+//
+//    helper.stop();
+//}
 
 TEST_F(TestHelpers, StopHelper)
 {
@@ -596,6 +643,10 @@ TEST_F(TestHelpers, StopHelper)
     // check that we've got exactly one signal
     ASSERT_EQ(spy.count(), 1);
 
+    // Check the state
+    qDebug() << "PARAM TYPE: " << spy.first().first().type();
+    EXPECT_EQ(Helper::State::COMPLETE, qvariant_cast<Helper::State>(spy.first().first()));
+
     g_usleep(100000);
     while (g_main_pending())
     {
@@ -603,118 +654,118 @@ TEST_F(TestHelpers, StopHelper)
     }
 }
 
-typedef struct
-{
-    unsigned int count;
-    const gchar* appid;
-    const gchar* type;
-    const gchar* instance;
-} helper_observer_data_t;
+//typedef struct
+//{
+//    unsigned int count;
+//    const gchar* appid;
+//    const gchar* type;
+//    const gchar* instance;
+//} helper_observer_data_t;
+//
+//static void helper_observer_cb(const gchar* appid, const gchar* instance, const gchar* type, gpointer user_data)
+//{
+//    helper_observer_data_t* data = (helper_observer_data_t*)user_data;
+//
+//    if (g_strcmp0(data->appid, appid) == 0 && g_strcmp0(data->type, type) == 0 &&
+//        g_strcmp0(data->instance, instance) == 0)
+//    {
+//        data->count++;
+//    }
+//}
 
-static void helper_observer_cb(const gchar* appid, const gchar* instance, const gchar* type, gpointer user_data)
-{
-    helper_observer_data_t* data = (helper_observer_data_t*)user_data;
-
-    if (g_strcmp0(data->appid, appid) == 0 && g_strcmp0(data->type, type) == 0 &&
-        g_strcmp0(data->instance, instance) == 0)
-    {
-        data->count++;
-    }
-}
-
-TEST_F(TestHelpers, StartStopHelperObserver)
-{
-    // starts the services, including keeper-service
-    startTasks();
-
-    helper_observer_data_t start_data = {
-        .count = 0, .appid = "com.foo_foo_1.2.3", .type = "my-type-is-scorpio", .instance = nullptr};
-    helper_observer_data_t stop_data = {
-        .count = 0, .appid = "com.bar_bar_44.32", .type = "my-type-is-libra", .instance = "1234"};
-
-    ASSERT_TRUE(ubuntu_app_launch_observer_add_helper_started(helper_observer_cb, "my-type-is-scorpio", &start_data));
-    ASSERT_TRUE(ubuntu_app_launch_observer_add_helper_stop(helper_observer_cb, "my-type-is-libra", &stop_data));
-
-    DbusTestDbusMockObject* obj =
-        dbus_test_dbus_mock_get_object(mock, UPSTART_PATH, UPSTART_INTERFACE, NULL);
-
-    /* Basic start */
-    dbus_test_dbus_mock_object_emit_signal(
-        mock, obj, "EventEmitted", G_VARIANT_TYPE("(sas)"),
-        g_variant_new_parsed("('started', ['JOB=untrusted-helper', 'INSTANCE=my-type-is-scorpio::com.foo_foo_1.2.3'])"),
-        NULL);
-
-    g_usleep(100000);
-    while (g_main_pending())
-    {
-        g_main_iteration(TRUE);
-    }
-
-    ASSERT_EQ(start_data.count, 1);
-
-    /* Basic stop */
-    dbus_test_dbus_mock_object_emit_signal(
-        mock, obj, "EventEmitted", G_VARIANT_TYPE("(sas)"),
-        g_variant_new_parsed(
-            "('stopped', ['JOB=untrusted-helper', 'INSTANCE=my-type-is-libra:1234:com.bar_bar_44.32'])"),
-        NULL);
-
-    g_usleep(100000);
-    while (g_main_pending())
-    {
-        g_main_iteration(TRUE);
-    }
-
-    ASSERT_EQ(stop_data.count, 1);
-
-
-    /* Remove */
-    ASSERT_TRUE(
-        ubuntu_app_launch_observer_delete_helper_started(helper_observer_cb, "my-type-is-scorpio", &start_data));
-    ASSERT_TRUE(ubuntu_app_launch_observer_delete_helper_stop(helper_observer_cb, "my-type-is-libra", &stop_data));
-}
-
-TEST_F(TestHelpers, StartFullTest)
-{
-    g_setenv("KEEPER_TEST_HELPER", TEST_SIMPLE_HELPER, TRUE);
-
-    // remove any previous marks that may exist.
-    EXPECT_TRUE(removeHelperMarkBeforeStarting());
-
-    // starts the services, including keeper-service
-    startTasks();
-
-    // start the keeper client, which triggers the backup process
-    // TODO when we have a more complex client we would need to pass here
-    // some parameters to the client.
-    ASSERT_TRUE(startKeeperClient());
-
-    // Wait until the helper finishes
-    EXPECT_TRUE(waitUntilHelperFinishes());
-
-    // send the upstart signal so keeper-service is aware of the helper termination
-    DbusTestDbusMockObject* objUpstart =
-        dbus_test_dbus_mock_get_object(mock, UPSTART_PATH, UPSTART_INTERFACE, NULL);
-
-    QString eventInfoStr = QString("('stopped', ['JOB=untrusted-helper', 'INSTANCE=backup-helper::%1'])").arg(DEKKO_APP_ID);
-    dbus_test_dbus_mock_object_emit_signal(
-        mock, objUpstart, "EventEmitted", G_VARIANT_TYPE("(sas)"),
-        g_variant_new_parsed(
-                eventInfoStr.toLocal8Bit().data()),
-        NULL);
-    g_usleep(100000);
-    while (g_main_pending())
-    {
-        g_main_iteration(TRUE);
-    }
-
-    // check that the content of the file is the expected
-    EXPECT_TRUE(checkStorageFrameworkContent(SIMPLE_HELPER_TEXT_TO_WRITE));
-
-    // let's leave things clean
-    EXPECT_TRUE(removeHelperMarkBeforeStarting());
-    g_unsetenv("KEEPER_TEST_HELPER");
-}
+//TEST_F(TestHelpers, StartStopHelperObserver)
+//{
+//    // starts the services, including keeper-service
+//    startTasks();
+//
+//    helper_observer_data_t start_data = {
+//        .count = 0, .appid = "com.foo_foo_1.2.3", .type = "my-type-is-scorpio", .instance = nullptr};
+//    helper_observer_data_t stop_data = {
+//        .count = 0, .appid = "com.bar_bar_44.32", .type = "my-type-is-libra", .instance = "1234"};
+//
+//    ASSERT_TRUE(ubuntu_app_launch_observer_add_helper_started(helper_observer_cb, "my-type-is-scorpio", &start_data));
+//    ASSERT_TRUE(ubuntu_app_launch_observer_add_helper_stop(helper_observer_cb, "my-type-is-libra", &stop_data));
+//
+//    DbusTestDbusMockObject* obj =
+//        dbus_test_dbus_mock_get_object(mock, UPSTART_PATH, UPSTART_INTERFACE, NULL);
+//
+//    /* Basic start */
+//    dbus_test_dbus_mock_object_emit_signal(
+//        mock, obj, "EventEmitted", G_VARIANT_TYPE("(sas)"),
+//        g_variant_new_parsed("('started', ['JOB=untrusted-helper', 'INSTANCE=my-type-is-scorpio::com.foo_foo_1.2.3'])"),
+//        NULL);
+//
+//    g_usleep(100000);
+//    while (g_main_pending())
+//    {
+//        g_main_iteration(TRUE);
+//    }
+//
+//    ASSERT_EQ(start_data.count, 1);
+//
+//    /* Basic stop */
+//    dbus_test_dbus_mock_object_emit_signal(
+//        mock, obj, "EventEmitted", G_VARIANT_TYPE("(sas)"),
+//        g_variant_new_parsed(
+//            "('stopped', ['JOB=untrusted-helper', 'INSTANCE=my-type-is-libra:1234:com.bar_bar_44.32'])"),
+//        NULL);
+//
+//    g_usleep(100000);
+//    while (g_main_pending())
+//    {
+//        g_main_iteration(TRUE);
+//    }
+//
+//    ASSERT_EQ(stop_data.count, 1);
+//
+//
+//    /* Remove */
+//    ASSERT_TRUE(
+//        ubuntu_app_launch_observer_delete_helper_started(helper_observer_cb, "my-type-is-scorpio", &start_data));
+//    ASSERT_TRUE(ubuntu_app_launch_observer_delete_helper_stop(helper_observer_cb, "my-type-is-libra", &stop_data));
+//}
+//
+//TEST_F(TestHelpers, StartFullTest)
+//{
+//    g_setenv("KEEPER_TEST_HELPER", TEST_SIMPLE_HELPER_SH, TRUE);
+//
+//    // remove any previous marks that may exist.
+//    EXPECT_TRUE(removeHelperMarkBeforeStarting());
+//
+//    // starts the services, including keeper-service
+//    startTasks();
+//
+//    // start the keeper client, which triggers the backup process
+//    // TODO when we have a more complex client we would need to pass here
+//    // some parameters to the client.
+//    ASSERT_TRUE(startKeeperClient());
+//
+//    // Wait until the helper finishes
+//    EXPECT_TRUE(waitUntilHelperFinishes());
+//
+//    // send the upstart signal so keeper-service is aware of the helper termination
+//    DbusTestDbusMockObject* objUpstart =
+//        dbus_test_dbus_mock_get_object(mock, UPSTART_PATH, UPSTART_INTERFACE, NULL);
+//
+//    QString eventInfoStr = QString("('stopped', ['JOB=untrusted-helper', 'INSTANCE=backup-helper::%1'])").arg(DEKKO_APP_ID);
+//    dbus_test_dbus_mock_object_emit_signal(
+//        mock, objUpstart, "EventEmitted", G_VARIANT_TYPE("(sas)"),
+//        g_variant_new_parsed(
+//                eventInfoStr.toLocal8Bit().data()),
+//        NULL);
+//    g_usleep(100000);
+//    while (g_main_pending())
+//    {
+//        g_main_iteration(TRUE);
+//    }
+//
+//    // check that the content of the file is the expected
+//    EXPECT_TRUE(checkStorageFrameworkContent(SIMPLE_HELPER_TEXT_TO_WRITE));
+//
+//    // let's leave things clean
+//    EXPECT_TRUE(removeHelperMarkBeforeStarting());
+//    g_unsetenv("KEEPER_TEST_HELPER");
+//}
 
 int main(int argc, char** argv)
 {

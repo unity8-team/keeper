@@ -72,3 +72,8 @@ Helper::setState(State state)
         Q_EMIT stateChanged(state);
     }
 }
+
+void Helper::registerMetaTypes()
+{
+    qRegisterMetaType<Helper::State>("Helper::State");
+}
