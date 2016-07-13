@@ -44,7 +44,7 @@ StorageFrameworkClient::StorageFrameworkClient(QObject *parent)
 }
 
 
-void StorageFrameworkClient::getNewFileForBackup()
+void StorageFrameworkClient::getNewFileForBackup(quint64 /*n_bytes*/)
 {
     // Get the acccounts. (There is only one account for the local client implementation.)
     // We do this synchronously for simplicity.

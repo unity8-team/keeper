@@ -18,6 +18,7 @@
  *     Charles Kerr <charles.kerr@canonical.com>
  */
 
+#include "app-const.h" // DEKKO_APP_ID
 #include "helper/backup-helper.h"
 #include "service/metadata.h"
 #include "service/metadata-provider.h"
@@ -27,17 +28,17 @@
 #include <QDebug>
 #include <QDBusMessage>
 #include <QDBusConnection>
-#include <QStandardPaths>
-#include <QStringList>
-#include <QVariantMap>
+#include <QSharedPointer>
+#include <QScopedPointer>
+#include <QVariant>
+#include <QVector>
 
 #include <uuid/uuid.h>
-#include "app-const.h"
+
 
 class KeeperPrivate
 {
-    Q_DISABLE_COPY(KeeperPrivate)
-    Q_DECLARE_PUBLIC(Keeper)
+public:
 
     Keeper * const q_ptr;
     QSharedPointer<MetadataProvider> backup_choices_;
@@ -58,10 +59,38 @@ class KeeperPrivate
         , cached_backup_choices_()
         , cached_restore_choices_()
     {
-        QObject::connect(storage_.data(), &StorageFrameworkClient::socketReady, q_ptr, &Keeper::socketReady);
         QObject::connect(storage_.data(), &StorageFrameworkClient::socketClosed, q_ptr, &Keeper::socketClosed);
-        QObject::connect(backup_helper_.data(), &BackupHelper::started, q_ptr, &Keeper::helperStarted);
-        QObject::connect(backup_helper_.data(), &BackupHelper::finished, q_ptr, &Keeper::helperFinished);
+
+        // listen for backup helper state changes
+        QObject::connect(backup_helper_.data(), &Helper::stateChanged,
+            std::bind(&KeeperPrivate::on_backup_helper_state_changed, this, std::placeholders::_1)
+        );
+    }
+
+    ~KeeperPrivate() =default;
+
+    Q_DISABLE_COPY(KeeperPrivate)
+
+private:
+
+    void on_backup_helper_state_changed(Helper::State state)
+    {
+        switch (state)
+        {
+            case Helper::State::NOT_STARTED:
+                break;
+
+            case Helper::State::STARTED:
+                qDebug() << "Backup helper started";
+                break;
+
+            case Helper::State::CANCELLED:
+            case Helper::State::FAILED:
+            case Helper::State::COMPLETE:
+                qDebug() << "Backup helper finished... closing the socket.";
+                storage_->closeUploader();
+                break;
+        }
     }
 };
 
@@ -80,19 +109,40 @@ void Keeper::start()
 {
     Q_D(Keeper);
 
-    qDebug() << "Backup start";
-    qDebug() << "Waiting for a valid socket from the storage framework";
+    qDebug() << "starting backup helper for test";
 
-    d->storage_->getNewFileForBackup();
+    d->backup_helper_->start();
 }
 
-QDBusUnixFileDescriptor Keeper::StartBackup(quint64 /*nbytes*/)
+QDBusUnixFileDescriptor
+Keeper::StartBackup(QDBusConnection bus, const QDBusMessage& msg, quint64 n_bytes)
 {
     Q_D(Keeper);
 
-    qDebug() << "Sending the socket " << d->backup_helper_->get_helper_socket();
+    qDebug("Helper::StartBackup(n_bytes=%zu)", size_t(n_bytes));
 
-    return QDBusUnixFileDescriptor(d->backup_helper_->get_helper_socket());
+    // the next time we get a socket from storage-framework, return it to our caller
+    auto conn = new QMetaObject::Connection();
+    auto on_socket_ready = [bus,msg,n_bytes,this,d,conn](int sd) {
+        qDebug("getNewFileForBackup() returned socket %d", sd);
+        if (sd != -1) {
+            qDebug("calling helper.set_storage_framework_socket(n_bytes=%zu socket=%d)", size_t(n_bytes), sd);
+            d->backup_helper_->set_storage_framework_socket(n_bytes, sd);
+        }
+        auto reply = msg.createReply();
+        reply << QVariant::fromValue(QDBusUnixFileDescriptor(d->backup_helper_->get_helper_socket()));
+        bus.send(reply);
+        delete conn;
+    };
+    // cppcheck-suppress deallocuse
+    *conn = QObject::connect(d->storage_.data(), &StorageFrameworkClient::socketReady, on_socket_ready);
+
+    // ask storage framework for a new socket
+    d->storage_->getNewFileForBackup(n_bytes);
+
+    // tell the caller that we'll be responding async
+    msg.setDelayedReply(true);
+    return QDBusUnixFileDescriptor(0);
 }
 
 // FOR TESTING PURPOSES ONLY
@@ -103,29 +153,6 @@ void Keeper::finish()
 
     qDebug() << "Closing the socket-------";
 
-    d->storage_->closeUploader();
-}
-
-void Keeper::socketReady(int sd)
-{
-    Q_D(Keeper);
-
-    qDebug() << "I've got a new socket: " << sd;
-    qDebug() << "Starting the backup helper";
-    d->backup_helper_->start(sd);
-}
-
-void Keeper::helperStarted()
-{
-    qDebug() << "Backup helper started";
-}
-
-void Keeper::helperFinished()
-{
-    Q_D(Keeper);
-
-    qDebug() << "Backup helper finished";
-    qDebug() << "Closing the socket";
     d->storage_->closeUploader();
 }
 

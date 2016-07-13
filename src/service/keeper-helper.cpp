@@ -33,10 +33,13 @@ KeeperHelper::KeeperHelper(Keeper* parent)
 
 KeeperHelper::~KeeperHelper() = default;
 
-QDBusUnixFileDescriptor KeeperHelper::StartBackup(quint64 nbytes)
+QDBusUnixFileDescriptor KeeperHelper::StartBackup(quint64 n_bytes)
 {
-    // the Keeper class holds the backup helper and all the data
-    return keeper_.StartBackup(nbytes);
+    // pass it back to Keeper to do the work
+    Q_ASSERT(calledFromDBus());
+    auto bus = connection();
+    auto& msg = message();
+    return keeper_.StartBackup(bus, msg, n_bytes);
 }
 
 QDBusUnixFileDescriptor KeeperHelper::StartRestore()

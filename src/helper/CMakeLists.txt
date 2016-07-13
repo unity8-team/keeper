@@ -8,10 +8,10 @@ include_directories(SYSTEM ${PROP-CPP_INCLUDE_DIRS})
 add_library(
   backup-helper
   STATIC
+  helper.cpp
   backup-helper.cpp
-  internal/backup-helper-impl.cpp
+  ${CMAKE_SOURCE_DIR}/include/helper/helper.h
   ${CMAKE_SOURCE_DIR}/include/helper/backup-helper.h
-  internal/backup-helper-impl.h
 )
 
 qt5_use_modules(backup-helper Core DBus Network)

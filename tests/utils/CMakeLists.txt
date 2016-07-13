@@ -13,6 +13,7 @@ add_library(
     ${LIB_NAME}
     STATIC
     main.cpp
+    dummy-file.cpp
     xdg-user-dirs-sandbox.cpp
 )
 

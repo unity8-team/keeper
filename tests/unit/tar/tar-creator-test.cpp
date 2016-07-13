@@ -17,18 +17,15 @@
  *   Charles Kerr <charles.kerr@canonical.com>
  */
 
+#include "tests/utils/dummy-file.h"
+
 #include "tar/tar-creator.h"
 
 #include <gtest/gtest.h>
 
-#include <QCryptographicHash>
 #include <QDebug>
-#include <QDir>
-#include <QFile>
-#include <QStandardPaths>
 #include <QString>
 #include <QTemporaryDir>
-#include <QTemporaryFile>
 
 #include <algorithm>
 #include <cstdio>
@@ -37,45 +34,6 @@ class TarCreatorFixture: public ::testing::Test
 {
 protected:
 
-    struct FileInfo
-    {
-        QString filename;
-        QByteArray hash;
-        qint64 size;
-    };
-
-     FileInfo create_some_file(const QString& dir, qint64 filesize)
-    {
-#warning FIXME some of these filenames need to be > 100 characters
-
-        // build a file holding filesize random letters
-        QTemporaryFile f(dir+"/tmpfile-XXXXXX");
-        f.setAutoRemove(false);
-        f.open();
-        qint64 left = filesize;
-        while(left > 0)
-        {
-            constexpr qint64 max_step = 1024;
-            char buf[max_step];
-            int this_step = std::min(max_step, left);
-            for(int i=0; i<this_step; ++i)
-                buf[i] = 'a' + char(qrand() % ('z'-'a'));
-            f.write(buf, this_step);
-            left -= this_step;
-        }
-        f.close();
-
-        // build a FileInfo struct for the new file
-        FileInfo info;
-        info.filename = f.fileName();
-        info.size = f.size();
-        f.open();
-        QCryptographicHash hash(QCryptographicHash::Sha1);
-        hash.addData(&f);
-        info.hash = hash.result();
-        f.close();
-        return info;
-    }
 };
 
 
@@ -96,20 +54,20 @@ TEST_F(TarCreatorFixture, CreateUncompressedFromSingleDirectoryOfFiles)
         // build a directory full of random files
         QTemporaryDir sandbox;
         const auto n_files = std::max(1, (qrand() % max_files_per_test));
-        auto files = std::vector<FileInfo>(n_files);
+        QVector<DummyFile::Info> files (n_files);
         qint64 filesize_sum = 0;
         for (decltype(files.size()) j=0, n=files.size(); j!=n; ++j)
         {
             const auto filesize = qrand() % max_filesize;
             auto& file = files[j];
-            file = create_some_file(sandbox.path(), filesize);
-            filesize_sum += file.size;
+            file = DummyFile::create(sandbox.path(), filesize);
+            filesize_sum += file.info.size();
         }
 
         // start the TarCreator
         QStringList filenames;
         for (const auto& file : files)
-            filenames.append(file.filename);
+            filenames.append(file.info.absoluteFilePath());
         TarCreator tar_creator(filenames, false);
 
         // simple sanity check on its size estimate
@@ -119,10 +77,8 @@ TEST_F(TarCreatorFixture, CreateUncompressedFromSingleDirectoryOfFiles)
         // does it match the actual size?
         size_t actual_size {};
         std::vector<char> buf;
-        while (tar_creator.step(buf)) {
-            std::cerr << "step got " << buf.size() << " bytes" << std::endl;
+        while (tar_creator.step(buf))
             actual_size += buf.size();
-        }
         ASSERT_EQ(estimated_size, actual_size);
 
         // FIXME: now extract and confirm the checksums are the same

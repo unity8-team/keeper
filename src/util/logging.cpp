@@ -18,41 +18,40 @@
 
 #include "util/logging.h"
 
+#include <QDir>
+
 namespace util
 {
     void
     loggingFunction (QtMsgType type, const QMessageLogContext &context,
                      const QString &msg)
     {
-        QByteArray localMsg = msg.toLocal8Bit ();
+        const QByteArray localMsg = msg.toLocal8Bit();
+        const std::string relative_file = QDir(CMAKE_SOURCE_DIR).relativeFilePath(context.file).toStdString();
+
         switch (type)
         {
             case QtMsgType::QtDebugMsg:
-                fprintf (stderr, "Debug: %s (%s:%d, %s)\n",
-                         localMsg.constData (), context.file, context.line,
-                         context.function);
+                fprintf (stderr, "[debug] %s (%s:%d)\n",
+                         localMsg.constData(), relative_file.c_str(), context.line);
                 break;
 #if QT_VERSION >= QT_VERSION_CHECK(5, 5, 0)
             case QtMsgType::QtInfoMsg:
-                fprintf (stderr, "Info: %s (%s:%d, %s)\n",
-                         localMsg.constData (), context.file, context.line,
-                         context.function);
+                fprintf (stderr, "[info] %s (%s:%d)\n",
+                         localMsg.constData(), relative_file.c_str(), context.line);
                 break;
 #endif
             case QtMsgType::QtWarningMsg:
-                fprintf (stderr, "Warning: %s (%s:%d, %s)\n",
-                         localMsg.constData (), context.file, context.line,
-                         context.function);
+                fprintf (stderr, "[WARN] %s (%s:%d)\n",
+                         localMsg.constData(), relative_file.c_str(), context.line);
                 break;
             case QtMsgType::QtCriticalMsg:
-                fprintf (stderr, "Critical: %s (%s:%d, %s)\n",
-                         localMsg.constData (), context.file, context.line,
-                         context.function);
+                fprintf (stderr, "[CRITICAL]  %s (%s:%d)\n",
+                         localMsg.constData(), relative_file.c_str(), context.line);
                 break;
             case QtMsgType::QtFatalMsg:
-                fprintf (stderr, "Fatal: %s (%s:%d, %s)\n",
-                         localMsg.constData (), context.file, context.line,
-                         context.function);
+                fprintf (stderr, "[FATAL] %s (%s:%d)\n",
+                         localMsg.constData(), relative_file.c_str(), context.line);
                 abort ();
         }
     }

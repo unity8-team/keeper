@@ -1,3 +1,4 @@
+#!/bin/bash
 #
 # Copyright (C) 2016 Canonical, Ltd.
 #
@@ -16,8 +17,6 @@
 # Authors:
 #     Xavi Garcia <xavi.garcia.mena@canonical.com>
 #
-
-#!/bin/bash
 
 # Set the APP_EXEC environment variable
 initctl set-env "APP_EXEC=$APP_URIS"
