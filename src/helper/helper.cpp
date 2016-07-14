@@ -55,7 +55,7 @@ Helper::Helper(QObject *parent)
 Helper::~Helper() =default;
 
 Helper::State
-Helper::getState() const
+Helper::state() const
 {
     return state_;
 }
@@ -71,4 +71,9 @@ Helper::setState(State state)
 
         Q_EMIT stateChanged(state);
     }
+}
+
+void Helper::registerMetaTypes()
+{
+    qRegisterMetaType<Helper::State>("Helper::State");
 }
