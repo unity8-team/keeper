@@ -664,7 +664,7 @@ TEST_F(TestHelpers, StartHelper)
 
     BackupHelper helper("com.test.multiple_first_1.2.3");
 
-    QSignalSpy spy(&helper, &BackupHelper::stateChanged);
+    QSignalSpy spy(&helper, &BackupHelper::state_changed);
 
     helper.start();
 
@@ -716,7 +716,7 @@ TEST_F(TestHelpers, StopHelper)
         dbus_test_dbus_mock_get_object(mock, UNTRUSTED_HELPER_PATH, UPSTART_JOB, NULL);
 
     BackupHelper helper("com.bar_foo_8432.13.1");
-    QSignalSpy spy(&helper, &BackupHelper::stateChanged);
+    QSignalSpy spy(&helper, &BackupHelper::state_changed);
 
     helper.stop();
     ASSERT_EQ(dbus_test_dbus_mock_object_check_method_call(mock, obj, "Stop", NULL, NULL), 1);
