@@ -233,7 +233,7 @@ private:
 
     void ual_uninit()
     {
-        if (q_ptr->getState() == Helper::State::STARTED)
+        if (q_ptr->state() == Helper::State::STARTED)
             ual_stop();
 
         ubuntu_app_launch_observer_delete_helper_started(on_helper_started, HELPER_TYPE, this);
