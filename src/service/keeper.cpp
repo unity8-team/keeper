@@ -63,7 +63,7 @@ public:
         QObject::connect(storage_.data(), &StorageFrameworkClient::socketClosed, q_ptr, &Keeper::socketClosed);
 
         // listen for backup helper state changes
-        QObject::connect(backup_helper_.data(), &Helper::stateChanged,
+        QObject::connect(backup_helper_.data(), &Helper::state_changed,
             std::bind(&KeeperPrivate::on_backup_helper_state_changed, this, std::placeholders::_1)
         );
     }
@@ -128,7 +128,8 @@ Keeper::StartBackup(QDBusConnection bus, const QDBusMessage& msg, quint64 n_byte
         qDebug("getNewFileForBackup() returned socket %d", sd);
         if (sd != -1) {
             qDebug("calling helper.set_storage_framework_socket(n_bytes=%zu socket=%d)", size_t(n_bytes), sd);
-            d->backup_helper_->set_storage_framework_socket(n_bytes, sd);
+            d->backup_helper_->set_expected_size(n_bytes);
+            d->backup_helper_->set_storage_framework_socket(sd);
         }
         auto reply = msg.createReply();
         reply << QVariant::fromValue(QDBusUnixFileDescriptor(d->backup_helper_->get_helper_socket()));
