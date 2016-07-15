@@ -38,16 +38,20 @@ public:
     Q_ENUMS(State)
     enum class State {NOT_STARTED, STARTED, CANCELLED, FAILED, COMPLETE};
 
-    Q_PROPERTY(Helper::State state READ state NOTIFY stateChanged)
+    Q_PROPERTY(Helper::State state READ state NOTIFY state_changed)
     State state() const;
 
     // NB: bytes per second
-    Q_PROPERTY(int speed READ speed NOTIFY speedChanged)
+    Q_PROPERTY(int speed READ speed NOTIFY speed_changed)
     int speed() const;
 
     // NB: range is [0.0 .. 1.0]
-    Q_PROPERTY(float percentDone READ percentDone NOTIFY percentDoneChanged)
-    float percentDone() const;
+    Q_PROPERTY(float percentDone READ percent_done NOTIFY percent_done_changed)
+    float percent_done() const;
+
+    Q_PROPERTY(qint64 expectedSize READ expected_size WRITE set_expected_size NOTIFY expected_size_changed)
+    qint64 expected_size() const;
+    void set_expected_size(qint64 n_bytes);
 
     static void registerMetaTypes();
 
@@ -55,14 +59,15 @@ public:
     static time_t real_clock() {return time(nullptr);}
 
 Q_SIGNALS:
-    void stateChanged(Helper::State);
-    void speedChanged(int);
-    void percentDoneChanged(float);
+    void state_changed(Helper::State);
+    void speed_changed(int);
+    void percent_done_changed(float);
+    void expected_size_changed(qint64);
 
 protected:
     Helper(const clock_func& clock=real_clock, QObject *parent=nullptr);
-    void setState(State);
-    void recordDataTransferred(quint64 n_bytes);
+    void set_state(State);
+    void record_data_transferred(qint64 n_bytes);
 
 private:
     QScopedPointer<HelperPrivate> const d_ptr;

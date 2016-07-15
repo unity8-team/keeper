@@ -37,8 +37,10 @@ public:
         , state_{State::NOT_STARTED}
         , speed_{}
         , percent_done_{}
+        , size_{}
+        , sized_{}
+        , expected_size_{}
     {
-        qDebug() << clock_();
     }
 
     ~HelperPrivate() =default;
@@ -50,13 +52,13 @@ public:
         return state_;
     }
 
-    void setState(State state)
+    void set_state(State state)
     {
         if (state_ != state)
         {
             qDebug() << "changing state of helper" << static_cast<void*>(this) << "from" << toString(state_) << "to" << toString(state);
             state_ = state;
-            q_ptr->stateChanged(state);
+            q_ptr->state_changed(state);
         }
     }
 
@@ -65,17 +67,49 @@ public:
         return speed_;
     }
 
-    float percentDone() const
+    float percent_done() const
     {
         return percent_done_;
     }
 
-    void recordDataTransferred(quint64)
+    void record_data_transferred(qint64 n_bytes)
     {
-        // FIXME
+        size_ += n_bytes;
+        sized_ += double(n_bytes);
+
+        update_percent_done();
+    }
+
+    qint64 expected_size() const
+    {
+        return expected_size_;
+    }
+
+    void set_expected_size(qint64 expected_size)
+    {
+        if (expected_size_ != expected_size)
+        {
+            expected_size_ = expected_size;
+            q_ptr->expected_size_changed(expected_size_);
+            update_percent_done();
+        }
     }
 
 private:
+
+    void update_percent_done()
+    {
+        setPercentDone(float(expected_size_ != 0 ? sized_ / double(expected_size_) : 0));
+    }
+
+    void setPercentDone(float percent_done)
+    {
+        if (int(100*percent_done_) != int(100*percent_done))
+        {
+            percent_done_ = percent_done;
+            q_ptr->percent_done_changed(percent_done_);
+        }
+    }
 
     QString toString(Helper::State state)
     {
@@ -98,6 +132,9 @@ private:
     State state_ {};
     int speed_ {};
     float percent_done_ {};
+    qint64 size_ {};
+    double sized_ {};
+    qint64 expected_size_ {};
 };
 
 /***
@@ -129,28 +166,44 @@ Helper::speed() const
 }
 
 float
-Helper::percentDone() const
+Helper::percent_done() const
 {
     Q_D(const Helper);
 
-    return d->percentDone();
+    return d->percent_done();
 }
 
 void
-Helper::recordDataTransferred(quint64 n_bytes)
+Helper::record_data_transferred(qint64 n_bytes)
 {
     Q_D(Helper);
 
-    d->recordDataTransferred(n_bytes);
+    d->record_data_transferred(n_bytes);
 }
 
 
 void
-Helper::setState(State state)
+Helper::set_state(State state)
 {
     Q_D(Helper);
 
-    d->setState(state);
+    d->set_state(state);
+}
+
+qint64
+Helper::expected_size() const
+{
+    Q_D(const Helper);
+
+    return d->expected_size();
+}
+
+void
+Helper::set_expected_size(qint64 n_bytes)
+{
+    Q_D(Helper);
+
+    d->set_expected_size(n_bytes);
 }
 
 void
