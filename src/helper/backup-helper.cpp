@@ -249,9 +249,7 @@ private:
         auto appid = ubuntu::app_launch::AppID::parse(appid_.toStdString());
         auto helper = ubuntu::app_launch::Helper::create(backupType, appid, registry_);
 
-        std::vector<ubuntu::app_launch::Helper::URL> urls = {
-            ubuntu::app_launch::Helper::URL::from_raw(get_helper_path(appid_).toStdString())
-        };
+        std::vector<ubuntu::app_launch::Helper::URL> urls = get_helper_urls(appid_);
 
         helper->launch(urls);
     }
@@ -287,19 +285,35 @@ private:
         self->check_for_done();
     }
 
-    QString get_helper_path(QString const & /*appId*/)
+    std::vector<ubuntu::app_launch::Helper::URL> get_helper_urls(QString const & /*appId*/)
     {
         //TODO retrieve the helper path from the package information
-
+        std::vector<ubuntu::app_launch::Helper::URL> urls;
         // This is added for testing purposes only
         auto testHelper = qgetenv("KEEPER_TEST_HELPER");
         if (!testHelper.isEmpty())
         {
+            // check the directory and the path to the tar util binary
+            urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(testHelper.toStdString()));
             qDebug() << "BackupHelperImpl::getHelperPath: returning the helper: " << testHelper;
-            return testHelper;
+            // check if we need to backup any directory
+            auto dirToBackup = qgetenv("KEEPER_TEST_HELPER_DIR");
+            if (!dirToBackup.isEmpty())
+            {
+                urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(dirToBackup.toStdString()));
+            }
+            auto tarCreatePath = qgetenv("KEEPER_TEST_TAR_CREATE_BIN");
+            if (!tarCreatePath.isEmpty())
+            {
+                urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(tarCreatePath.toStdString()));
+            }
+        }
+        else
+        {
+            urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(DEKKO_HELPER_BIN));
         }
 
-        return DEKKO_HELPER_BIN;
+        return urls;
     }
 
     /***
