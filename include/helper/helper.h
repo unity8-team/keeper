@@ -22,7 +22,7 @@
 #include <QObject>
 #include <QScopedPointer>
 
-#include <sys/time.h> // gettimeofday
+//#include <sys/time.h> // gettimeofday
 
 #include <functional>
 
@@ -55,11 +55,7 @@ public:
 
     // returns timestamp in msec
     using clock_func = std::function<uint64_t()>;
-    static time_t default_clock() {
-        struct timeval tv;
-        gettimeofday (&tv, nullptr);
-        return uint64_t(tv.tv_sec*1000 + (tv.tv_usec/1000));
-    };
+    static clock_func default_clock;
 
 Q_SIGNALS:
     void state_changed(Helper::State);

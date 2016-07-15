@@ -21,6 +21,8 @@
 
 #include <QDebug>
 
+#include <sys/time.h> // gettimeofday()
+
 namespace
 {
 
@@ -286,3 +288,11 @@ Helper::registerMetaTypes()
 {
     qRegisterMetaType<Helper::State>("Helper::State");
 }
+
+Helper::clock_func
+Helper::default_clock = []()
+{
+    struct timeval tv;
+    gettimeofday (&tv, nullptr);
+    return uint64_t(tv.tv_sec*1000 + (tv.tv_usec/1000));
+};
