@@ -5,7 +5,7 @@ import os
 import socket
 import subprocess
 import sys
-from dbusmock import mockobject
+from dbusmock import OBJECT_MANAGER_IFACE, mockobject
 from gi.repository import GLib
 
 '''com.canonical.keeper mock template
@@ -28,6 +28,7 @@ USER_PATH = '/com/canonical/keeper/user'
 USER_IFACE = 'com.canonical.keeper.User'
 HELPER_PATH = '/com/canonical/keeper/helper'
 HELPER_IFACE = 'com.canonical.keeper.Helper'
+MOCK_IFACE = 'com.canonical.keeper.Mock'
 
 # magic keys used by dbusmock
 BUS_NAME = 'com.canonical.keeper'
@@ -40,6 +41,16 @@ ACTION_SAVING = 1
 ACTION_RESTORING = 2
 ACTION_COMPLETE = 3
 ACTION_STOPPED = 4
+
+KEY_CTIME = 'ctime'
+KEY_BLOB = 'blob-data'
+KEY_HELPER = 'helper-exec'
+KEY_ICON = 'icon'
+KEY_NAME = 'display-name'
+KEY_SIZE = 'size'
+KEY_SUBTYPE = 'subtype'
+KEY_TYPE = 'type'
+KEY_UUID = 'uuid'
 
 #
 #  Utils
@@ -100,11 +111,10 @@ def user_start_next_task(user):
         user.update_state_property(user)
 
         # find the helper to run
-        choice = user.backup_choices.get(uuid, None)
+        choice = user.backup_choices.get(uuid)
         if not choice:
             choice = user.restore_choices.get(uuid)
-        choice_type = choice['type']
-        helper_exec = user.helpers[choice_type]
+        helper_exec = choice.get(KEY_HELPER)
 
         # build the env that we'll pass to the helper
         henv = {}
@@ -192,12 +202,13 @@ def user_build_state(user):
         task_state['action'] = dbus.Int32(action)
 
         # get the task's display-name
-        display_name = user.backup_choices.get('display-name', None)
-        if not display_name:
-            display_name = user.restore_choices.get('display-name', None)
-        if not display_name:
-            display_name = 'Cynthia Rose'
-        task_state['display-name'] = dbus.String(display_name)
+        choice = user.backup_choices.get(uuid, None)
+        if not choice:
+            choice = user.restore_choices.get(uuid, None)
+        if not choice:
+            fail("couldn't find a choice for uuid %s" % (uuid))
+        display_name = choice.get(KEY_NAME, None)
+        task_state[KEY_NAME] = dbus.String(display_name)
 
         # FIXME: use a real percentage here
         if action == ACTION_COMPLETE:
@@ -297,6 +308,46 @@ def helper_start_restore(helper):
 
 
 #
+#  Controlling the mock
+#
+
+
+def mock_add_backup_choice(mock, uuid, props):
+
+    keys = [KEY_NAME, KEY_TYPE, KEY_SUBTYPE, KEY_ICON, KEY_HELPER]
+    if set(keys) != set(props.keys()):
+        badarg('need props: %s got %s' % keys, props.keys())
+
+    user = mockobject.objects[USER_PATH]
+    user.backup_choices[uuid] = dbus.Dictionary(
+        props,
+        signature='sv',
+        variant_level=1
+    )
+
+
+def mock_add_restore_choice(mock, uuid, props):
+
+    keys = [KEY_NAME, KEY_TYPE, KEY_SUBTYPE, KEY_ICON, KEY_HELPER,
+            KEY_SIZE, KEY_CTIME, KEY_BLOB]
+    if set(keys) != set(props.keys()):
+        badarg('need props: %s got %s' % keys, props.keys())
+
+    user = mockobject.objects[USER_PATH]
+    user.restore_choices[uuid] = dbus.Dictionary(
+        props,
+        signature='sv',
+        variant_level=1
+    )
+
+
+def mock_get_backup_data(mock, uuid):
+    blob = mockobject.objects[USER_PATH].backup_data[uuid]
+    mock.log('returning %s byte blob for uuid %s' % (len(blob), uuid))
+    return blob
+
+
+#
 #
 #
 
@@ -304,26 +355,26 @@ def load(main, parameters):
 
     main.log('Keeper template paramers: "' + str(parameters) + '"')
 
+    # com.canonical.keeper.User
     path = USER_PATH
     main.AddObject(path, USER_IFACE, {}, [])
-    user = mockobject.objects[path]
-    user.get_backup_choices = user_get_backup_choices
-    user.start_backup = user_start_backup
-    user.get_restore_choices = user_get_restore_choices
-    user.start_restore = user_start_restore
-    user.cancel = user_cancel
-    user.build_state = user_build_state
-    user.update_state_property = user_update_state_property
-    user.start_next_task = user_start_next_task
-    user.all_tasks = []
-    user.remaining_tasks = []
-    user.backup_data = {}
-    user.backup_choices = parameters.get('backup-choices', {})
-    user.restore_choices = parameters.get('restore-choices', {})
-    user.helpers = parameters.get('helpers', {})
-    user.current_task = None
-    user.defined_types = ['application', 'system-data', 'folder']
-    user.AddMethods(USER_IFACE, [
+    o = mockobject.objects[path]
+    o.get_backup_choices = user_get_backup_choices
+    o.start_backup = user_start_backup
+    o.get_restore_choices = user_get_restore_choices
+    o.start_restore = user_start_restore
+    o.cancel = user_cancel
+    o.build_state = user_build_state
+    o.update_state_property = user_update_state_property
+    o.start_next_task = user_start_next_task
+    o.all_tasks = []
+    o.remaining_tasks = []
+    o.backup_data = {}
+    o.backup_choices = parameters.get('backup-choices', {})
+    o.restore_choices = parameters.get('restore-choices', {})
+    o.current_task = None
+    o.defined_types = ['application', 'system-data', 'folder']
+    o.AddMethods(USER_IFACE, [
         ('GetBackupChoices', '', 'a{sa{sv}}',
          'ret = self.get_backup_choices(self)'),
         ('StartBackup', 'as', '',
@@ -335,18 +386,39 @@ def load(main, parameters):
         ('Cancel', '', '',
          'self.cancel(self)'),
     ])
-    user.AddProperty(USER_IFACE, "State", user.build_state(user))
+    o.AddProperty(USER_IFACE, "State", o.build_state(o))
 
+    # com.canonical.keeper.Helper
     path = HELPER_PATH
     main.AddObject(path, HELPER_IFACE, {}, [])
-    helper = mockobject.objects[path]
-    helper.start_backup = helper_start_backup
-    helper.start_restore = helper_start_restore
-    helper.periodic_func = helper_periodic_func
-    helper.work = None
-    helper.AddMethods(HELPER_IFACE, [
+    o = mockobject.objects[path]
+    o.start_backup = helper_start_backup
+    o.start_restore = helper_start_restore
+    o.periodic_func = helper_periodic_func
+    o.work = None
+    o.AddMethods(HELPER_IFACE, [
         ('StartBackup', 't', 'h',
          'ret = self.start_backup(self, args[0])'),
         ('StartRestore', '', 'h',
          'ret = self.start_restore(self)')
     ])
+
+    # com.canonical.keeper.Mock
+    o = main
+    o.add_backup_choice = mock_add_backup_choice
+    o.add_restore_choice = mock_add_restore_choice
+    o.get_backup_data = mock_get_backup_data
+    o.AddMethods(MOCK_IFACE, [
+        ('AddBackupChoice', 'sa{sv}', '',
+         'self.add_backup_choice(self, args[0], args[1])'),
+        ('AddRestoreChoice', 'sa{sv}', '',
+         'self.add_restore_choice(self, args[0], args[1])'),
+        ('GetBackupData', 's', 'ay',
+         'ret = self.get_backup_data(self, args[0])')
+    ])
+    o.EmitSignal(
+        OBJECT_MANAGER_IFACE,
+        'InterfacesAdded',
+        'oa{sa{sv}}',
+        [SERVICE_PATH, {MOCK_IFACE: {}}]
+    )
