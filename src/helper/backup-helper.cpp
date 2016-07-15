@@ -344,9 +344,10 @@ private:
 
 BackupHelper::BackupHelper(
     QString const & appid,
+    clock_func const & clock,
     QObject * parent
 )
-    : Helper(parent)
+    : Helper(clock, parent)
     , d_ptr(new BackupHelperPrivate(this, appid))
 {
 }

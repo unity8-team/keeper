@@ -20,10 +20,16 @@
 #pragma once
 
 #include <QObject>
+#include <QScopedPointer>
 
-class Helper: public QObject
+#include <ctime>
+#include <functional>
+
+class HelperPrivate;
+class Helper : public QObject
 {
     Q_OBJECT
+    Q_DECLARE_PRIVATE(Helper)
 
 public:
     virtual ~Helper();
@@ -35,17 +41,31 @@ public:
     Q_PROPERTY(Helper::State state READ state NOTIFY stateChanged)
     State state() const;
 
+    // NB: bytes per second
+    Q_PROPERTY(int speed READ speed NOTIFY speedChanged)
+    int speed() const;
+
+    // NB: range is [0.0 .. 1.0]
+    Q_PROPERTY(float percentDone READ percentDone NOTIFY percentDoneChanged)
+    float percentDone() const;
+
     static void registerMetaTypes();
 
+    using clock_func = std::function<time_t()>;
+    static time_t real_clock() {return time(nullptr);}
+
 Q_SIGNALS:
-    void stateChanged(Helper::State new_state);
+    void stateChanged(Helper::State);
+    void speedChanged(int);
+    void percentDoneChanged(float);
 
 protected:
-    Helper(QObject *parent=nullptr);
+    Helper(const clock_func& clock=real_clock, QObject *parent=nullptr);
     void setState(State);
+    void recordDataTransferred(quint64 n_bytes);
 
 private:
-    State state_;
+    QScopedPointer<HelperPrivate> const d_ptr;
 };
 
 Q_DECLARE_METATYPE(Helper::State)

@@ -54,11 +54,12 @@ public:
         : q_ptr(keeper)
         , backup_choices_(backup_choices)
         , restore_choices_(restore_choices)
-        , backup_helper_(new BackupHelper(DEKKO_APP_ID))
+        , backup_helper_{nullptr}
         , storage_(new StorageFrameworkClient())
         , cached_backup_choices_()
         , cached_restore_choices_()
     {
+        backup_helper_.reset(new BackupHelper(DEKKO_APP_ID));
         QObject::connect(storage_.data(), &StorageFrameworkClient::socketClosed, q_ptr, &Keeper::socketClosed);
 
         // listen for backup helper state changes

@@ -33,7 +33,7 @@ class BackupHelper : public Helper
     Q_DECLARE_PRIVATE(BackupHelper)
 
 public:
-    BackupHelper(QString const &appid, QObject * parent=nullptr);
+    BackupHelper(QString const& appid, clock_func const& clock=Helper::real_clock, QObject * parent=nullptr);
     virtual ~BackupHelper();
     Q_DISABLE_COPY(BackupHelper)
 
