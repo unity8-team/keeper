@@ -22,7 +22,8 @@
 #include <QObject>
 #include <QScopedPointer>
 
-#include <ctime>
+#include <sys/time.h> // gettimeofday
+
 #include <functional>
 
 class HelperPrivate;
@@ -41,31 +42,30 @@ public:
     Q_PROPERTY(Helper::State state READ state NOTIFY state_changed)
     State state() const;
 
-    // NB: bytes per second
-    Q_PROPERTY(int speed READ speed NOTIFY speed_changed)
-    int speed() const;
-
     // NB: range is [0.0 .. 1.0]
-    Q_PROPERTY(float percentDone READ percent_done NOTIFY percent_done_changed)
     float percent_done() const;
 
-    Q_PROPERTY(qint64 expectedSize READ expected_size WRITE set_expected_size NOTIFY expected_size_changed)
+    // NB: units is bytes_per_second
+    int speed() const;
+
     qint64 expected_size() const;
     void set_expected_size(qint64 n_bytes);
 
     static void registerMetaTypes();
 
-    using clock_func = std::function<time_t()>;
-    static time_t real_clock() {return time(nullptr);}
+    // returns timestamp in msec
+    using clock_func = std::function<uint64_t()>;
+    static time_t default_clock() {
+        struct timeval tv;
+        gettimeofday (&tv, nullptr);
+        return uint64_t(tv.tv_sec*1000 + (tv.tv_usec/1000));
+    };
 
 Q_SIGNALS:
     void state_changed(Helper::State);
-    void speed_changed(int);
-    void percent_done_changed(float);
-    void expected_size_changed(qint64);
 
 protected:
-    Helper(const clock_func& clock=real_clock, QObject *parent=nullptr);
+    Helper(const clock_func& clock=default_clock, QObject *parent=nullptr);
     void set_state(State);
     void record_data_transferred(qint64 n_bytes);
 

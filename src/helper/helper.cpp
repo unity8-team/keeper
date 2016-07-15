@@ -21,6 +21,98 @@
 
 #include <QDebug>
 
+namespace
+{
+
+/**
+ * Lazy-calculate transfer rates
+ *
+ * This class from libtransmission/bandwidth.c
+ * is Copyright (C) 2008-2014 Mnemosyne LLC
+ * and is available under GNU GPL versions 2 or 3.
+ */
+class RateHistory
+{
+public:
+
+    RateHistory()
+        : newest{}
+        , transfers{}
+        , cache_time{}
+        , cache_val{}
+    {
+    }
+
+    void
+    add(uint64_t now, size_t size)
+    {
+        // find the right bin and update its size
+        if (transfers[newest].date + GRANULARITY_MSEC >= now)
+        {
+            transfers[newest].size += size;
+        }
+        else
+        {
+            if (++newest == HISTORY_SIZE)
+                newest = 0;
+            transfers[newest].date = now;
+            transfers[newest].size = size;
+        }
+
+        // invalidate cache
+        cache_time = 0;
+    }
+
+    uint32_t
+    speed_bytes_per_second(uint64_t now, unsigned int interval_msec=HISTORY_MSEC) const
+    {
+        if (cache_time != now)
+        {
+            auto i = newest;
+            uint64_t bytes {};
+            uint64_t cutoff = now - interval_msec;
+
+            for (;;)
+            {
+                if (transfers[i].date <= cutoff)
+                    break;
+
+                bytes += transfers[i].size;
+
+                if (--i == -1)
+                    i = HISTORY_SIZE - 1; // circular history
+
+                if (i == newest)
+                    break; // we've come all the way around
+            }
+
+            cache_val = uint32_t((bytes * 1000u) / interval_msec);
+            cache_time = now;
+        }
+
+        return cache_val;
+    }
+
+private:
+
+    static constexpr int HISTORY_MSEC {2000};
+    static constexpr int INTERVAL_MSEC = HISTORY_MSEC;
+    static constexpr int GRANULARITY_MSEC = {200};
+    static constexpr int HISTORY_SIZE = {INTERVAL_MSEC / GRANULARITY_MSEC};
+
+    int newest;
+    struct { uint64_t date, size; } transfers[HISTORY_SIZE];
+
+    mutable uint64_t cache_time;
+    mutable uint32_t cache_val;
+};
+
+} // anon namespace
+
+/***
+****
+***/
+
 class HelperPrivate
 {
 public:
@@ -40,17 +132,13 @@ public:
         , size_{}
         , sized_{}
         , expected_size_{}
+        , history_{}
     {
     }
 
     ~HelperPrivate() =default;
 
     Q_DISABLE_COPY(HelperPrivate)
-
-    State state() const
-    {
-        return state_;
-    }
 
     void set_state(State state)
     {
@@ -62,22 +150,14 @@ public:
         }
     }
 
-    int speed() const
+    State state() const
     {
-        return speed_;
+        return state_;
     }
 
-    float percent_done() const
+    void set_expected_size(qint64 expected_size)
     {
-        return percent_done_;
-    }
-
-    void record_data_transferred(qint64 n_bytes)
-    {
-        size_ += n_bytes;
-        sized_ += double(n_bytes);
-
-        update_percent_done();
+        expected_size_ = expected_size;
     }
 
     qint64 expected_size() const
@@ -85,31 +165,25 @@ public:
         return expected_size_;
     }
 
-    void set_expected_size(qint64 expected_size)
+    void record_data_transferred(qint64 n_bytes)
     {
-        if (expected_size_ != expected_size)
-        {
-            expected_size_ = expected_size;
-            q_ptr->expected_size_changed(expected_size_);
-            update_percent_done();
-        }
+        size_ += n_bytes;
+        sized_ += double(n_bytes);
+
+        history_.add(clock_(), n_bytes);
+    }
+
+    int speed() const
+    {
+        return history_.speed_bytes_per_second(clock_());
+    }
+
+    float percent_done() const
+    {
+        return float(expected_size_ != 0 ? sized_ / double(expected_size_) : 0);
     }
 
 private:
-
-    void update_percent_done()
-    {
-        setPercentDone(float(expected_size_ != 0 ? sized_ / double(expected_size_) : 0));
-    }
-
-    void setPercentDone(float percent_done)
-    {
-        if (int(100*percent_done_) != int(100*percent_done))
-        {
-            percent_done_ = percent_done;
-            q_ptr->percent_done_changed(percent_done_);
-        }
-    }
 
     QString toString(Helper::State state)
     {
@@ -135,6 +209,7 @@ private:
     qint64 size_ {};
     double sized_ {};
     qint64 expected_size_ {};
+    RateHistory history_;
 };
 
 /***
