@@ -37,6 +37,7 @@ qt5_use_modules(helpers-test Core DBus Test)
 target_link_libraries(helpers-test
                         gtest
                         backup-helper
+                        test-utils
                         ${GTEST_LIBS}
                         ${LIBUPSTART_LIBRARIES}
                         ${DBUSTEST_LIBRARIES}

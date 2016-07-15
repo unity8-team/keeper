@@ -38,6 +38,7 @@
 #include <helper/backup-helper.h>
 #include <qdbus-stubs/dbus-types.h>
 #include <simple-helper/simple-helper-defs.h>
+#include "tests/utils/dummy-file.h"
 #include "../../../src/service/app-const.h"
 
 
@@ -73,6 +74,7 @@ protected:
     std::shared_ptr<ubuntu::app_launch::Registry> registry;
     DbusTestProcess * keeper = nullptr;
     QProcess keeper_client;
+    QTemporaryDir xdg_data_home_dir;
 
 private:
     static void focus_cb(const gchar* appid, gpointer user_data)
@@ -132,6 +134,14 @@ protected:
 
     virtual void SetUp() override
     {
+        Helper::registerMetaTypes();
+
+        // storage framework uses XDG_DATA_HOME to create the
+        // folder where all its uploaded files will be placed.
+        // we remove the temporary directory ourselves to be able to check the
+        // contents in case of error
+        xdg_data_home_dir.setAutoRemove(false);
+
         /* Click DB test mode */
         g_setenv("TEST_CLICK_DB", "click-db-dir", TRUE);
         g_setenv("TEST_CLICK_USER", "test-user", TRUE);
@@ -142,16 +152,7 @@ protected:
 
         g_setenv("XDG_DATA_DIRS", CMAKE_SOURCE_DIR, TRUE);
         g_setenv("XDG_CACHE_HOME", CMAKE_SOURCE_DIR "/libertine-data", TRUE);
-        g_setenv("XDG_DATA_HOME", CMAKE_SOURCE_DIR "/libertine-home", TRUE);
-        // storage framework uses XDG_DATA_HOME to create the
-        // folder where all its uploaded files will be placed.
-        // We need to create a folder in order to let storage-framework
-        // find a real place where to create its data.
-        QDir data_home_dir(CMAKE_SOURCE_DIR "/libertine-home");
-        if (!data_home_dir.exists())
-        {
-            data_home_dir.mkdir(CMAKE_SOURCE_DIR "/libertine-home");
-        }
+        g_setenv("XDG_DATA_HOME", xdg_data_home_dir.path().toLatin1().data(), TRUE);
 
         service = dbus_test_service_new(NULL);
 
@@ -317,21 +318,176 @@ protected:
         return true;
     }
 
-    bool checkStorageFrameworkContent(QString const & content)
+    bool checkLastStorageFrameworkFile (QString const & sourceDir, bool compression=false)
+    {
+        QString lastFile = getLastStorageFrameworkFile();
+        if (lastFile.isEmpty())
+        {
+            qWarning() << "Last file from storage framework is empty";
+            return false;
+        }
+        return compareTarContent (lastFile, sourceDir, compression);
+    }
+
+    bool compareTarContent (QString const & tarPath, QString const & sourceDir, bool compression)
+    {
+        QTemporaryDir tempDir;
+
+        QFileInfo checkFile(tarPath);
+        if (!checkFile.exists())
+        {
+            qWarning() << "File: " << tarPath << " does not exist";
+            return false;
+        }
+        if (!checkFile.isFile())
+        {
+            qWarning() << "Item: " << tarPath << " is not a file";
+            return false;
+        }
+        if (!tempDir.isValid())
+        {
+            qWarning() << "Temporary directory: " << tempDir.path() << " is not valid";
+            return false;
+        }
+
+        if( !extractTarContents(tarPath, tempDir.path()))
+        {
+            return false;
+        }
+        return compareDirectories (sourceDir, QString("%1%2%3").arg(tempDir.path()).arg(QDir::separator()).arg(sourceDir));
+    }
+
+    bool extractTarContents(QString const & tarPath, QString const & destination, bool compression=false)
+    {
+        QProcess tarProcess;
+        QString tarParams = compression ? QString("-xzvf") : QString("-xvf");
+        qDebug() << "Starting the process...";
+        tarProcess.start("tar", QStringList()
+                                        << "-C"
+                                        << destination
+                                        << tarParams
+                                        << tarPath);
+        if (!tarProcess.waitForStarted())
+        {
+            qWarning() << "Error starting tar process: " << tarProcess.errorString();
+            return false;
+        }
+
+        if (!tarProcess.waitForFinished())
+        {
+            qWarning() << "Error waiting for tar process: " << tarProcess.errorString();
+            return false;
+        }
+
+        if (tarProcess.exitCode() != 0)
+        {
+            qWarning() << "Process error: " << tarProcess.readAllStandardError();
+        }
+        return tarProcess.exitCode() == 0;
+    }
+
+    QByteArray fileChecksum(const QString &fileName,
+                            QCryptographicHash::Algorithm hashAlgorithm)
+    {
+        QFile f(fileName);
+        if (f.open(QFile::ReadOnly)) {
+            QCryptographicHash hash(hashAlgorithm);
+            if (hash.addData(&f)) {
+                return hash.result();
+            }
+        }
+        return QByteArray();
+    }
+
+    bool compareFiles(QString const & filePath1, QString const & filePath2)
+    {
+        QFileInfo info1(filePath1);
+        QFileInfo info2(filePath2);
+        if (!info1.isFile())
+        {
+            qWarning() << "Origin file: " << info1.absoluteFilePath() << " does not exist";
+            return false;
+        }
+        if (!info2.isFile())
+        {
+            qWarning() << "File to compare: " << info2.absoluteFilePath() << " does not exist";
+            return false;
+        }
+        auto checksum1 = fileChecksum(filePath1, QCryptographicHash::Md5);
+        auto checksum2 = fileChecksum(filePath1, QCryptographicHash::Md5);
+        if (checksum1 != checksum2)
+        {
+            qWarning() << "Checksum for file: " << filePath1 << " differ";
+        }
+        return checksum1 == checksum2;
+    }
+
+    QStringList getFilesRecursively(QString const & dirPath)
+    {
+        QStringList ret;
+        QDirIterator iter(dirPath, QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
+        while(iter.hasNext())
+        {
+            QFileInfo info(iter.next());
+            if (info.isFile())
+            {
+                ret << info.absoluteFilePath();
+            }
+            else if (info.isDir())
+            {
+                ret << getFilesRecursively(info.absoluteFilePath());
+            }
+        }
+
+        return ret;
+    }
+
+    bool compareDirectories(QString const & dir1Path, QString const & dir2Path)
+    {
+        // we only check for files, not directories
+        QDir dir1(dir1Path);
+        if (!QDir::isAbsolutePath(dir1Path))
+        {
+            qWarning() << "Error comparing directories: path for directories must be absolute";
+            return false;
+        }
+        QStringList filesDir1 = getFilesRecursively(dir1Path);
+        QStringList filesDir2 = getFilesRecursively(dir2Path);
+
+        if ( filesDir1.size() != filesDir2.size())
+        {
+            qWarning() << "Number of files in directories mismatch";
+            return false;
+        }
+        for (auto file: filesDir1)
+        {
+            auto filePath2 = file;
+            filePath2.remove(0, dir1Path.length());
+            filePath2 = dir2Path + filePath2;
+            if (!compareFiles(file, filePath2))
+            {
+                qWarning() << "File [" << file << "] and file [" << filePath2 << "] are not equal";
+                return false;
+            }
+        }
+        return true;
+    }
+
+    QString getLastStorageFrameworkFile()
     {
         // search the storage framework file that the helper created
         auto data_home = qgetenv("XDG_DATA_HOME");
         if (data_home == "")
         {
             qWarning() << "ERROR: XDG_DATA_HOME is not defined";
-            return false;
+            return QString();
         }
         QString storage_framework_dir_path = QString("%1%2storage-framework").arg(QString(data_home)).arg(QDir::separator());
         QDir storage_framework_dir(storage_framework_dir_path);
         if (!storage_framework_dir.exists())
         {
             qWarning() << "ERROR: Storage framework directory: [" << storage_framework_dir_path << "] does not exist.";
-            return false;
+            return QString();
         }
         QFileInfo lastFile;
         QFileInfoList files = storage_framework_dir.entryInfoList();
@@ -349,27 +505,30 @@ protected:
         if (!lastFile.isFile())
         {
             qWarning() << "ERROR: last file in the storage-framework directory was not found";
+            return QString();
+        }
+
+        return lastFile.absoluteFilePath();
+    }
+
+    bool checkStorageFrameworkContent(QString const & content)
+    {
+        QString lastFile = getLastStorageFrameworkFile();
+        if (lastFile.isEmpty())
+        {
+            qWarning() << "Last file from the storage framework was not found";
             return false;
         }
-        QFile storage_framework_file(lastFile.absoluteFilePath());
+        QFile storage_framework_file(lastFile);
         if(!storage_framework_file.open(QFile::ReadOnly))
         {
-            qWarning() << "ERROR: opening file: " << lastFile.absoluteFilePath();
+            qWarning() << "ERROR: opening file: " << lastFile;
             return false;
         }
 
-        const QString file_content = storage_framework_file.readAll();
-        if (file_content != content)
-        {
-            qWarning("unexpected data in file '%s':\n\texpected: '%s'\n\tgot:     '%s'",
-                lastFile.absoluteFilePath().toUtf8().constData(),
-                content.toUtf8().constData(),
-                file_content.toUtf8().constData()
-            );
-            return false;
-        }
+        QString file_content = storage_framework_file.readAll();
 
-        return true;
+        return file_content == content;
     }
 
     bool removeHelperMarkBeforeStarting()
@@ -381,6 +540,8 @@ protected:
         }
         return true;
     }
+
+
 
     bool waitUntilHelperFinishes(int maxTimeout = 15000)
     {
@@ -676,7 +837,13 @@ TEST_F(TestHelpers, StartStopHelperObserver)
 
 TEST_F(TestHelpers, StartFullTest)
 {
-    g_setenv("KEEPER_TEST_HELPER", TEST_SIMPLE_HELPER, TRUE);
+    // build a directory full of random files
+    QTemporaryDir dir;
+    ASSERT_TRUE(DummyFile::fillTemporaryDirectory(dir.path(), qrand() % 1000));
+
+    g_setenv("KEEPER_TEST_HELPER", TEST_SIMPLE_HELPER_SH, TRUE);
+    g_setenv("KEEPER_TEST_HELPER_DIR", dir.path().toLatin1().data(), TRUE);
+    g_setenv("KEEPER_TEST_TAR_CREATE_BIN", KEEPER_TAR_CREATE_BIN, TRUE);
 
     // remove any previous marks that may exist.
     EXPECT_TRUE(removeHelperMarkBeforeStarting());
@@ -707,13 +874,13 @@ TEST_F(TestHelpers, StartFullTest)
     {
         g_main_iteration(TRUE);
     }
-
     // check that the content of the file is the expected
-    EXPECT_TRUE(checkStorageFrameworkContent(SIMPLE_HELPER_TEXT_TO_WRITE));
-
+    EXPECT_TRUE(checkLastStorageFrameworkFile(dir.path().toLatin1().data()));
     // let's leave things clean
     EXPECT_TRUE(removeHelperMarkBeforeStarting());
     g_unsetenv("KEEPER_TEST_HELPER");
+    g_unsetenv("KEEPER_TEST_HELPER_DIR");
+    g_unsetenv("KEEPER_TEST_TAR_CREATE_BIN");
 }
 
 int main(int argc, char** argv)
