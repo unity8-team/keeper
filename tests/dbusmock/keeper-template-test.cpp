@@ -17,6 +17,8 @@
  *   Charles Kerr <charles.kerr@canonical.com>
  */
 
+#include "fake-backup-helper.h"
+
 #include "qdbus-stubs/dbus-types.h"
 #include "qdbus-stubs/keeper_interface.h"
 #include "qdbus-stubs/keeper_user_interface.h"
@@ -30,24 +32,35 @@
 #include <QDebug>
 #include <QString>
 #include <QThread>
+#include <QUuid>
+#include <QVariant>
 
 #include <memory>
+
+#define KEY_ACTION "action"
+#define KEY_CTIME "ctime"
+#define KEY_BLOB "blob-data"
+#define KEY_HELPER "helper-exec"
+#define KEY_ICON "icon"
+#define KEY_NAME "display-name"
+#define KEY_PERCENT "percent-done"
+#define KEY_SIZE "size"
+#define KEY_SUBTYPE "subtype"
+#define KEY_TYPE "type"
+#define KEY_UUID "uuid"
+
+// FIXME: this should go in a shared header
+enum
+{
+    ACTION_QUEUED = 0,
+    ACTION_SAVING = 1,
+    ACTION_RESTORING = 2,
+    ACTION_IDLE = 3
+};
 
 using namespace QtDBusMock;
 using namespace QtDBusTest;
 
-namespace
-{
-
-QVariantMap toQVariantMap(const QMap<QString,QMap<QString,QVariant>>& in)
-{
-    QVariantMap out;
-    for (auto it=in.cbegin(), end=in.cend(); it!=end; ++it)
-        out.insert(it.key(), it.value());
-    return out;
-}
-
-}
 
 class KeeperTemplateTest : public ::testing::Test
 {
@@ -57,24 +70,10 @@ protected:
     {
         test_runner_.reset(new DBusTestRunner{});
 
-        QVariant v = QVariant::fromValue(backup_choices);
-        ASSERT_TRUE(v.isValid());
-
-        // manual conversion to QVariantMap,
-        //not sure why this can't happen automatically... :P
-        QVariantMap helpers_qvm;
-        for (auto it=helpers.cbegin(), end=helpers.cend(); it!=end; ++it)
-            helpers_qvm.insert(it.key(), it.value());
-
         dbus_mock_.reset(new DBusMock(*test_runner_));
         dbus_mock_->registerTemplate(
             DBusTypes::KEEPER_SERVICE,
             SERVICE_TEMPLATE_FILE,
-            QVariantMap {
-                { "backup-choices", toQVariantMap(backup_choices) },
-                { "helpers", helpers_qvm },
-                { "restore-choices", toQVariantMap(restore_choices) }
-            },
             QDBusConnection::SessionBus
         );
 
@@ -99,6 +98,16 @@ protected:
             )
         );
         ASSERT_TRUE(user_iface_->isValid()) << qPrintable(conn.lastError().message());
+
+        mock_iface_.reset(
+            new QDBusInterface(
+                DBusTypes::KEEPER_SERVICE,
+                DBusTypes::KEEPER_SERVICE_PATH,
+                QStringLiteral("com.canonical.keeper.Mock"),
+                conn
+            )
+        );
+        ASSERT_TRUE(mock_iface_->isValid()) << qPrintable(conn.lastError().message());
     }
 
     virtual void TearDown() override
@@ -118,6 +127,7 @@ protected:
     std::unique_ptr<DBusMock> dbus_mock_;
     std::unique_ptr<DBusInterfaceKeeper> keeper_iface_;
     std::unique_ptr<DBusInterfaceKeeperUser> user_iface_;
+    std::unique_ptr<QDBusInterface> mock_iface_;
 
     void EXPECT_EVENTUALLY(std::function<bool()>&& test, qint64 timeout_msec=5000)
     {
@@ -127,134 +137,150 @@ protected:
         do {
             passed = test();
             if (!passed)
-                QThread::usleep(200000);
+                QThread::msleep(100);
         } while (!passed && !timer.hasExpired(timeout_msec));
         EXPECT_TRUE(passed);
     }
-
-    /***
-    ****
-    ****  The template parameters
-    ****
-    ***/
-
-    // FIXME: these types are very likely to change soon:
-    // Design wants more granularity for system data, eg texts vs mail vs contacts.
-    // Waiting on final design now.
-    const QMap<QString,QString> helpers {
-        {"application", "app-helper-stub"},
-        {"folder", FOLDER_HELPER_EXEC },
-        {"system-data", "system-data-helper-stub"}
-    };
-
-    const QMap<QString,QMap<QString,QVariant>> backup_choices {
-        {"P9qfw0kfNyXgjAZLyViY", QVariantMap{{"type", "folder"}, {"display-name", "Documents"}}},
-        {"EHdhNs26cLxllMFH6MXy", QVariantMap{{"type", "folder"}, {"display-name", "Movies"}}},
-        {"z0sWRL4xWMAulDLcnPSQ", QVariantMap{{"type", "folder"}, {"display-name", "Music"}}},
-        {"sRVJlx00QyalHUvsBrWo", QVariantMap{{"type", "folder"}, {"display-name", "Pictures"}}},
-    };
-
-    const QMap<QString,QMap<QString,QVariant>> restore_choices {
-        {"LETjGClJ8qxoEEp2lP2l", {{"size", quint64(1000)}, {"ctime", quint64(1451606400/*2016-01-01 00:00:00*/)}, {"display-name", "Documents"}}},
-        {"F1pG9zYCKCYlsXecNdJv", {{"size", quint64(1000)}, {"ctime", quint64(1451692800/*2016-01-02 00:00:00*/)}, {"display-name", "Movies"}}},
-        {"8WDJNx7eUMsPfZ8kIsQr", {{"size", quint64(1000)}, {"ctime", quint64(1451779200/*2016-01-03 00:00:00*/)}, {"display-name", "Music"}}},
-        {"nVQRz48gqPUnsL3inFsO", {{"size", quint64(1000)}, {"ctime", quint64(1451865600/*2016-01-04 00:00:00*/)}, {"display-name", "Pictures"}}}
-    };
-
 };
+
 
 /***
 ****  Quick surface-level tests
 ***/
 
-/* Test that the dbusmock scaffolding starts up and exits ok */
+
+// test that the dbusmock scaffolding starts up and exits ok
 TEST_F(KeeperTemplateTest, HelloWorld)
 {
 }
 
-/* Test that BackupChoices() returns the choices we created the template with */
+
+// test GetBackupChoices() returns what we give to AddBackupChoice()
 TEST_F(KeeperTemplateTest, BackupChoices)
 {
-    auto pending_reply = user_iface_->GetBackupChoices();
-    pending_reply.waitForFinished();
-    EXPECT_TRUE(pending_reply.isValid()) << qPrintable(connection().lastError().message());
-    EXPECT_EQ(backup_choices, pending_reply.value());
+    // build a backup choice
+    const auto uuid = QUuid::createUuid().toString();
+    const QMap<QString,QVariant> props {
+        { KEY_NAME, QStringLiteral("some-name") },
+        { KEY_TYPE, QStringLiteral("some-type") },
+        { KEY_SUBTYPE, QStringLiteral("some-subtype") },
+        { KEY_ICON, QStringLiteral("some-icon") },
+        { KEY_HELPER, QString::fromUtf8(FAKE_BACKUP_HELPER_EXEC) }
+    };
+
+    // add it
+    auto msg = mock_iface_->call(QStringLiteral("AddBackupChoice"), uuid, props);
+    EXPECT_NE(QDBusMessage::ErrorMessage, msg.type()) << qPrintable(msg.errorMessage());
+
+    // ask for a list of backup choices
+    QDBusReply<QVariantDictMap> choices = user_iface_->call("GetBackupChoices");
+    EXPECT_TRUE(choices.isValid()) << qPrintable(choices.error().message());
+
+    // check the results
+    const auto expected_choices = QVariantDictMap{{uuid, props}};
+    ASSERT_EQ(expected_choices, choices);
 }
 
-/* Test that StartBackup() fails if we pass an invalid arg */
+
+// test that StartBackup() fails if we pass an invalid arg
 TEST_F(KeeperTemplateTest, StartBackupWithInvalidArg)
 {
-    const auto invalid_uuid = QStringLiteral("yccXoXICC0ugEhMJCkQN");
-    ASSERT_FALSE(backup_choices.contains(invalid_uuid));
+    const auto invalid_uuid = QUuid::createUuid().toString();
 
-    auto pending_reply = user_iface_->StartBackup(QStringList{invalid_uuid});
-    pending_reply.waitForFinished();
-    auto error = pending_reply.error();
-    EXPECT_FALSE(pending_reply.isValid()) << qPrintable(error.message());
-    EXPECT_TRUE(error.isValid());
-    EXPECT_EQ(QDBusError::InvalidArgs, error.type());
+    QDBusReply<void> reply = user_iface_->call("StartBackup", QStringList{invalid_uuid});
+    EXPECT_FALSE(reply.isValid());
+    EXPECT_EQ(QDBusError::InvalidArgs, reply.error().type());
 }
 
-/* Test that RestoreChoices() returns the choices we created the template with */
+
+// test GetRestoreChoices() returns what we give to AddRestoreChoice()
 TEST_F(KeeperTemplateTest, RestoreChoices)
 {
-    auto pending_reply = user_iface_->GetRestoreChoices();
-    pending_reply.waitForFinished();
-    EXPECT_TRUE(pending_reply.isValid()) << qPrintable(connection().lastError().message());
-    EXPECT_EQ(restore_choices, pending_reply.value());
+    // build a restore choice
+    const auto uuid = QUuid::createUuid().toString();
+    const auto blob = QUuid::createUuid().toByteArray();
+    const QMap<QString,QVariant> props {
+        { KEY_NAME, QStringLiteral("some-name") },
+        { KEY_TYPE, QStringLiteral("some-type") },
+        { KEY_SUBTYPE, QStringLiteral("some-subtype") },
+        { KEY_ICON, QStringLiteral("some-icon") },
+        { KEY_HELPER, QString::fromUtf8("/dev/null") },
+        { KEY_SIZE, quint64(blob.size()) },
+        { KEY_CTIME, quint64(time(nullptr)) },
+        { KEY_BLOB, blob }
+    };
+
+    // add it
+    auto msg = mock_iface_->call(QStringLiteral("AddRestoreChoice"), uuid, props);
+    EXPECT_NE(QDBusMessage::ErrorMessage, msg.type()) << qPrintable(msg.errorMessage());
+
+    // ask for a list of restore choices
+    QDBusReply<QVariantDictMap> choices = user_iface_->call("GetRestoreChoices");
+    EXPECT_TRUE(choices.isValid()) << qPrintable(choices.error().message());
+
+    // check the results
+    const auto expected_choices = QVariantDictMap{{uuid, props}};
+    ASSERT_EQ(expected_choices, choices);
 }
 
-/* Test that StartRestore() fails if we pass an invalid arg */
+
+// test that StartRestore() fails if we pass an invalid arg
 TEST_F(KeeperTemplateTest, StartRestoreWithInvalidArg)
 {
-    const auto invalid_uuid = QStringLiteral("meJjH5H2yWrmeTkjqNhw");
-    ASSERT_FALSE(restore_choices.contains(invalid_uuid));
+    const auto invalid_uuid = QUuid::createUuid().toString();
 
-    auto pending_reply = user_iface_->StartRestore(QStringList{invalid_uuid});
-    pending_reply.waitForFinished();
-    auto error = pending_reply.error();
-    EXPECT_FALSE(pending_reply.isValid()) << qPrintable(error.message());
-    EXPECT_TRUE(error.isValid());
-    EXPECT_EQ(QDBusError::InvalidArgs, error.type());
+    QDBusReply<void> reply = user_iface_->call("StartRestore", QStringList{invalid_uuid});
+    EXPECT_FALSE(reply.isValid());
+    EXPECT_EQ(QDBusError::InvalidArgs, reply.error().type());
 }
 
-/* Test that Status() returns empty if we haven't done anything yet */
+
+// test that Status() returns empty if we haven't done anything yet
 TEST_F(KeeperTemplateTest, TestEmptyStatus)
 {
     EXPECT_TRUE(user_iface_->state().isEmpty());
 }
 
+
 /***
-****  Okay let's try a backup
+****  Make a real backup
 ***/
 
-// FIXME: this should go in a shared header
-enum {
-    ACTION_QUEUED = 0,
-    ACTION_SAVING = 1,
-    ACTION_RESTORING = 2,
-    ACTION_IDLE = 3
-};
-
-TEST_F(KeeperTemplateTest, SingleFolderBackup)
+TEST_F(KeeperTemplateTest, BackupRun)
 {
-    // get the pictures uuid
-    const auto uuid = QStringLiteral("sRVJlx00QyalHUvsBrWo");
-    ASSERT_EQ(QString::fromUtf8("Pictures"), backup_choices.value(uuid).value("display-name"));
+    // build a backup choice
+    const auto uuid = QUuid::createUuid().toString();
+    const QMap<QString,QVariant> props {
+        { KEY_NAME, QStringLiteral("Music") },
+        { KEY_TYPE, QStringLiteral("folder") },
+        { KEY_SUBTYPE, QStringLiteral("/home/charles/Music") },
+        { KEY_ICON, QStringLiteral("music-icon") },
+        { KEY_HELPER, QString::fromUtf8(FAKE_BACKUP_HELPER_EXEC) }
+    };
 
-    // start backing it up
-    auto state = user_iface_->state();
-    auto pending_reply = user_iface_->StartBackup(QStringList{uuid});
-    pending_reply.waitForFinished();
-    EXPECT_TRUE(pending_reply.isValid()) << qPrintable(pending_reply.error().message());
+    // add it
+    auto msg = mock_iface_->call(QStringLiteral("AddBackupChoice"), uuid, props);
+    EXPECT_NE(QDBusMessage::ErrorMessage, msg.type()) << qPrintable(msg.errorMessage());
+
+    // start the backup
+    QDBusReply<void> reply = user_iface_->call("StartBackup", QStringList{uuid});
+    EXPECT_TRUE(reply.isValid()) << qPrintable(reply.error().message());
 
     // wait for the task's percent_done to reach 100%
     EXPECT_EVENTUALLY([this,uuid]{
         const auto state = user_iface_->state();
         const auto task = state.value(uuid);
-        const auto percent_done = task.value("percent-done").toDouble();
-        const auto action = task.value("action", -1).toInt();
+        const auto percent_done = task.value(KEY_PERCENT).toDouble();
+        const auto action = task.value(KEY_ACTION, -1).toInt();
         qInfo() << "action" << action << "percent_done" << percent_done;
         return int(percent_done)==1 && action==ACTION_IDLE;
     });
+
+    // ask keeper for the blob
+    QDBusReply<QByteArray> blob = mock_iface_->call(QStringLiteral("GetBackupData"), uuid);
+    EXPECT_TRUE(reply.isValid()) << qPrintable(reply.error().message());
+
+    // check the results
+    const auto expected_blob = QByteArray(FAKE_BACKUP_HELPER_PAYLOAD);
+    ASSERT_EQ(expected_blob, blob);
 }

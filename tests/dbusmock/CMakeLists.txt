@@ -11,6 +11,7 @@ set(
     test-utils
     Qt5::Core
     Qt5::DBus
+    Qt5::Network
     ${GTEST_LIBRARIES}
     ${GMOCK_LIBRARIES}
 )
@@ -19,21 +20,16 @@ set(
 ###
 
 set(
-    FOLDER_HELPER
-    folder-helper
-)
-
-set(
-    FOLDER_HELPER_EXEC
-    ${CMAKE_CURRENT_BINARY_DIR}/${FOLDER_HELPER}
+    BACKUP_HELPER
+    fake-backup-helper
 )
 
 add_executable(
-    ${FOLDER_HELPER}
-    fake-folder-helper.cpp
+    ${BACKUP_HELPER}
+    fake-backup-helper.cpp
 )
 target_link_libraries(
-    ${FOLDER_HELPER}
+    ${BACKUP_HELPER}
     ${LINK_LIBS}
 )
 
@@ -52,7 +48,7 @@ add_executable(
 
 set_property(
     SOURCE keeper-template-test.cpp
-    PROPERTIES APPEND_STRING PROPERTY COMPILE_DEFINITIONS FOLDER_HELPER_EXEC=\"${FOLDER_HELPER_EXEC}\"
+    PROPERTIES APPEND_STRING PROPERTY COMPILE_DEFINITIONS FAKE_BACKUP_HELPER_EXEC=\"${CMAKE_CURRENT_BINARY_DIR}/${BACKUP_HELPER}\"
 )
 
 target_link_libraries(
