@@ -55,8 +55,6 @@ public Q_SLOTS:
     void start();
     void finish();
 
-    void socketClosed();
-
 private:
     QScopedPointer<KeeperPrivate> const d_ptr;
 };

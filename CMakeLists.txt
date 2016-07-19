@@ -69,10 +69,13 @@ include_directories(SYSTEM ${Qt5Network_INCLUDE_DIRS})
 find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(SERVICE_DEPS REQUIRED
-    libarchive>=3.1.2
-    click-0.4>=0.4.30 json-glib-1.0 gobject-2.0 glib-2.0
-    uuid>=2.25
+    click-0.4>=0.4.30
     glib-2.0
+    gobject-2.0
+    json-glib-1.0
+    libarchive>=3.1.2
+    storage-framework-qt-local-client-1
+    uuid>=2.25
 )
 include_directories(SYSTEM ${SERVICE_DEPS_INCLUDE_DIRS})
 include_directories(${CMAKE_SOURCE_DIR}/include)

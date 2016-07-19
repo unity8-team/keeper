@@ -121,3 +121,8 @@ add_library(
   ${interface_files}
   ${adaptor_files}
 )
+
+target_link_libraries(
+  qdbus-stubs
+  backup-helper
+)

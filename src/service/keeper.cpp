@@ -59,8 +59,6 @@ public:
         , cached_backup_choices_()
         , cached_restore_choices_()
     {
-        QObject::connect(storage_.data(), &StorageFrameworkClient::socketClosed, q_ptr, &Keeper::socketClosed);
-
         // listen for backup helper state changes
         QObject::connect(backup_helper_.data(), &Helper::stateChanged,
             std::bind(&KeeperPrivate::on_backup_helper_state_changed, this, std::placeholders::_1)
@@ -154,11 +152,6 @@ void Keeper::finish()
     qDebug() << "Closing the socket-------";
 
     d->storage_->closeUploader();
-}
-
-void Keeper::socketClosed()
-{
-    qDebug() << "The storage framework socket was closed";
 }
 
 QVector<Metadata>
