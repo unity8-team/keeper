@@ -101,6 +101,7 @@ def user_get_restore_choices(user):
 def user_start_next_task(user):
     if not user.remaining_tasks:
         user.log('last task finished')
+        user.all_tasks = []
         user.current_task = None
         user.log('setting user.current_task to None')
         user.update_state_property(user)
