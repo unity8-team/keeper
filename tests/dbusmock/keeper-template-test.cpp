@@ -141,6 +141,12 @@ protected:
         } while (!passed && !timer.hasExpired(timeout_msec));
         EXPECT_TRUE(passed);
     }
+
+    void wait_for_backup_to_finish()
+    {
+        EXPECT_EVENTUALLY([this]{return !user_iface_->state().isEmpty();}); // backup running
+        EXPECT_EVENTUALLY([this]{return user_iface_->state().isEmpty();}); // backup finished
+    }
 };
 
 
@@ -265,16 +271,7 @@ TEST_F(KeeperTemplateTest, BackupRun)
     // start the backup
     QDBusReply<void> reply = user_iface_->call("StartBackup", QStringList{uuid});
     EXPECT_TRUE(reply.isValid()) << qPrintable(reply.error().message());
-
-    // wait for the task's percent_done to reach 100%
-    EXPECT_EVENTUALLY([this,uuid]{
-        const auto state = user_iface_->state();
-        const auto task = state.value(uuid);
-        const auto percent_done = task.value(KEY_PERCENT).toDouble();
-        const auto action = task.value(KEY_ACTION, -1).toInt();
-        qInfo() << "action" << action << "percent_done" << percent_done;
-        return int(percent_done)==1 && action==ACTION_IDLE;
-    });
+    wait_for_backup_to_finish();
 
     // ask keeper for the blob
     QDBusReply<QByteArray> blob = mock_iface_->call(QStringLiteral("GetBackupData"), uuid);
