@@ -116,7 +116,7 @@ qt5_add_dbus_adaptor(
 #
 
 set(
-  STUBS_LIB 
+  STUBS_LIB
   qdbus-stubs
 )
 
