@@ -55,7 +55,7 @@ Item::SPtr get_backups_folder_sync(const Account::SPtr& account)
     {
         auto results = root->lookup(backup_dir_name).results();
         if (!results.empty())
-            ret = results.front();
+            ret = results.front().front();
     }
     catch(const std::exception& e)
     {

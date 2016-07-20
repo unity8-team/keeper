@@ -42,17 +42,17 @@ public:
 
 public Q_SLOTS:
     void uploaderReady();
-    void uploaderClosed();
+    //void uploaderClosed();
 
 Q_SIGNALS:
-    void socketReady(int socket);
+    void socketReady(std::shared_ptr<QLocalSocket> const& sf_socket);
     void socketClosed();
 
 private:
     unity::storage::qt::client::Runtime::SPtr runtime_;
 
     // watchers
-    QFutureWatcher<unity::storage::TransferState> close_uploader_watcher_;
+    //QFutureWatcher<unity::storage::TransferState> close_uploader_watcher_;
     QFutureWatcher<std::shared_ptr<unity::storage::qt::client::Uploader>> uploader_ready_watcher_;
     std::shared_ptr<unity::storage::qt::client::Uploader> uploader_;
 };
