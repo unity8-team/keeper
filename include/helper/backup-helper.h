@@ -24,7 +24,10 @@
 
 #include <QObject>
 #include <QScopedPointer>
+#include <QLocalSocket>
 #include <QString>
+
+#include <memory>
 
 class BackupHelperPrivate;
 class BackupHelper : public Helper
@@ -37,7 +40,7 @@ public:
     virtual ~BackupHelper();
     Q_DISABLE_COPY(BackupHelper)
 
-    void set_storage_framework_socket(qint64 n_bytes, int sd);
+    void set_storage_framework_socket(qint64 n_bytes, std::shared_ptr<QLocalSocket> const& sf_socket);
     void start();
     void stop();
     int get_helper_socket() const;
