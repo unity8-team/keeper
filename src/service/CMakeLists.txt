@@ -35,7 +35,6 @@ link_directories(
 target_link_libraries(
   ${SERVICE_EXEC}
   ${SERVICE_LIB}
-  storage
   util
   qdbus-stubs
   storage-framework
