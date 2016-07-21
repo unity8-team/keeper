@@ -317,7 +317,7 @@ def mock_add_backup_choice(mock, uuid, props):
 
     keys = [KEY_NAME, KEY_TYPE, KEY_SUBTYPE, KEY_ICON, KEY_HELPER]
     if set(keys) != set(props.keys()):
-        badarg('need props: %s got %s' % keys, props.keys())
+        badarg('need props: %s got %s' % (keys, props.keys()))
 
     user = mockobject.objects[USER_PATH]
     user.backup_choices[uuid] = dbus.Dictionary(
@@ -332,7 +332,7 @@ def mock_add_restore_choice(mock, uuid, props):
     keys = [KEY_NAME, KEY_TYPE, KEY_SUBTYPE, KEY_ICON, KEY_HELPER,
             KEY_SIZE, KEY_CTIME, KEY_BLOB]
     if set(keys) != set(props.keys()):
-        badarg('need props: %s got %s' % keys, props.keys())
+        badarg('need props: %s got %s' % (keys, props.keys()))
 
     user = mockobject.objects[USER_PATH]
     user.restore_choices[uuid] = dbus.Dictionary(
