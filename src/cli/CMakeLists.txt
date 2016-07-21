@@ -14,7 +14,6 @@ add_executable(
 
 target_link_libraries(
   ${CLI_EXEC}
-  storage
   util
   qdbus-stubs
   Qt5::Core
