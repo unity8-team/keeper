@@ -26,7 +26,7 @@ include_directories(${UAL_INCLUDE_DIRS})
 include_directories(${PROP-CPP_INCLUDE_DIRS})
 
 add_executable (helpers-test
-    backup-helper-test.cpp
+    helpers-test.cc
     mir-mock.cpp
 )
 
