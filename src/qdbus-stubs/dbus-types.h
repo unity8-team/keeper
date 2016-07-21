@@ -22,6 +22,7 @@
 #include <QtCore>
 #include <QString>
 #include <QVariantMap>
+#include <helper/helper.h>
 
 typedef QMap<QString, QVariantMap> QVariantDictMap;
 Q_DECLARE_METATYPE(QVariantDictMap)
@@ -38,6 +39,7 @@ namespace DBusTypes
 
         qDBusRegisterMetaType<QVariantDictMap>();
         qDBusRegisterMetaType<QStringMap>();
+        Helper::registerMetaTypes();
     }
 
     constexpr const char KEEPER_SERVICE[] = "com.canonical.keeper";

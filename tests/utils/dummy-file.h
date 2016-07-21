@@ -33,4 +33,6 @@ namespace DummyFile
     };
 
     Info create(const QDir& dir, qint64 filesize);
+
+    bool fillTemporaryDirectory(QString const & dir, int max_files_per_test=100, int max_filesize=1024, int max_dirs=20);
 };
