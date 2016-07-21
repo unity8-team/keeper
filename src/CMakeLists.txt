@@ -4,7 +4,6 @@ include_directories(
 )
 
 add_subdirectory(qdbus-stubs)
-add_subdirectory(storage)
 add_subdirectory(cli)
 add_subdirectory(service)
 add_subdirectory(util)
