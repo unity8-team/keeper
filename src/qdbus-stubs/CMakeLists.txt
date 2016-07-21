@@ -115,14 +115,19 @@ qt5_add_dbus_adaptor(
 #
 #
 
-add_library(
+set(
+  STUBS_LIB
   qdbus-stubs
+)
+
+add_library(
+  ${STUBS_LIB}
   STATIC
   ${interface_files}
   ${adaptor_files}
 )
 
 target_link_libraries(
-  qdbus-stubs
+  ${STUBS_LIB}
   backup-helper
 )
