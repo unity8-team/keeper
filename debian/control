@@ -31,7 +31,8 @@ Build-Depends: cmake,
 # for the dbusmock template:
                python3-gi,
                gir1.2-glib-2.0 (>= 1.32),
-               flake8,
+# TODO: Temporarily disabled due to missing flake8 dep in vivid
+#               flake8,
 Standards-Version: 3.9.5
 Homepage: https://launchpad.net/keeper
 # If you aren't a member of ~indicator-applet-developers but need to upload
