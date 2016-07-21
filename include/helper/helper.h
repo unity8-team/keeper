@@ -22,8 +22,6 @@
 #include <QObject>
 #include <QScopedPointer>
 
-//#include <sys/time.h> // gettimeofday
-
 #include <functional>
 
 class HelperPrivate;
