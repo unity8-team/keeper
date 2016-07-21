@@ -52,6 +52,10 @@ KEY_SUBTYPE = 'subtype'
 KEY_TYPE = 'type'
 KEY_UUID = 'uuid'
 
+TYPE_APP = 'application'
+TYPE_FOLDER = 'folder'
+TYPE_SYSTEM = 'system-data'
+
 #
 #  Utils
 #
@@ -125,13 +129,19 @@ def user_start_next_task(user):
             val = os.environ.get(key, None)
             if val:
                 henv[key] = val
-        # FIXME: add PWD
+
+        # set the working directory for folder backups
+        helper_cwd = os.getcwd()
+        if choice.get(KEY_TYPE) == TYPE_FOLDER:
+            helper_cwd = choice.get(KEY_SUBTYPE)
 
         # spawn the helper
         user.log('starting %s for %s, env %s' % (helper_exec, uuid, henv))
         subprocess.Popen(
             [helper_exec, HELPER_PATH],
-            env=henv, stdout=sys.stdout, stderr=sys.stderr
+            env=henv, stdout=sys.stdout, stderr=sys.stderr,
+            cwd=helper_cwd,
+            shell=helper_exec.endswith('.sh')
         )
 
 
@@ -254,7 +264,7 @@ def helper_periodic_func(helper):
         fail("bug: helper_periodic_func called w/o helper.work")
 
     # try to read a bit
-    chunk = helper.work.sock.recv(4096)
+    chunk = helper.work.sock.recv(4096*2)
     if len(chunk):
         helper.work.chunks.append(chunk)
         helper.work.n_left -= len(chunk)
@@ -374,7 +384,7 @@ def load(main, parameters):
     o.backup_choices = parameters.get('backup-choices', {})
     o.restore_choices = parameters.get('restore-choices', {})
     o.current_task = None
-    o.defined_types = ['application', 'system-data', 'folder']
+    o.defined_types = [TYPE_APP, TYPE_SYSTEM, TYPE_FOLDER]
     o.AddMethods(USER_IFACE, [
         ('GetBackupChoices', '', 'a{sa{sv}}',
          'ret = self.get_backup_choices(self)'),
