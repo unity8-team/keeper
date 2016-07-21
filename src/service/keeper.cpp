@@ -121,9 +121,9 @@ Keeper::StartBackup(QDBusConnection bus, const QDBusMessage& msg, quint64 n_byte
 
     // the next time we get a socket from storage-framework, return it to our caller
     auto conn = new QMetaObject::Connection();
-    auto on_socket_ready = [bus,msg,n_bytes,this,d,conn](std::shared_ptr<QLocalSocket> const &sf_socket) 
+    auto on_socket_ready = [bus,msg,n_bytes,this,d,conn](std::shared_ptr<QLocalSocket> const &sf_socket)
     {
-        if (sf_socket) 
+        if (sf_socket)
         {
             qDebug("getNewFileForBackup() returned socket %d", int(sf_socket->socketDescriptor()));
             qDebug("calling helper.set_storage_framework_socket(n_bytes=%zu socket=%d)", size_t(n_bytes), int(sf_socket->socketDescriptor()));
