@@ -52,3 +52,9 @@ add_subdirectory(surface)
 add_subdirectory(dbusmock)
 add_subdirectory(unit)
 add_subdirectory(utils)
+
+set(
+  UNIT_TEST_TARGETS
+  ${UNIT_TEST_TARGETS}
+  PARENT_SCOPE
+)

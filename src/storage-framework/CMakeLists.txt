@@ -1,13 +1,30 @@
+set(
+  LIB_NAME
+  storage-framework
+)
 
 add_library(
-  storage-framework
+  ${LIB_NAME}
   STATIC
   storage_framework_client.cpp
   storage_framework_client.h
 )
 
-qt5_use_modules(storage-framework Core Network)
-set_target_properties(backup-helper PROPERTIES AUTOMOC TRUE)
+set_target_properties(
+  ${LIB_NAME}
+  PROPERTIES
+  AUTOMOC TRUE
+)
+target_link_libraries(
+  ${LIB_NAME}
+  -lstorage-framework-qt-local-client
+  Qt5::Core
+  Qt5::Network
+)
 
-target_link_libraries(storage-framework
-                      -lstorage-framework-qt-local-client)
+set(
+  COVERAGE_REPORT_TARGETS
+  ${COVERAGE_REPORT_TARGETS}
+  ${LIB_NAME}
+  PARENT_SCOPE
+)
