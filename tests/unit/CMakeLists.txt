@@ -8,25 +8,25 @@ add_definitions(
 )
 
 include_directories(
-    "${CMAKE_SOURCE_DIR}/src"
+  "${CMAKE_SOURCE_DIR}/src"
 )
 
 include_directories(
-    SYSTEM
-    ${HELPERS_TEST_DEPS_INCLUDE_DIRS}
+  SYSTEM
+  ${HELPERS_TEST_DEPS_INCLUDE_DIRS}
 )
 
 set(
-    UNIT_TEST_LIBRARIES
-    backup-helper
-    test-utils
-    keeperservice
-    keepertar
-    ${SERVICE_DEPS_LDFLAGS}
-    ${HELPERS_TEST_DEPS_LDFLAGS}
-    ${TEST_DEPENDENCIES_LDFLAGS}
-    ${GTEST_LIBRARIES}
-    ${GMOCK_LIBRARIES}
+  UNIT_TEST_LIBRARIES
+  backup-helper
+  test-utils
+  keeperservice
+  keepertar
+  ${SERVICE_DEPS_LDFLAGS}
+  ${HELPERS_TEST_DEPS_LDFLAGS}
+  ${TEST_DEPENDENCIES_LDFLAGS}
+  ${GTEST_LIBRARIES}
+  ${GMOCK_LIBRARIES}
 )
 
 add_subdirectory(helper)
