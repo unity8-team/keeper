@@ -13,7 +13,7 @@ add_subdirectory(simple-helper)
 add_subdirectory(tar)
 
 set(
-  COVERAGE_TEST_TARGETS
-  ${COVERAGE_TEST_TARGETS}
+  COVERAGE_REPORT_TARGETS
+  ${COVERAGE_REPORT_TARGETS}
   PARENT_SCOPE
 )

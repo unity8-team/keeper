@@ -254,7 +254,7 @@ add_subdirectory(tests)
 
 enable_coverage_report(
     TARGETS
-        ${COVERAGE_TEST_TARGETS}
+        ${COVERAGE_REPORT_TARGETS}
     FILTER
         ${CMAKE_SOURCE_DIR}/tests/*
         ${CMAKE_BINARY_DIR}/*
