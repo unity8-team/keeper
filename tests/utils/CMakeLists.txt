@@ -1,9 +1,16 @@
 
-include_directories("${CMAKE_SOURCE_DIR}/src")
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
+include_directories(
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+set(
+    LIB_NAME
+    test-utils
+)
 
 add_library(
-    test-utils
+    ${LIB_NAME}
     STATIC
     main.cpp
     dummy-file.cpp
@@ -11,6 +18,6 @@ add_library(
 )
 
 qt5_use_modules(
-    test-utils
+    ${LIB_NAME}
     Core
 )

@@ -72,7 +72,7 @@
           <doc:para>Provides state information so the user interface can show
                     the progress of backup or restore tasks.</doc:para>
           <doc:para>State is a map of opaque backup keys to property maps,
-                    which will contain a 'display-name' string and 'action' int
+                    which will contain a 'display-name' string and 'action' int32
                     whose possible values are queued(0), saving(1),
                     restoring(2), complete(3), stopped(4)</doc:para>
           <doc:para>Some property maps may also have an 'item' string
