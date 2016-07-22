@@ -62,7 +62,6 @@ public:
         , upload_buffer_{}
         , n_read_{}
         , n_uploaded_{}
-        , n_expected_{}
         , read_error_{}
         , write_error_{}
         , cancelled_{}
@@ -113,11 +112,10 @@ public:
         reset_inactivity_timer();
     }
 
-    void set_storage_framework_socket(qint64 n_bytes, int sd)
+    void set_storage_framework_socket(int sd)
     {
         n_read_ = 0;
         n_uploaded_ = 0;
-        n_expected_ = n_bytes;
         read_error_ = false;
         write_error_ = false;
         cancelled_ = false;
@@ -207,17 +205,17 @@ private:
 
     void check_for_done()
     {
-        if (n_uploaded_ == n_expected_)
+        if (n_uploaded_ == q_ptr->expected_size())
         {
-            q_ptr->setState(Helper::State::COMPLETE);
+            q_ptr->set_state(Helper::State::COMPLETE);
         }
         else if (read_error_ || write_error_)
         {
-            q_ptr->setState(Helper::State::FAILED);
+            q_ptr->set_state(Helper::State::FAILED);
         }
         else if (cancelled_)
         {
-            q_ptr->setState(Helper::State::CANCELLED);
+            q_ptr->set_state(Helper::State::CANCELLED);
         }
     }
 
@@ -275,7 +273,7 @@ private:
     {
         qDebug() << "HELPER STARTED +++++++++++++++++++++++++++++++++++++ " << appid;
         auto self = static_cast<BackupHelperPrivate*>(vself);
-        self->q_ptr->setState(Helper::State::STARTED);
+        self->q_ptr->set_state(Helper::State::STARTED);
     }
 
     static void on_helper_stopped(const char* appid, const char* /*instance*/, const char* /*type*/, void* vself)
@@ -332,7 +330,6 @@ private:
     QByteArray upload_buffer_;
     qint64 n_read_;
     qint64 n_uploaded_;
-    qint64 n_expected_;
     bool read_error_;
     bool write_error_;
     bool cancelled_;
@@ -344,9 +341,10 @@ private:
 
 BackupHelper::BackupHelper(
     QString const & appid,
+    clock_func const & clock,
     QObject * parent
 )
-    : Helper(parent)
+    : Helper(clock, parent)
     , d_ptr(new BackupHelperPrivate(this, appid))
 {
 }
@@ -370,11 +368,11 @@ BackupHelper::stop()
 }
 
 void
-BackupHelper::set_storage_framework_socket(qint64 n_bytes, int sd)
+BackupHelper::set_storage_framework_socket(int sd)
 {
     Q_D(BackupHelper);
 
-    d->set_storage_framework_socket(n_bytes, sd);
+    d->set_storage_framework_socket(sd);
 }
 
 int

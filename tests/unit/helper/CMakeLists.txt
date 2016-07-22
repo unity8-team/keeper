@@ -3,10 +3,9 @@ add_definitions(
   -DCMAKE_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-set(
-  TEST_NAME
-  helpers-test
-)
+#
+# helpers-test
+#
 
 pkg_check_modules(HELPERS_TEST_DEPS REQUIRED
   ubuntu-app-launch-2
@@ -16,6 +15,7 @@ pkg_check_modules(HELPERS_TEST_DEPS REQUIRED
   gio-2.0>=2.26
   gio-unix-2.0
 )
+
 include_directories(
   SYSTEM
   ${UAL_INCLUDE_DIRS}
@@ -23,38 +23,81 @@ include_directories(
   ${HELPERS_TEST_DEPS_INCLUDE_DIRS}
 )
 
+set(
+  HELPERS_TEST
+  helpers-test
+)
+
 add_executable(
-  ${TEST_NAME}
+  ${HELPERS_TEST}
   helpers-test.cc
   mir-mock.cpp
 )
 
 set_target_properties(
-  ${TEST_NAME}
+  ${HELPERS_TEST}
   PROPERTIES
   COMPILE_FLAGS -fPIC
   AUTOMOC TRUE
 )
 
 target_link_libraries(
-  ${TEST_NAME}
-  gtest
-  backup-helper
-  test-utils
-  ${HELPERS_TEST_DEPS_LIBRARIES}
+  ${HELPERS_TEST}
+  ${HELPERS_TEST_DEPS_LDFLAGS}
+  ${UNIT_TEST_LIBRARIES}
   Qt5::Core
   Qt5::DBus
   Qt5::Test
 )
 
 add_test(
-  NAME ${TEST_NAME}
-  COMMAND ${TEST_NAME}
+  NAME ${HELPERS_TEST}
+  COMMAND ${HELPERS_TEST}
 )
+
+#
+# speed-test
+#
+
+set(
+  SPEED_TEST
+  helper-speed-test
+)
+
+add_executable(
+  ${SPEED_TEST}
+  speed-test.cpp
+  fake-helper.h
+)
+
+set_target_properties(
+  ${SPEED_TEST}
+  PROPERTIES
+  COMPILE_FLAGS -fPIC
+  AUTOMOC TRUE
+)
+
+target_link_libraries(
+  ${SPEED_TEST}
+  ${UNIT_TEST_LIBRARIES}
+  Qt5::Core
+  Qt5::DBus
+  Qt5::Test
+)
+
+add_test(
+  NAME ${SPEED_TEST}
+  COMMAND ${SPEED_TEST}
+)
+
+#
+#
+#
 
 set(
   UNIT_TEST_TARGETS
   ${UNIT_TEST_TARGETS}
-  ${TEST_NAME}
+  ${HELPERS_TEST}
+  ${SPEED_TEST}
   PARENT_SCOPE
 )

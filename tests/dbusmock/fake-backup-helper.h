@@ -14,38 +14,25 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authors:
- *     Xavi Garcia <xavi.garcia.mena@canonical.com>
  *     Charles Kerr <charles.kerr@canonical.com>
  */
 
 #pragma once
 
-#include <helper/helper.h> // parent class
-
-#include <QObject>
-#include <QScopedPointer>
-#include <QString>
-
-class BackupHelperPrivate;
-class BackupHelper : public Helper
-{
-    Q_OBJECT
-    Q_DECLARE_PRIVATE(BackupHelper)
-
-public:
-    BackupHelper(
-        QString const & appid,
-        clock_func const & clock=Helper::default_clock,
-        QObject * parent=nullptr
-    );
-    virtual ~BackupHelper();
-    Q_DISABLE_COPY(BackupHelper)
-
-    void set_storage_framework_socket(int sd);
-    void start();
-    void stop();
-    int get_helper_socket() const;
-
-private:
-    QScopedPointer<BackupHelperPrivate> const d_ptr;
-};
+static const char* FAKE_BACKUP_HELPER_PAYLOAD = R"(
+    Oh mmm I know a place
+    Ain't nobody cryin'
+    Ain't nobody worried
+    Ain't no smilin' faces
+    Mmm, no no
+    Lyin' to the races
+    Help me, come on, come on
+    Somebody, help me now (I'll take you there)
+    Help me, ya'all (I'll take you there)
+    Help me now (I'll take you there)
+    Oh! (I'll take you there)
+    Oh! Oh! Mercy! (I'll take you there)
+    Oh, let me take you there (I'll take you there)
+    Oh-oh! Let me take you there! (I'll take you there)
+    Play your, play your piano now
+)";

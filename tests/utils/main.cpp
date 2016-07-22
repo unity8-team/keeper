@@ -17,6 +17,8 @@
  *     Pete Woods <pete.woods@canonical.com>
  */
 
+#include "qdbus-stubs/dbus-types.h"
+
 #include <libqtdbusmock/DBusMock.h>
 
 #include <gtest/gtest.h>
@@ -51,6 +53,8 @@ int main(int argc, char **argv)
 
     QCoreApplication application(argc, argv);
     DBusMock::registerMetaTypes();
+    DBusTypes::registerMetaTypes();
+
     ::testing::InitGoogleTest(&argc, argv);
 
     Runner runner;

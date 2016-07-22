@@ -18,5 +18,6 @@ add_library(
 
 target_link_libraries(
   ${LIB_NAME}
+  backup-helper
   Qt5::Core
 )
