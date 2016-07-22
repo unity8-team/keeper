@@ -135,12 +135,14 @@ TEST_F(KeeperTemplateTest, TestEmptyStatus)
 
 TEST_F(KeeperTemplateTest, BackupRun)
 {
+    QTemporaryDir sandbox;
+
     // build a backup choice
     const auto uuid = QUuid::createUuid().toString();
     const QMap<QString,QVariant> props {
         { KEY_NAME, QStringLiteral("Music") },
         { KEY_TYPE, QStringLiteral("folder") },
-        { KEY_SUBTYPE, QStringLiteral("/home/charles/Music") },
+        { KEY_SUBTYPE, sandbox.path() },
         { KEY_ICON, QStringLiteral("music-icon") },
         { KEY_HELPER, QString::fromUtf8(FAKE_BACKUP_HELPER_EXEC) }
     };
