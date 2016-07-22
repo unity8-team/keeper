@@ -32,6 +32,9 @@ add_executable(
 
     storage/test-factory.cpp
 
+    helper/fake-helper.h
+    helper/speed-test.cpp
+
     helper/helpers-test.cc
     helper/mir-mock.cpp
 
