@@ -1,0 +1,64 @@
+Building the code
+-----------------
+
+By default, the code is built in release mode. To build a debug version, use
+
+    $ mkdir builddebug
+    $ cd builddebug
+    $ cmake -DCMAKE_BUILD_TYPE=debug ..
+    $ make
+
+For a release version, use -DCMAKE_BUILD_TYPE=release
+
+
+Running the tests
+-----------------
+
+    $ make
+    $ make test
+
+Note that "make test" alone is dangerous because it does not rebuild
+any tests if either the library or the test files themselves need
+rebuilding. It's not possible to fix this with cmake because cmake cannot
+add build dependencies to built-in targets. To make sure that everything
+is up-to-date, run "make" before running "make test"!
+
+
+Coverage
+--------
+
+To build with the flags for coverage testing enabled and get coverage:
+
+    $ mkdir buildcoverage
+    $ cd buildcoverage
+    $ cmake -DCMAKE_BUILD_TYPE=coverage
+    $ make
+    $ make test
+    $ make coverage
+    $ make coverage-html
+
+After "make coverage-html" a report will be viewable in
+./buildcoverage/coveragereport/index.html
+
+Unfortunately, it is not possible to get 100% coverage for some files,
+mainly due to gcc's generation of two destructors for dynamic and non-
+dynamic instances. For abstract base classes and for classes that
+prevent stack and static allocation, this causes one of the destructors
+to be reported as uncovered.
+
+There are also issues with some functions in header files that are
+incorrectly reported as uncovered due to inlining, as well as
+the impossibility of covering defensive assert(false) statements,
+such as an assert in the default branch of a switch, where the
+switch is meant to handle all possible cases explicitly.
+
+If you run a binary and get lots of warnings about a "merge mismatch for summaries",
+this is caused by having made changes to the source that add or remove code
+that was previously run, so the new coverage output cannot sensibly be merged
+into the old coverage output. You can get rid of this problem by running
+
+    $ make clean-coverage
+
+This deletes all the .gcda files, allowing the merge to (sometimes) succeed again.
+If this doesn't work either, the only remedy is to do a clean build.
+
