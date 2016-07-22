@@ -38,7 +38,7 @@
 #include <helper/backup-helper.h>
 #include <qdbus-stubs/dbus-types.h>
 #include <simple-helper/simple-helper-defs.h>
-#include "tests/utils/dummy-file.h"
+#include "tests/utils/file-utils.h"
 #include "../../../src/service/app-const.h"
 
 
@@ -354,7 +354,7 @@ protected:
         {
             return false;
         }
-        return compareDirectories (sourceDir, QString("%1%2%3").arg(tempDir.path()).arg(QDir::separator()).arg(sourceDir));
+        return FileUtils::compareDirectories(sourceDir, QString("%1%2%3").arg(tempDir.path()).arg(QDir::separator()).arg(sourceDir));
     }
 
     bool extractTarContents(QString const & tarPath, QString const & destination, bool compression=false)
@@ -384,93 +384,6 @@ protected:
             qWarning() << "Process error: " << tarProcess.readAllStandardError();
         }
         return tarProcess.exitCode() == 0;
-    }
-
-    QByteArray fileChecksum(const QString &fileName,
-                            QCryptographicHash::Algorithm hashAlgorithm)
-    {
-        QFile f(fileName);
-        if (f.open(QFile::ReadOnly)) {
-            QCryptographicHash hash(hashAlgorithm);
-            if (hash.addData(&f)) {
-                return hash.result();
-            }
-        }
-        return QByteArray();
-    }
-
-    bool compareFiles(QString const & filePath1, QString const & filePath2)
-    {
-        QFileInfo info1(filePath1);
-        QFileInfo info2(filePath2);
-        if (!info1.isFile())
-        {
-            qWarning() << "Origin file: " << info1.absoluteFilePath() << " does not exist";
-            return false;
-        }
-        if (!info2.isFile())
-        {
-            qWarning() << "File to compare: " << info2.absoluteFilePath() << " does not exist";
-            return false;
-        }
-        auto checksum1 = fileChecksum(filePath1, QCryptographicHash::Md5);
-        auto checksum2 = fileChecksum(filePath1, QCryptographicHash::Md5);
-        if (checksum1 != checksum2)
-        {
-            qWarning() << "Checksum for file: " << filePath1 << " differ";
-        }
-        return checksum1 == checksum2;
-    }
-
-    QStringList getFilesRecursively(QString const & dirPath)
-    {
-        QStringList ret;
-        QDirIterator iter(dirPath, QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
-        while(iter.hasNext())
-        {
-            QFileInfo info(iter.next());
-            if (info.isFile())
-            {
-                ret << info.absoluteFilePath();
-            }
-            else if (info.isDir())
-            {
-                ret << getFilesRecursively(info.absoluteFilePath());
-            }
-        }
-
-        return ret;
-    }
-
-    bool compareDirectories(QString const & dir1Path, QString const & dir2Path)
-    {
-        // we only check for files, not directories
-        QDir dir1(dir1Path);
-        if (!QDir::isAbsolutePath(dir1Path))
-        {
-            qWarning() << "Error comparing directories: path for directories must be absolute";
-            return false;
-        }
-        QStringList filesDir1 = getFilesRecursively(dir1Path);
-        QStringList filesDir2 = getFilesRecursively(dir2Path);
-
-        if ( filesDir1.size() != filesDir2.size())
-        {
-            qWarning() << "Number of files in directories mismatch";
-            return false;
-        }
-        for (auto file: filesDir1)
-        {
-            auto filePath2 = file;
-            filePath2.remove(0, dir1Path.length());
-            filePath2 = dir2Path + filePath2;
-            if (!compareFiles(file, filePath2))
-            {
-                qWarning() << "File [" << file << "] and file [" << filePath2 << "] are not equal";
-                return false;
-            }
-        }
-        return true;
     }
 
     QString getLastStorageFrameworkFile()
@@ -839,7 +752,7 @@ TEST_F(TestHelpers, StartFullTest)
 {
     // build a directory full of random files
     QTemporaryDir dir;
-    ASSERT_TRUE(DummyFile::fillTemporaryDirectory(dir.path(), qrand() % 1000));
+    ASSERT_TRUE(FileUtils::fillTemporaryDirectory(dir.path(), qrand() % 1000));
 
     g_setenv("KEEPER_TEST_HELPER", TEST_SIMPLE_HELPER_SH, TRUE);
     g_setenv("KEEPER_TEST_HELPER_DIR", dir.path().toLatin1().data(), TRUE);
@@ -881,11 +794,4 @@ TEST_F(TestHelpers, StartFullTest)
     g_unsetenv("KEEPER_TEST_HELPER");
     g_unsetenv("KEEPER_TEST_HELPER_DIR");
     g_unsetenv("KEEPER_TEST_TAR_CREATE_BIN");
-}
-
-int main(int argc, char** argv)
-{
-    QCoreApplication qt_app(argc, argv);
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
 }

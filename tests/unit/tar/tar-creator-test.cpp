@@ -17,7 +17,7 @@
  *   Charles Kerr <charles.kerr@canonical.com>
  */
 
-#include "tests/utils/dummy-file.h"
+#include "tests/utils/file-utils.h"
 
 #include "tar/tar-creator.h"
 
@@ -41,11 +41,9 @@ TEST_F(TarCreatorFixture, HelloWorld)
 {
 }
 
-TEST_F(TarCreatorFixture, CreateUncompressedFromSingleDirectoryOfFiles)
+TEST_F(TarCreatorFixture, CreateUncompressed)
 {
     static constexpr int n_runs = 10;
-    static constexpr int max_files_per_test = 32;
-    static constexpr int max_filesize = 1024*1024;
 
     qsrand(time(nullptr));
 
@@ -53,24 +51,23 @@ TEST_F(TarCreatorFixture, CreateUncompressedFromSingleDirectoryOfFiles)
     {
         // build a directory full of random files
         QTemporaryDir sandbox;
-        const auto n_files = std::max(1, (qrand() % max_files_per_test));
-        QVector<DummyFile::Info> files (n_files);
-        qint64 filesize_sum = 0;
-        for (decltype(files.size()) j=0, n=files.size(); j!=n; ++j)
-        {
-            const auto filesize = qrand() % max_filesize;
-            auto& file = files[j];
-            file = DummyFile::create(sandbox.path(), filesize);
-            filesize_sum += file.info.size();
-        }
+        ASSERT_TRUE(FileUtils::fillTemporaryDirectory(sandbox.path()));
+        const auto files = FileUtils::getFilesRecursively(sandbox.path());
 
-        // start the TarCreator
-        QStringList filenames;
-        for (const auto& file : files)
-            filenames.append(file.info.absoluteFilePath());
-        TarCreator tar_creator(filenames, false);
+        // create the tar creator
+        TarCreator tar_creator(files, false);
 
         // simple sanity check on its size estimate
+        const auto filesize_sum = std::accumulate(files.begin(), files.end(), 0, [](ssize_t sum, QString const& filename){return sum + QFileInfo(filename).size();});
+
+#if 0
+ssize_t filesize_sum {};
+template< class InputIt, class T, class BinaryOperation >
+T accumulate( InputIt first, InputIt last, T init,
+              BinaryOperation op );
+        for (const auto& file : files)
+            filesize_sum += QFileInfo(file).size();
+#endif
         const auto estimated_size = tar_creator.calculate_size();
         ASSERT_GT(estimated_size, filesize_sum);
 
