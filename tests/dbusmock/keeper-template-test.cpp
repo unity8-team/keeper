@@ -19,16 +19,8 @@
 
 #include "fake-backup-helper.h"
 
-#include "qdbus-stubs/dbus-types.h"
-#include "qdbus-stubs/keeper_interface.h"
-#include "qdbus-stubs/keeper_user_interface.h"
+#include "tests/utils/keeper-dbusmock-fixture.h"
 
-#include <gtest/gtest.h>
-
-#include <libqtdbusmock/DBusMock.h>
-#include <libqtdbustest/DBusTestRunner.h>
-
-#include <QDBusConnection>
 #include <QDebug>
 #include <QString>
 #include <QThread>
@@ -37,118 +29,7 @@
 
 #include <memory>
 
-#define KEY_ACTION "action"
-#define KEY_CTIME "ctime"
-#define KEY_BLOB "blob-data"
-#define KEY_HELPER "helper-exec"
-#define KEY_ICON "icon"
-#define KEY_NAME "display-name"
-#define KEY_PERCENT "percent-done"
-#define KEY_SIZE "size"
-#define KEY_SUBTYPE "subtype"
-#define KEY_TYPE "type"
-#define KEY_UUID "uuid"
-
-// FIXME: this should go in a shared header
-enum
-{
-    ACTION_QUEUED = 0,
-    ACTION_SAVING = 1,
-    ACTION_RESTORING = 2,
-    ACTION_IDLE = 3
-};
-
-using namespace QtDBusMock;
-using namespace QtDBusTest;
-
-
-class KeeperTemplateTest : public ::testing::Test
-{
-protected:
-
-    virtual void SetUp() override
-    {
-        test_runner_.reset(new DBusTestRunner{});
-
-        dbus_mock_.reset(new DBusMock(*test_runner_));
-        dbus_mock_->registerTemplate(
-            DBusTypes::KEEPER_SERVICE,
-            SERVICE_TEMPLATE_FILE,
-            QDBusConnection::SessionBus
-        );
-
-        test_runner_->startServices();
-        auto conn = connection();
-        qDebug() << "session bus is" << qPrintable(conn.name());
-
-        keeper_iface_.reset(
-            new DBusInterfaceKeeper(
-                DBusTypes::KEEPER_SERVICE,
-                DBusTypes::KEEPER_SERVICE_PATH,
-                conn
-            )
-        );
-        ASSERT_TRUE(keeper_iface_->isValid()) << qPrintable(conn.lastError().message());
-
-        user_iface_.reset(
-            new DBusInterfaceKeeperUser(
-                DBusTypes::KEEPER_SERVICE,
-                DBusTypes::KEEPER_USER_PATH,
-                conn
-            )
-        );
-        ASSERT_TRUE(user_iface_->isValid()) << qPrintable(conn.lastError().message());
-
-        mock_iface_.reset(
-            new QDBusInterface(
-                DBusTypes::KEEPER_SERVICE,
-                DBusTypes::KEEPER_SERVICE_PATH,
-                QStringLiteral("com.canonical.keeper.Mock"),
-                conn
-            )
-        );
-        ASSERT_TRUE(mock_iface_->isValid()) << qPrintable(conn.lastError().message());
-    }
-
-    virtual void TearDown() override
-    {
-        user_iface_.reset();
-        keeper_iface_.reset();
-        dbus_mock_.reset();
-        test_runner_.reset();
-    }
-
-    const QDBusConnection& connection()
-    {
-        return test_runner_->sessionConnection();
-    }
-
-    std::unique_ptr<DBusTestRunner> test_runner_;
-    std::unique_ptr<DBusMock> dbus_mock_;
-    std::unique_ptr<DBusInterfaceKeeper> keeper_iface_;
-    std::unique_ptr<DBusInterfaceKeeperUser> user_iface_;
-    std::unique_ptr<QDBusInterface> mock_iface_;
-
-    void EXPECT_EVENTUALLY(std::function<bool()>&& test, qint64 timeout_msec=5000)
-    {
-        QElapsedTimer timer;
-        timer.start();
-        bool passed;
-        do {
-            passed = test();
-            if (!passed)
-                QThread::msleep(100);
-        } while (!passed && !timer.hasExpired(timeout_msec));
-        EXPECT_TRUE(passed);
-    }
-
-    void wait_for_backup_to_finish()
-    {
-        EXPECT_EVENTUALLY([this]{return !user_iface_->state().isEmpty();}); // backup running
-        EXPECT_EVENTUALLY([this]{return user_iface_->state().isEmpty();}); // backup finished
-    }
-};
-
+using KeeperTemplateTest = KeeperDBusMockFixture;
 
 /***
 ****  Quick surface-level tests
@@ -254,14 +135,12 @@ TEST_F(KeeperTemplateTest, TestEmptyStatus)
 
 TEST_F(KeeperTemplateTest, BackupRun)
 {
-    QTemporaryDir sandbox;
-
     // build a backup choice
     const auto uuid = QUuid::createUuid().toString();
     const QMap<QString,QVariant> props {
         { KEY_NAME, QStringLiteral("Music") },
         { KEY_TYPE, QStringLiteral("folder") },
-        { KEY_SUBTYPE, sandbox.path() },
+        { KEY_SUBTYPE, QStringLiteral("/home/charles/Music") },
         { KEY_ICON, QStringLiteral("music-icon") },
         { KEY_HELPER, QString::fromUtf8(FAKE_BACKUP_HELPER_EXEC) }
     };

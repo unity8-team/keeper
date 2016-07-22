@@ -17,8 +17,8 @@
  *   Charles Kerr <charles.kerr@canonical.com>
  */
 
-#include "src/qdbus-stubs/dbus-types.h"
-#include "src/qdbus-stubs/keeper_user_interface.h"
+#include "qdbus-stubs/dbus-types.h"
+#include "qdbus-stubs/keeper_user_interface.h"
 
 #include <gtest/gtest.h>
 

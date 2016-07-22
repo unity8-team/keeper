@@ -1,5 +1,4 @@
 include_directories(
-  ${CMAKE_SOURCE_DIR}/src
   ${CMAKE_CURRENT_BINARY_DIR}
 )
 
