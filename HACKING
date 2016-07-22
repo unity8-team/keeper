@@ -31,7 +31,7 @@ To build with the flags for coverage testing enabled and get coverage:
 
     $ mkdir buildcoverage
     $ cd buildcoverage
-    $ cmake -DCMAKE_BUILD_TYPE=coverage
+    $ cmake -DCMAKE_BUILD_TYPE=coverage ..
     $ make
     $ make test
     $ make coverage

@@ -1,16 +1,20 @@
-
 include_directories("${CMAKE_SOURCE_DIR}/src")
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-add_library(
-    test-utils
-    STATIC
-    main.cpp
-    dummy-file.cpp
-    xdg-user-dirs-sandbox.cpp
+set(
+  LIB_NAME
+  test-utils
 )
 
-qt5_use_modules(
-    test-utils
-    Core
+add_library(
+  ${LIB_NAME}
+  STATIC
+  main.cpp
+  dummy-file.cpp
+  xdg-user-dirs-sandbox.cpp
+)
+
+target_link_libraries(
+  ${LIB_NAME}
+  Qt5::Core
 )

@@ -1,19 +1,10 @@
-
-
-add_definitions (-DCMAKE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
-add_definitions (-DTEST_SIMPLE_HELPER="${CMAKE_BINARY_DIR}/src/simple-helper/simple-helper")
-add_definitions (-DKEEPER_SERVICE_BIN="${CMAKE_BINARY_DIR}/src/service/keeper-service")
-add_definitions (-DKEEPER_CLIENT_BIN="${CMAKE_BINARY_DIR}/src/cli/keeper")
-add_definitions (-DTEST_SIMPLE_HELPER_SH="${CMAKE_SOURCE_DIR}/src/simple-helper/helper-test.sh")
-add_definitions (-DKEEPER_TAR_CREATE_BIN="${CMAKE_BINARY_DIR}/src/tar/keeper-tar-create")
-
-pkg_check_modules(HELPERS_TEST_DEPS REQUIRED
-    ubuntu-app-launch-2
-    properties-cpp
-    dbustest-1>=14.04.0
-    glib-2.0>=2.26
-    gio-2.0>=2.26
-    gio-unix-2.0
+add_definitions(
+  -DCMAKE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+  -DTEST_SIMPLE_HELPER="${CMAKE_BINARY_DIR}/src/simple-helper/simple-helper"
+  -DKEEPER_SERVICE_BIN="${CMAKE_BINARY_DIR}/src/service/keeper-service"
+  -DKEEPER_CLIENT_BIN="${CMAKE_BINARY_DIR}/src/cli/keeper"
+  -DTEST_SIMPLE_HELPER_SH="${CMAKE_SOURCE_DIR}/src/simple-helper/helper-test.sh"
+  -DKEEPER_TAR_CREATE_BIN="${CMAKE_BINARY_DIR}/src/tar/keeper-tar-create"
 )
 
 include_directories(
@@ -25,28 +16,8 @@ include_directories(
     ${HELPERS_TEST_DEPS_INCLUDE_DIRS}
 )
 
-add_executable(
-    unit-tests
-
-    tar/tar-creator-test.cpp
-
-    storage/test-factory.cpp
-
-    helper/helpers-test.cc
-    helper/mir-mock.cpp
-
-    metadata-providers/user-dirs-test.cpp
-)
-
-qt5_use_modules(
-    unit-tests
-    Core
-    DBus
-    Test
-)
-
-target_link_libraries(
-    unit-tests
+set(
+    UNIT_TEST_LIBRARIES
     backup-helper
     test-utils
     keeperservice
@@ -58,9 +29,12 @@ target_link_libraries(
     ${GMOCK_LIBRARIES}
 )
 
-add_test(
-    unit-tests
-    unit-tests
-)
-
 add_subdirectory(helper)
+add_subdirectory(metadata-providers)
+add_subdirectory(tar)
+
+set(
+  UNIT_TEST_TARGETS
+  ${UNIT_TEST_TARGETS}
+  PARENT_SCOPE
+)

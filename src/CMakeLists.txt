@@ -11,3 +11,9 @@ add_subdirectory(helper)
 add_subdirectory(storage-framework)
 add_subdirectory(simple-helper)
 add_subdirectory(tar)
+
+set(
+  COVERAGE_TEST_TARGETS
+  ${COVERAGE_TEST_TARGETS}
+  PARENT_SCOPE
+)

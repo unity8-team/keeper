@@ -1,9 +1,13 @@
-
 include(FindPkgConfig)
-pkg_check_modules(UAL REQUIRED ubuntu-app-launch-2)
-include_directories(SYSTEM ${UAL_INCLUDE_DIRS})
-pkg_check_modules(PROP-CPP REQUIRED properties-cpp)
-include_directories(SYSTEM ${PROP-CPP_INCLUDE_DIRS})
+pkg_check_modules(BACKUP_HELPER_DEPENDENCIES REQUIRED
+  ubuntu-app-launch-2
+  properties-cpp
+)
+
+include_directories(
+  SYSTEM
+  ${BACKUP_HELPER_DEPENDENCIES_INCLUDE_DIRS}
+)
 
 add_library(
   backup-helper
@@ -14,11 +18,19 @@ add_library(
   ${CMAKE_SOURCE_DIR}/include/helper/backup-helper.h
 )
 
-qt5_use_modules(backup-helper Core DBus Network)
-set_target_properties(backup-helper PROPERTIES AUTOMOC TRUE)
+set_target_properties(
+  backup-helper
+  PROPERTIES
+  AUTOMOC TRUE
+)
 
-target_link_libraries(backup-helper
-                      ${UAL_LIBRARIES})
+target_link_libraries(
+  backup-helper
+  ${BACKUP_HELPER_DEPENDENCIES_LIBRARIES}
+  Qt5::Core
+  Qt5::DBus
+  Qt5::Network
+)
 
 install(
   FILES ${CMAKE_SOURCE_DIR}/src/helper/exec-tool
