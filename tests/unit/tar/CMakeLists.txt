@@ -31,7 +31,7 @@ add_test(
 
 set(
   KEEPER_TAR_CREATE_TEST
-  keeper-tar-create-test.cpp
+  keeper-tar-create-test
 )
 
 add_executable(
