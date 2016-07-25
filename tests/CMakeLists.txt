@@ -40,6 +40,8 @@ pkg_check_modules(TEST_DEPENDENCIES
 
 include_directories(
   ${CMAKE_SOURCE_DIR}
+  ${CMAKE_SOURCE_DIR}/src
+  ${CMAKE_BINARY_DIR}/src
   ${Qt5Test_INCLUDE_DIRS}
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_BINARY_DIR}

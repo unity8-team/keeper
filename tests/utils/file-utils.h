@@ -15,16 +15,17 @@
  *
  * Authors:
  *   Charles Kerr <charles.kerr@canonical.com>
+ *   Xavi Garcia <xavi.garcia.mena@gmail.com>
  */
 
 #pragma once
 
+#include <QByteArray>
 #include <QDir>
 #include <QFileInfo>
-#include <QByteArray>
-#include <QVector>
+#include <QString>
 
-namespace DummyFile
+namespace FileUtils
 {
     struct Info
     {
@@ -32,7 +33,13 @@ namespace DummyFile
         QByteArray checksum;
     };
 
-    Info create(const QDir& dir, qint64 filesize);
+    Info createDummyFile(const QDir& dir, qint64 filesize);
 
     bool fillTemporaryDirectory(QString const & dir, int max_files_per_test=100, int max_filesize=1024, int max_dirs=20);
+
+    bool compareFiles(QString const & filePath1, QString const & filePath2);
+
+    bool compareDirectories(QString const & dir1Path, QString const & dir2Path);
+
+    QStringList getFilesRecursively(QString const & dirPath);
 };

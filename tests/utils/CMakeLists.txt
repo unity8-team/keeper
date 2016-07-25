@@ -1,5 +1,4 @@
 include_directories(
-  ${CMAKE_SOURCE_DIR}/src
   ${CMAKE_CURRENT_BINARY_DIR}
 )
 
@@ -12,7 +11,7 @@ add_library(
   ${LIB_NAME}
   STATIC
   main.cpp
-  dummy-file.cpp
+  file-utils.cpp
   xdg-user-dirs-sandbox.cpp
 )
 
