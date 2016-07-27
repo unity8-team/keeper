@@ -140,6 +140,7 @@ private:
 
     void on_inactivity_detected()
     {
+        stop_inactivity_timer();
         qWarning() << "Inactivity detected in the helper...stopping it";
         stop();
     }
@@ -201,6 +202,11 @@ private:
     {
         static constexpr int MAX_TIME_WAITING_FOR_DATA {10000};
         timer_->start(MAX_TIME_WAITING_FOR_DATA);
+    }
+
+    void stop_inactivity_timer()
+    {
+        timer_->stop();
     }
 
     void check_for_done()
@@ -281,6 +287,7 @@ private:
         qDebug() << "HELPER STOPPED +++++++++++++++++++++++++++++++++++++ " << appid;
         auto self = static_cast<BackupHelperPrivate*>(vself);
         self->check_for_done();
+        self->stop_inactivity_timer();
     }
 
     std::vector<ubuntu::app_launch::Helper::URL> get_helper_urls(QString const & /*appId*/)
