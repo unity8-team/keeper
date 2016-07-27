@@ -20,23 +20,6 @@ set(
 ###
 
 set(
-    BACKUP_HELPER
-    fake-backup-helper
-)
-
-add_executable(
-    ${BACKUP_HELPER}
-    fake-backup-helper.cpp
-)
-target_link_libraries(
-    ${BACKUP_HELPER}
-    ${LINK_LIBS}
-)
-
-###
-###
-
-set(
     TEST_NAME
     keeper-template-test
 )
@@ -48,7 +31,7 @@ add_executable(
 
 set_property(
     SOURCE keeper-template-test.cpp
-    PROPERTIES APPEND_STRING PROPERTY COMPILE_DEFINITIONS FAKE_BACKUP_HELPER_EXEC=\"${CMAKE_CURRENT_BINARY_DIR}/${BACKUP_HELPER}\"
+    PROPERTIES APPEND_STRING PROPERTY COMPILE_DEFINITIONS FAKE_BACKUP_HELPER_EXEC=\"${CMAKE_BINARY_DIR}/tests/fakes/${BACKUP_HELPER}\"
 )
 
 target_link_libraries(

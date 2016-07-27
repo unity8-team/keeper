@@ -59,5 +59,10 @@ main(int argc, char **argv)
     qDebug() << "wrote" << sock.write(blob) << "bytes";
     sock.flush();
 
+    // create the mark file so we can check when it finished without upstart
+    QFile markFile(SIMPLE_HELPER_MARK_FILE_PATH);
+    markFile.open(QFile::WriteOnly);
+    markFile.close();
+
     return EXIT_SUCCESS;
 }
