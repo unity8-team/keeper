@@ -14,6 +14,25 @@ set(CMAKE_CXX_FLAGS ${old_cxx_flags})
 ###  Service DBusMock
 ###
 
+set(
+    BACKUP_HELPER
+    fake-backup-helper
+)
+
+set(KEEPER_TAR_CREATE_BIN ${CMAKE_BINARY_DIR}/src/tar/keeper-tar-create)
+set(KEEPER_TAR_CREATE_INVOKE ${CMAKE_CURRENT_BINARY_DIR}/tar/keeper-tar-create-invoke.sh)
+
+add_definitions(
+  -DCMAKE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+  -DCMAKE_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}"
+  -DTEST_SIMPLE_HELPER="${CMAKE_BINARY_DIR}/tests/fakes/${BACKUP_HELPER}"
+  -DKEEPER_SERVICE_BIN="${CMAKE_BINARY_DIR}/src/service/keeper-service"
+  -DKEEPER_CLIENT_BIN="${CMAKE_BINARY_DIR}/src/cli/keeper"
+  -DTEST_SIMPLE_HELPER_SH="${CMAKE_SOURCE_DIR}/tests/fakes/helper-test.sh"
+  -DKEEPER_TAR_CREATE_BIN="${KEEPER_TAR_CREATE_BIN}"
+  -DKEEPER_TAR_CREATE_INVOKE="${KEEPER_TAR_CREATE_INVOKE}"
+)
+
 set(SERVICE_TEMPLATE_FILE "${CMAKE_CURRENT_SOURCE_DIR}/com_canonical_keeper.py")
 add_definitions(-DSERVICE_TEMPLATE_FILE="${SERVICE_TEMPLATE_FILE}")
 
@@ -54,6 +73,8 @@ add_subdirectory(surface)
 add_subdirectory(dbusmock)
 add_subdirectory(unit)
 add_subdirectory(utils)
+add_subdirectory(fakes)
+add_subdirectory(integration)
 
 set(
   UNIT_TEST_TARGETS

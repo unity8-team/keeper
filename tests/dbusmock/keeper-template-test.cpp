@@ -17,7 +17,7 @@
  *   Charles Kerr <charles.kerr@canonical.com>
  */
 
-#include "fake-backup-helper.h"
+#include "tests/fakes/fake-backup-helper.h"
 
 #include "tests/utils/keeper-dbusmock-fixture.h"
 
