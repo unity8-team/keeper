@@ -42,7 +42,7 @@ StorageFrameworkClient::StorageFrameworkClient(QObject *parent)
 }
 
 
-void StorageFrameworkClient::getNewFileForBackup(quint64 /*n_bytes*/)
+void StorageFrameworkClient::getNewFileForBackup(quint64 n_bytes)
 {
     // Get the acccounts. (There is only one account for the local client implementation.)
     // We do this synchronously for simplicity.
@@ -60,7 +60,7 @@ void StorageFrameworkClient::getNewFileForBackup(quint64 /*n_bytes*/)
         QDateTime now = QDateTime::currentDateTime();
         QString new_file_name = QString("Backup_%1").arg(now.toString("dd.MM.yyyy-hh:mm:ss.zzz"));
 
-        uploader_ready_watcher_.setFuture(root->create_file(new_file_name));
+        uploader_ready_watcher_.setFuture(root->create_file(new_file_name, n_bytes));
     }
     catch (std::exception & e)
     {
