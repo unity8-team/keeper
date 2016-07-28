@@ -79,8 +79,9 @@
                     * 'percent-done' (double): how much of this task is complete
                     * 'speed' (int32): bytes per second
           </doc:para>
-          <doc:para>A failed task's property map may also contain an 'error'
-                    string if set by the backup helpers.</doc:para>
+          <doc:para>If a task's 'action' state is 'failed' the property map also includes:
+                    * 'error' (string): a human-readable error message
+        </doc:para>
         </doc:description>
       </doc:doc>
     </property>
