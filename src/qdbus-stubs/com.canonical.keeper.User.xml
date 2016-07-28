@@ -77,13 +77,7 @@
                     * a 'display-name' string
                     * a 'speed' int32 (bytes per second)
           </doc:para>
-          <doc:para>Some property maps may also have an 'item' string
-                    and a 'percent-done' double [0..1.0].
-                    For example if these are set to (1, “Photos”, 0.36),
-                    the user interface could show “Backing up Photos (36%)”.
-                    Clients should gracefully handle missing properties;
-                    eg a missing percent-done could instead show
-                    “Backing up Photos”.</doc:para>
+          <doc:para>Some property maps may also have a 'percent-done' double [0..1.0].</doc:para>
           <doc:para>A failed task's property map may also contain an 'error'
                     string if set by the backup helpers.</doc:para>
         </doc:description>
