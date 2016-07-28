@@ -41,6 +41,7 @@
 #define KEY_NAME "display-name"
 #define KEY_PERCENT "percent-done"
 #define KEY_SIZE "size"
+#define KEY_SPEED "speed"
 #define KEY_SUBTYPE "subtype"
 #define KEY_TYPE "type"
 #define KEY_UUID "uuid"

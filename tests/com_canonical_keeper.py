@@ -5,6 +5,7 @@ import os
 import socket
 import subprocess
 import sys
+import time
 from dbusmock import OBJECT_MANAGER_IFACE, mockobject
 from gi.repository import GLib
 
@@ -47,6 +48,7 @@ KEY_BLOB = 'blob-data'
 KEY_HELPER = 'helper-exec'
 KEY_ICON = 'icon'
 KEY_NAME = 'display-name'
+KEY_SPEED = 'speed'
 KEY_SIZE = 'size'
 KEY_SUBTYPE = 'subtype'
 KEY_TYPE = 'type'
@@ -179,21 +181,9 @@ def user_cancel(user):
 def user_build_state(user):
     """Returns a generated state dictionary.
 
-    State is a map of opaque backup keys to property maps,
-    which will contain a 'display-name' string and 'action' int
-    whose possible values are queued(0), saving(1),
-    restoring(2), complete(3), and stopped(4).
-
-    Some property maps may also have an 'item' string
-    and a 'percent-done' double [0..1.0].
-    For example if these are set to (1, "Photos", 0.36),
-    the user interface could show "Backing up Photos (36%)".
-    Clients should gracefully handle missing properties;
-    eg a missing percent-done could instead show
-    "Backing up Photos".
-
-    A failed task's property map may also contain an 'error'
-    string if set by the backup helpers.
+    State is a map of opaque backup keys to property maps.
+    See the documentation for com.canonical.keeper.User's
+    State() method for more information.
     """
 
     tasks_states = {}
@@ -220,6 +210,20 @@ def user_build_state(user):
             fail("couldn't find a choice for uuid %s" % (uuid))
         display_name = choice.get(KEY_NAME, None)
         task_state[KEY_NAME] = dbus.String(display_name)
+
+        # speed
+        helper = mockobject.objects[HELPER_PATH]
+        if (uuid == user.current_task) and helper.work:
+            n_secs = 2
+            n_bytes = 0
+            too_old = time.time() - n_secs
+            for key in helper.work.bytes_per_second:
+                if key > too_old:
+                    n_bytes += helper.work.bytes_per_second[key]
+            bytes_per_second = n_bytes / n_secs
+        else:
+            bytes_per_second = 0
+        task_state[KEY_SPEED] = dbus.Int32(bytes_per_second)
 
         # FIXME: use a real percentage here
         if action == ACTION_COMPLETE:
@@ -256,6 +260,7 @@ class HelperWork:
     n_left = None
     sock = None
     uuid = None
+    bytes_per_second = None
 
 
 def helper_periodic_func(helper):
@@ -265,10 +270,15 @@ def helper_periodic_func(helper):
 
     # try to read a bit
     chunk = helper.work.sock.recv(4096*2)
-    if len(chunk):
+    chunk_len = len(chunk)
+    if chunk_len:
         helper.work.chunks.append(chunk)
-        helper.work.n_left -= len(chunk)
-        helper.log('got %s bytes; %s left' % (len(chunk), helper.work.n_left))
+        helper.work.n_left -= chunk_len
+        key = int(time.time())
+        old_n_bytes = helper.work.bytes_per_second.get(key, 0)
+        new_n_bytes = old_n_bytes + chunk_len
+        helper.work.bytes_per_second[key] = new_n_bytes
+        helper.log('got %s bytes; %s left' % (chunk_len, helper.work.n_left))
 
     # cleanup if done
     done = helper.work.n_left <= 0
@@ -284,7 +294,7 @@ def helper_periodic_func(helper):
         user.start_next_task(user)
         helper.work = None
 
-    if len(chunk) or done:
+    if chunk_len or done:
         user = mockobject.objects[USER_PATH]
         user.update_state_property(user)
 
@@ -306,6 +316,7 @@ def helper_start_backup(helper, n_bytes):
     work.n_left = n_bytes
     work.sock = parent
     work.uuid = mockobject.objects[USER_PATH].current_task
+    work.bytes_per_second = {}
     helper.work = work
 
     # start checking periodically
