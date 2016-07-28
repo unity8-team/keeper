@@ -43,7 +43,6 @@ TEST_F(KeeperTarCreateFixture, BackupRun)
         // tell keeper that's a backup choice
         const auto uuid = add_backup_choice(QMap<QString,QVariant>{
             { KEY_NAME, QDir(in.path()).dirName() },
-            { KEY_ICON, QStringLiteral("folder") },
             { KEY_TYPE, QStringLiteral("folder") },
             { KEY_SUBTYPE, in.path() },
             { KEY_HELPER, QString::fromUtf8(KEEPER_TAR_CREATE_INVOKE) }

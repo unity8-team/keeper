@@ -37,7 +37,6 @@
 #define KEY_CTIME "ctime"
 #define KEY_BLOB "blob-data"
 #define KEY_HELPER "helper-exec"
-#define KEY_ICON "icon"
 #define KEY_NAME "display-name"
 #define KEY_PERCENT "percent-done"
 #define KEY_SIZE "size"

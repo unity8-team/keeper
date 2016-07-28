@@ -14,8 +14,7 @@
                   as a map from opaque backup keys to key/value pairs
                   of the choice’s properties,
                   including a ‘display-name’ string,
-                  ‘type’ string (‘application’, ‘system-data’, or ‘folder’)
-                  and, when possible, an ‘icon’ symbolic icon string.</doc:para>
+                  ‘type’ string (‘application’, ‘system-data’, or ‘folder’).</doc:para>
         <doc:para>The choices should be presented to the user,
                   and the keys of those selected should be passed
                   to StartBackup().</doc:para>

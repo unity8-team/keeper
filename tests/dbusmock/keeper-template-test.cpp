@@ -51,7 +51,6 @@ TEST_F(KeeperTemplateTest, BackupChoices)
         { KEY_NAME, QStringLiteral("some-name") },
         { KEY_TYPE, QStringLiteral("some-type") },
         { KEY_SUBTYPE, QStringLiteral("some-subtype") },
-        { KEY_ICON, QStringLiteral("some-icon") },
         { KEY_HELPER, QString::fromUtf8(FAKE_BACKUP_HELPER_EXEC) }
     };
 
@@ -90,7 +89,6 @@ TEST_F(KeeperTemplateTest, RestoreChoices)
         { KEY_NAME, QStringLiteral("some-name") },
         { KEY_TYPE, QStringLiteral("some-type") },
         { KEY_SUBTYPE, QStringLiteral("some-subtype") },
-        { KEY_ICON, QStringLiteral("some-icon") },
         { KEY_HELPER, QString::fromUtf8("/dev/null") },
         { KEY_SIZE, quint64(blob.size()) },
         { KEY_CTIME, quint64(time(nullptr)) },
@@ -143,7 +141,6 @@ TEST_F(KeeperTemplateTest, BackupRun)
         { KEY_NAME, QStringLiteral("Music") },
         { KEY_TYPE, QStringLiteral("folder") },
         { KEY_SUBTYPE, sandbox.path() },
-        { KEY_ICON, QStringLiteral("music-icon") },
         { KEY_HELPER, QString::fromUtf8(FAKE_BACKUP_HELPER_EXEC) }
     };
 

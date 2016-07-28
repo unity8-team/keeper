@@ -70,13 +70,11 @@ TEST_F(UserDirsProviderTest, UserDirs)
 
     // confirm that choices has the advertised public properties
     const auto type_str = QStringLiteral("type");
-    const auto icon_str = QStringLiteral("icon");
     for(const auto& choice : choices)
     {
         ASSERT_FALSE(choice.key().isEmpty());
         ASSERT_FALSE(choice.display_name().isEmpty());
         ASSERT_TRUE(choice.has_property(type_str));
-        EXPECT_TRUE(choice.has_property(icon_str));
     }
 
     // confirm that we have a system-data choice
@@ -86,7 +84,7 @@ TEST_F(UserDirsProviderTest, UserDirs)
             break;
     ASSERT_TRUE(i != n);
     auto system_data = choices[i];
-    EXPECT_TRUE(system_data.has_property(icon_str));
+    EXPECT_TRUE(system_data.has_property(type_str));
 
     // confirm that we have user-dir choices
     std::set<QString> expected_user_dir_display_names = {
