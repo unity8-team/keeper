@@ -1,4 +1,3 @@
 /usr/lib/*/keeper/keeper-service
-/usr/lib/*/keeper/simple-helper
 /usr/lib/*/ubuntu-app-launch/backup-helper/exec-tool
 /usr/lib/*/keeper/keeper-tar-create

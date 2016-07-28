@@ -36,11 +36,15 @@ class BackupHelper : public Helper
     Q_DECLARE_PRIVATE(BackupHelper)
 
 public:
-    BackupHelper(QString const &appid, QObject * parent=nullptr);
+    BackupHelper(
+        QString const & appid,
+        clock_func const & clock=Helper::default_clock,
+        QObject * parent=nullptr
+    );
     virtual ~BackupHelper();
     Q_DISABLE_COPY(BackupHelper)
 
-    void set_storage_framework_socket(qint64 n_bytes, std::shared_ptr<QLocalSocket> const& sf_socket);
+    void set_storage_framework_socket(int sd);
     void start();
     void stop();
     int get_helper_socket() const;

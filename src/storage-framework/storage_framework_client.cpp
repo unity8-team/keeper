@@ -94,5 +94,9 @@ void StorageFrameworkClient::closeUploader()
 void StorageFrameworkClient::uploaderReady()
 {
     uploader_ = uploader_ready_watcher_.result();
-    Q_EMIT (socketReady(uploader_->socket()));
+
+    auto socket = uploader_->socket();
+    auto sd = int(socket->socketDescriptor());
+    Q_EMIT (socketReady(sd));
+
 }

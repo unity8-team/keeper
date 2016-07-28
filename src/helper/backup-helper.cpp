@@ -62,7 +62,6 @@ public:
         , upload_buffer_{}
         , n_read_{}
         , n_uploaded_{}
-        , n_expected_{}
         , read_error_{}
         , write_error_{}
         , cancelled_{}
@@ -72,6 +71,11 @@ public:
         // listen for inactivity
         QObject::connect(timer_.data(), &QTimer::timeout,
             std::bind(&BackupHelperPrivate::on_inactivity_detected, this)
+        );
+
+        // listen for data uploaded
+        QObject::connect(storage_framework_socket_.data(), &QLocalSocket::bytesWritten,
+            std::bind(&BackupHelperPrivate::on_data_uploaded, this, std::placeholders::_1)
         );
 
         // listen for data ready to read
@@ -108,21 +112,16 @@ public:
         reset_inactivity_timer();
     }
 
-    void set_storage_framework_socket(qint64 n_bytes, std::shared_ptr<QLocalSocket> const &sf_socket)
+    void set_storage_framework_socket(int sd)
     {
         n_read_ = 0;
         n_uploaded_ = 0;
-        n_expected_ = n_bytes;
         read_error_ = false;
         write_error_ = false;
         cancelled_ = false;
 
-        storage_framework_socket_ = sf_socket;
+        storage_framework_socket_->setSocketDescriptor(sd, QLocalSocket::ConnectedState, QIODevice::WriteOnly);
 
-        // listen for data uploaded
-        QObject::connect(storage_framework_socket_.get(), &QLocalSocket::bytesWritten,
-            std::bind(&BackupHelperPrivate::on_data_uploaded, this, std::placeholders::_1)
-        );
         reset_inactivity_timer();
     }
 
@@ -141,6 +140,7 @@ private:
 
     void on_inactivity_detected()
     {
+        stop_inactivity_timer();
         qWarning() << "Inactivity detected in the helper...stopping it";
         stop();
     }
@@ -189,7 +189,6 @@ private:
             else {
                 if (n < 0) {
                     write_error_ = true;
-                    qWarning() << "Write error: " << storage_framework_socket_->errorString();
                     stop();
                 }
                 break;
@@ -205,19 +204,24 @@ private:
         timer_->start(MAX_TIME_WAITING_FOR_DATA);
     }
 
+    void stop_inactivity_timer()
+    {
+        timer_->stop();
+    }
+
     void check_for_done()
     {
-        if (n_uploaded_ == n_expected_)
+        if (n_uploaded_ == q_ptr->expected_size())
         {
-            q_ptr->setState(Helper::State::COMPLETE);
+            q_ptr->set_state(Helper::State::COMPLETE);
         }
         else if (read_error_ || write_error_)
         {
-            q_ptr->setState(Helper::State::FAILED);
+            q_ptr->set_state(Helper::State::FAILED);
         }
         else if (cancelled_)
         {
-            q_ptr->setState(Helper::State::CANCELLED);
+            q_ptr->set_state(Helper::State::CANCELLED);
         }
     }
 
@@ -275,7 +279,7 @@ private:
     {
         qDebug() << "HELPER STARTED +++++++++++++++++++++++++++++++++++++ " << appid;
         auto self = static_cast<BackupHelperPrivate*>(vself);
-        self->q_ptr->setState(Helper::State::STARTED);
+        self->q_ptr->set_state(Helper::State::STARTED);
     }
 
     static void on_helper_stopped(const char* appid, const char* /*instance*/, const char* /*type*/, void* vself)
@@ -283,6 +287,7 @@ private:
         qDebug() << "HELPER STOPPED +++++++++++++++++++++++++++++++++++++ " << appid;
         auto self = static_cast<BackupHelperPrivate*>(vself);
         self->check_for_done();
+        self->stop_inactivity_timer();
     }
 
     std::vector<ubuntu::app_launch::Helper::URL> get_helper_urls(QString const & /*appId*/)
@@ -326,13 +331,12 @@ private:
     const QString appid_;
     QScopedPointer<QTimer> timer_;
     std::shared_ptr<ubuntu::app_launch::Registry> registry_;
-    std::shared_ptr<QLocalSocket> storage_framework_socket_;
+    QScopedPointer<QLocalSocket> storage_framework_socket_;
     QScopedPointer<QLocalSocket> helper_socket_;
     QScopedPointer<QLocalSocket> read_socket_;
     QByteArray upload_buffer_;
     qint64 n_read_;
     qint64 n_uploaded_;
-    qint64 n_expected_;
     bool read_error_;
     bool write_error_;
     bool cancelled_;
@@ -344,9 +348,10 @@ private:
 
 BackupHelper::BackupHelper(
     QString const & appid,
+    clock_func const & clock,
     QObject * parent
 )
-    : Helper(parent)
+    : Helper(clock, parent)
     , d_ptr(new BackupHelperPrivate(this, appid))
 {
 }
@@ -370,11 +375,11 @@ BackupHelper::stop()
 }
 
 void
-BackupHelper::set_storage_framework_socket(qint64 n_bytes, std::shared_ptr<QLocalSocket> const &sf_socket)
+BackupHelper::set_storage_framework_socket(int sd)
 {
     Q_D(BackupHelper);
 
-    d->set_storage_framework_socket(n_bytes, sf_socket);
+    d->set_storage_framework_socket(sd);
 }
 
 int

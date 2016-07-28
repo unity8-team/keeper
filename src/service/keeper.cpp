@@ -60,7 +60,7 @@ public:
         , cached_restore_choices_()
     {
         // listen for backup helper state changes
-        QObject::connect(backup_helper_.data(), &Helper::stateChanged,
+        QObject::connect(backup_helper_.data(), &Helper::state_changed,
             std::bind(&KeeperPrivate::on_backup_helper_state_changed, this, std::placeholders::_1)
         );
     }
@@ -121,13 +121,12 @@ Keeper::StartBackup(QDBusConnection bus, const QDBusMessage& msg, quint64 n_byte
 
     // the next time we get a socket from storage-framework, return it to our caller
     auto conn = new QMetaObject::Connection();
-    auto on_socket_ready = [bus,msg,n_bytes,this,d,conn](std::shared_ptr<QLocalSocket> const &sf_socket)
-    {
-        if (sf_socket)
-        {
-            qDebug("getNewFileForBackup() returned socket %d", int(sf_socket->socketDescriptor()));
-            qDebug("calling helper.set_storage_framework_socket(n_bytes=%zu socket=%d)", size_t(n_bytes), int(sf_socket->socketDescriptor()));
-            d->backup_helper_->set_storage_framework_socket(n_bytes, sf_socket);
+    auto on_socket_ready = [bus,msg,n_bytes,this,d,conn](int sd) {
+        qDebug("getNewFileForBackup() returned socket %d", sd);
+        if (sd != -1) {
+            qDebug("calling helper.set_storage_framework_socket(n_bytes=%zu socket=%d)", size_t(n_bytes), sd);
+            d->backup_helper_->set_expected_size(n_bytes);
+            d->backup_helper_->set_storage_framework_socket(sd);
         }
         auto reply = msg.createReply();
         reply << QVariant::fromValue(QDBusUnixFileDescriptor(d->backup_helper_->get_helper_socket()));
@@ -154,6 +153,11 @@ void Keeper::finish()
     qDebug() << "Closing the socket-------";
 
     d->storage_->closeUploader();
+}
+
+void Keeper::socketClosed()
+{
+    qDebug() << "The storage framework socket was closed";
 }
 
 QVector<Metadata>

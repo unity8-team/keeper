@@ -1,45 +1,50 @@
-add_definitions ( -DCMAKE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}" )
-add_definitions ( -DCMAKE_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}" )
-
-include(FindPkgConfig)
-pkg_check_modules(UAL REQUIRED ubuntu-app-launch-2)
-pkg_check_modules(PROP-CPP REQUIRED properties-cpp)
-
-pkg_check_modules(DBUSTEST REQUIRED dbustest-1>=14.04.0)
-include_directories(${DBUSTEST_INCLUDE_DIRS})
-
-pkg_check_modules(GIO2 REQUIRED gio-2.0 gio-unix-2.0)
-include_directories(${GIO2_INCLUDE_DIRS})
-
-# Google Test
-
-include_directories(${GTEST_INCLUDE_DIR})
-
-#add_library (gtest2 STATIC
-#             ${GTEST_SOURCE_DIR}/gtest-all.cc
-#             ${GTEST_SOURCE_DIR}/gtest_main.cc)
-
-# libUAL Test
-include_directories(${UAL_INCLUDE_DIRS})
-include_directories(${PROP-CPP_INCLUDE_DIRS})
-
-add_executable (helpers-test
-    helpers-test.cc
-    mir-mock.cpp
+add_definitions(
+  -DCMAKE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+  -DCMAKE_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-set_target_properties(helpers-test PROPERTIES COMPILE_FLAGS -fPIC)
-set_target_properties(helpers-test PROPERTIES AUTOMOC TRUE)
-qt5_use_modules(helpers-test Core DBus Test)
+#
+# speed-test
+#
 
-target_link_libraries(helpers-test
-                        gtest
-                        backup-helper
-                        test-utils
-                        ${GTEST_LIBS}
-                        ${LIBUPSTART_LIBRARIES}
-                        ${DBUSTEST_LIBRARIES}
-                        ${UAL_LIBRARIES}
-                        ${GIO2_LIBRARIES})
+set(
+  SPEED_TEST
+  helper-speed-test
+)
 
-add_test (NAME helpers-test COMMAND helpers-test)
+add_executable(
+  ${SPEED_TEST}
+  speed-test.cpp
+  fake-helper.h
+)
+
+set_target_properties(
+  ${SPEED_TEST}
+  PROPERTIES
+  COMPILE_FLAGS -fPIC
+  AUTOMOC TRUE
+)
+
+target_link_libraries(
+  ${SPEED_TEST}
+  ${UNIT_TEST_LIBRARIES}
+  Qt5::Core
+  Qt5::DBus
+  Qt5::Test
+)
+
+add_test(
+  NAME ${SPEED_TEST}
+  COMMAND ${SPEED_TEST}
+)
+
+#
+#
+#
+
+set(
+  UNIT_TEST_TARGETS
+  ${UNIT_TEST_TARGETS}
+  ${SPEED_TEST}
+  PARENT_SCOPE
+)

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Canonical, Ltd.
+ * Copyright 2016 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 3, as published
@@ -15,15 +15,31 @@
  *
  * Authors:
  *   Charles Kerr <charles.kerr@canonical.com>
+ *   Xavi Garcia <xavi.garcia.mena@gmail.com>
  */
 
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
+#pragma once
 
-class TestFactory : public ::testing::Test
+#include <QByteArray>
+#include <QDir>
+#include <QFileInfo>
+#include <QString>
+
+namespace FileUtils
 {
+    struct Info
+    {
+        QFileInfo info;
+        QByteArray checksum;
+    };
+
+    Info createDummyFile(const QDir& dir, qint64 filesize);
+
+    bool fillTemporaryDirectory(QString const & dir, int max_files_per_test=100, int max_filesize=1024, int max_dirs=20);
+
+    bool compareFiles(QString const & filePath1, QString const & filePath2);
+
+    bool compareDirectories(QString const & dir1Path, QString const & dir2Path);
+
+    QStringList getFilesRecursively(QString const & dirPath);
 };
-
-TEST_F(TestFactory, HelloWorld)
-{
-}

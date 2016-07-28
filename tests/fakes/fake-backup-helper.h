@@ -19,6 +19,8 @@
 
 #pragma once
 
+namespace
+{
 static const char* FAKE_BACKUP_HELPER_PAYLOAD = R"(
     Oh mmm I know a place
     Ain't nobody cryin'
@@ -36,3 +38,7 @@ static const char* FAKE_BACKUP_HELPER_PAYLOAD = R"(
     Oh-oh! Let me take you there! (I'll take you there)
     Play your, play your piano now
 )";
+
+static char const SIMPLE_HELPER_MARK_FILE_PATH[] = "/tmp/simple-helper-finished";
+
+}

@@ -19,20 +19,18 @@
 
 #pragma once
 
-#include <QDir>
-#include <QFileInfo>
-#include <QByteArray>
-#include <QVector>
+#include <helper/helper.h>
 
-namespace DummyFile
+class TestHelper: public Helper
 {
-    struct Info
-    {
-        QFileInfo info;
-        QByteArray checksum;
-    };
+    Q_OBJECT
 
-    Info create(const QDir& dir, qint64 filesize);
+public:
 
-    bool fillTemporaryDirectory(QString const & dir, int max_files_per_test=100, int max_filesize=1024, int max_dirs=20);
+    TestHelper(clock_func const & clock = default_clock, QObject *parent = nullptr): Helper{clock, parent} {}
+
+    ~TestHelper() =default;
+
+    void record_data_transferred(qint64 n) {Helper::record_data_transferred(n);}
+    void set_expected_size(qint64 n) {Helper::set_expected_size(n);}
 };
