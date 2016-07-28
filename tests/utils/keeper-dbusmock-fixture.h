@@ -46,13 +46,12 @@
 #define KEY_UUID "uuid"
 
 // FIXME: this should go in a shared header in include/
-enum
-{
-    ACTION_QUEUED = 0,
-    ACTION_SAVING = 1,
-    ACTION_RESTORING = 2,
-    ACTION_IDLE = 3
-};
+static constexpr char const * ACTION_QUEUED = {"queued"};
+static constexpr char const * ACTION_SAVING = {"saving"};
+static constexpr char const * ACTION_RESTORING = {"restoring"};
+static constexpr char const * ACTION_CANCELLED = {"cancelled"};
+static constexpr char const * ACTION_FAILED = {"failed"};
+static constexpr char const * ACTION_COMPLETE = {"complete"};
 
 using namespace QtDBusMock;
 using namespace QtDBusTest;

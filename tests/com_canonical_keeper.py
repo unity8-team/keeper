@@ -37,12 +37,14 @@ MAIN_IFACE = SERVICE_IFACE
 MAIN_OBJ = SERVICE_PATH
 SYSTEM_BUS = False
 
-ACTION_QUEUED = 0
-ACTION_SAVING = 1
-ACTION_RESTORING = 2
-ACTION_COMPLETE = 3
-ACTION_STOPPED = 4
+ACTION_QUEUED = 'queued'
+ACTION_SAVING = 'saving'
+ACTION_RESTORING = 'restoring'
+ACTION_CANCELLED = 'cancelled'
+ACTION_FAILED = 'failed'
+ACTION_COMPLETE = 'complete'
 
+KEY_ACTION = 'action'
 KEY_CTIME = 'ctime'
 KEY_BLOB = 'blob-data'
 KEY_HELPER = 'helper-exec'
@@ -197,9 +199,9 @@ def user_build_state(user):
                 action = ACTION_RESTORING
         elif uuid in user.remaining_tasks:
             action = ACTION_QUEUED
-        else:  # FIXME: 'ACTION_STOPPED' not handled yet
+        else:  # fixme: handle ACTION_CANCELLED, ACTION_FAILED
             action = ACTION_COMPLETE
-        task_state['action'] = dbus.Int32(action)
+        task_state[KEY_ACTION] = dbus.String(action)
 
         # get the task's display-name
         choice = user.backup_choices.get(uuid, None)
@@ -225,6 +227,7 @@ def user_build_state(user):
         task_state[KEY_SPEED] = dbus.Int32(bytes_per_second)
 
         # FIXME: use a real percentage here
+        # FIXME: handle ACTION_CANCELLED, ACTION_FAILED
         if action == ACTION_COMPLETE:
             percent_done = dbus.Double(1.0)
         elif action == ACTION_SAVING or action == ACTION_RESTORING:
