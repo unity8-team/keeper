@@ -40,7 +40,6 @@ XdgUserDirsSandbox::init()
 
     // create the user dirs
 
-    qputenv("HOME", top.path().toUtf8());
     const struct {
         const char * key;
         const char * dirname;
