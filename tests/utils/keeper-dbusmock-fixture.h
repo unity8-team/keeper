@@ -37,22 +37,21 @@
 #define KEY_CTIME "ctime"
 #define KEY_BLOB "blob-data"
 #define KEY_HELPER "helper-exec"
-#define KEY_ICON "icon"
 #define KEY_NAME "display-name"
 #define KEY_PERCENT "percent-done"
 #define KEY_SIZE "size"
+#define KEY_SPEED "speed"
 #define KEY_SUBTYPE "subtype"
 #define KEY_TYPE "type"
 #define KEY_UUID "uuid"
 
 // FIXME: this should go in a shared header in include/
-enum
-{
-    ACTION_QUEUED = 0,
-    ACTION_SAVING = 1,
-    ACTION_RESTORING = 2,
-    ACTION_IDLE = 3
-};
+static constexpr char const * ACTION_QUEUED = {"queued"};
+static constexpr char const * ACTION_SAVING = {"saving"};
+static constexpr char const * ACTION_RESTORING = {"restoring"};
+static constexpr char const * ACTION_CANCELLED = {"cancelled"};
+static constexpr char const * ACTION_FAILED = {"failed"};
+static constexpr char const * ACTION_COMPLETE = {"complete"};
 
 using namespace QtDBusMock;
 using namespace QtDBusTest;

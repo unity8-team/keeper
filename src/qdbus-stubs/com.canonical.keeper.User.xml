@@ -14,8 +14,7 @@
                   as a map from opaque backup keys to key/value pairs
                   of the choice’s properties,
                   including a ‘display-name’ string,
-                  ‘type’ string (‘application’, ‘system-data’, or ‘folder’)
-                  and, when possible, an ‘icon’ symbolic icon string.</doc:para>
+                  ‘type’ string (‘application’, ‘system-data’, or ‘folder’).</doc:para>
         <doc:para>The choices should be presented to the user,
                   and the keys of those selected should be passed
                   to StartBackup().</doc:para>
@@ -71,19 +70,18 @@
         <doc:description>
           <doc:para>Provides state information so the user interface can show
                     the progress of backup or restore tasks.</doc:para>
-          <doc:para>State is a map of opaque backup keys to property maps,
-                    which will contain a 'display-name' string and 'action' int32
-                    whose possible values are queued(0), saving(1),
-                    restoring(2), complete(3), stopped(4)</doc:para>
-          <doc:para>Some property maps may also have an 'item' string
-                    and a 'percent-done' double [0..1.0].
-                    For example if these are set to (1, “Photos”, 0.36),
-                    the user interface could show “Backing up Photos (36%)”.
-                    Clients should gracefully handle missing properties;
-                    eg a missing percent-done could instead show
-                    “Backing up Photos”.</doc:para>
-          <doc:para>A failed task's property map may also contain an 'error'
-                    string if set by the backup helpers.</doc:para>
+          <doc:para>State is a map of opaque backup keys to property maps.
+                    The property maps include:
+                    * 'action' (string): tells what the task is doing right now.
+                       Possible values are 'queued', 'saving', 'restoring',
+                       'cancelled', 'failed', and 'complete'
+                    * 'display-name' (string): human-readable task name, e.g. "Pictures"
+                    * 'percent-done' (double): how much of this task is complete
+                    * 'speed' (int32): bytes per second
+          </doc:para>
+          <doc:para>If a task's 'action' state is 'failed' the property map also includes:
+                    * 'error' (string): a human-readable error message
+        </doc:para>
         </doc:description>
       </doc:doc>
     </property>
