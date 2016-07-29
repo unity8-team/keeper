@@ -57,14 +57,10 @@ BackupChoices::get_backups()
     //
     //  System Data
     //
-
-    const auto type_key = QStringLiteral("type");
-    const auto icon_key = QStringLiteral("icon");
-    const auto system_data_str = QStringLiteral("system-data");
     {
         Metadata m(generate_new_uuid(), "System Data"); // FIXME: how to i18n in a Qt DBus service?
-        m.set_property(type_key, system_data_str);
-        m.set_property(icon_key, QStringLiteral("folder-system"));
+        m.set_property(Metadata::TYPE_KEY, Metadata::SYSTEM_DATA_VALUE);
+        m.set_property(Metadata::ICON_KEY, Metadata::FOLDER_SYSTEM_VALUE);
         ret.push_back(m);
     }
 
@@ -88,12 +84,6 @@ BackupChoices::get_backups()
         g_clear_error(&error);
     }
 
-    const auto name_key = QStringLiteral("name");
-    const auto package_key = QStringLiteral("package");
-    const auto title_key = QStringLiteral("title");
-    const auto version_key = QStringLiteral("version");
-    const auto application_str = QStringLiteral("application");
-
     auto loadDoc = QJsonDocument::fromJson(manifests_str.toUtf8());
     auto tmp = loadDoc.toJson();
     if (loadDoc.isArray())
@@ -107,31 +97,31 @@ BackupChoices::get_backups()
                 auto o = manifest.toObject();
 
                 // manditory name
-                const auto name = o[name_key];
+                const auto name = o[Metadata::NAME_KEY];
                 if (name == QJsonValue::Undefined)
                     continue;
 
                 // manditory title
-                const auto title = o[title_key];
+                const auto title = o[Metadata::TITLE_KEY];
                 if (title == QJsonValue::Undefined)
                     continue;
                 QString display_name = title.toString();
 
                 // if version is available, append it to display_name
-                const auto version = o[version_key];
+                const auto version = o[Metadata::VERSION_KEY];
                 if (version != QJsonValue::Undefined)
                     display_name = QStringLiteral("%1 (%2)").arg(display_name).arg(version.toString());
 
                 Metadata m(generate_new_uuid(), display_name);
-                m.set_property(package_key, name.toString());
-                m.set_property(type_key, application_str);
+                m.set_property(Metadata::PACKAGE_KEY, name.toString());
+                m.set_property(Metadata::TYPE_KEY, Metadata::APPLICATION_VALUE);
 
                 if (version != QJsonValue::Undefined)
-                    m.set_property(version_key, version.toString());
+                    m.set_property(Metadata::VERSION_KEY, version.toString());
 
-                const auto icon = o[icon_key];
+                const auto icon = o[Metadata::ICON_KEY];
                 if (icon != QJsonValue::Undefined)
-                    m.set_property(icon_key, icon.toString());
+                    m.set_property(Metadata::ICON_KEY, icon.toString());
 
                 ret.push_back(m);
             }
@@ -152,8 +142,6 @@ BackupChoices::get_backups()
         { QStandardPaths::MusicLocation,     QStringLiteral("folder-music")     }
     };
 
-    const auto path_key = QStringLiteral("path");
-    const auto user_folder_str = QStringLiteral("folder");
     for (const auto& sl : standard_locations)
     {
         const auto name = QStandardPaths::displayName(sl.location);
@@ -166,9 +154,9 @@ BackupChoices::get_backups()
         {
             const auto keystr = generate_new_uuid();
             Metadata m(keystr, name);
-            m.set_property(path_key, locations.front());
-            m.set_property(type_key, user_folder_str);
-            m.set_property(icon_key, sl.icon);
+            m.set_property(Metadata::PATH_KEY, locations.front());
+            m.set_property(Metadata::TYPE_KEY, Metadata::USER_FOLDER_VALUE);
+            m.set_property(Metadata::ICON_KEY, sl.icon);
             ret.push_back(m);
         }
     }

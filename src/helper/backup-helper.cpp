@@ -65,6 +65,8 @@ public:
         , read_error_{}
         , write_error_{}
         , cancelled_{}
+        , main_dir_path_(QString())
+        , bin_path_(QString())
     {
         ual_init();
 
@@ -134,6 +136,16 @@ public:
     int get_helper_socket() const
     {
         return int(helper_socket_->socketDescriptor());
+    }
+
+    void set_main_dir_path(QString const &path)
+    {
+        main_dir_path_ = path;
+    }
+
+    void set_bin_path(QString const &path)
+    {
+        bin_path_ = path;
     }
 
 private:
@@ -301,22 +313,12 @@ private:
             // check the directory and the path to the tar util binary
             urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(testHelper.toStdString()));
             qDebug() << "BackupHelperImpl::getHelperPath: returning the helper: " << testHelper;
-            // check if we need to backup any directory
-            auto dirToBackup = qgetenv("KEEPER_TEST_HELPER_DIR");
-            if (!dirToBackup.isEmpty())
-            {
-                urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(dirToBackup.toStdString()));
-            }
-            auto tarCreatePath = qgetenv("KEEPER_TEST_TAR_CREATE_BIN");
-            if (!tarCreatePath.isEmpty())
-            {
-                urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(tarCreatePath.toStdString()));
-            }
         }
         else
         {
-            urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(DEKKO_HELPER_BIN));
+            urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(bin_path_.toStdString()));
         }
+        urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(main_dir_path_.toStdString()));
 
         return urls;
     }
@@ -340,6 +342,8 @@ private:
     bool read_error_;
     bool write_error_;
     bool cancelled_;
+    QString main_dir_path_;
+    QString bin_path_;
 };
 
 /***
@@ -380,6 +384,22 @@ BackupHelper::set_storage_framework_socket(int sd)
     Q_D(BackupHelper);
 
     d->set_storage_framework_socket(sd);
+}
+
+void
+BackupHelper::set_main_dir_path(QString const &path)
+{
+    Q_D(BackupHelper);
+
+    d->set_main_dir_path(path);
+}
+
+void
+BackupHelper::set_bin_path(QString const &path)
+{
+    Q_D(BackupHelper);
+
+    d->set_bin_path(path);
 }
 
 int

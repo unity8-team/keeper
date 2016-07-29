@@ -21,6 +21,7 @@ set(
 
 set(KEEPER_TAR_CREATE_BIN ${CMAKE_BINARY_DIR}/src/tar/keeper-tar-create)
 set(KEEPER_TAR_CREATE_INVOKE ${CMAKE_CURRENT_BINARY_DIR}/tar/keeper-tar-create-invoke.sh)
+set(KEPPER_HELPER_TEST_LOCATION ${CMAKE_BINARY_DIR}/tests/fakes/helpers-test.sh)
 
 add_definitions(
   -DCMAKE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
@@ -28,7 +29,7 @@ add_definitions(
   -DTEST_SIMPLE_HELPER="${CMAKE_BINARY_DIR}/tests/fakes/${BACKUP_HELPER}"
   -DKEEPER_SERVICE_BIN="${CMAKE_BINARY_DIR}/src/service/keeper-service"
   -DKEEPER_CLIENT_BIN="${CMAKE_BINARY_DIR}/src/cli/keeper"
-  -DTEST_SIMPLE_HELPER_SH="${CMAKE_SOURCE_DIR}/tests/fakes/helper-test.sh"
+  -DTEST_SIMPLE_HELPER_SH="${KEPPER_HELPER_TEST_LOCATION}"
   -DKEEPER_TAR_CREATE_BIN="${KEEPER_TAR_CREATE_BIN}"
   -DKEEPER_TAR_CREATE_INVOKE="${KEEPER_TAR_CREATE_INVOKE}"
 )
