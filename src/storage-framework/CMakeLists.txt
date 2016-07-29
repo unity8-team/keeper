@@ -17,7 +17,7 @@ set_target_properties(
 )
 target_link_libraries(
   ${LIB_NAME}
-  -lstorage-framework-qt-local-client
+  ${SERVICE_DEPS_LDFLAGS}
   Qt5::Core
   Qt5::Network
 )

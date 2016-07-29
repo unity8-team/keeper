@@ -24,7 +24,10 @@
 
 #include <QObject>
 #include <QScopedPointer>
+#include <QLocalSocket>
 #include <QString>
+
+#include <memory>
 
 class BackupHelperPrivate;
 class BackupHelper : public Helper

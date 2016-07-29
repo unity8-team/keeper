@@ -43,11 +43,6 @@ execute_process (
   OUTPUT_VARIABLE PYTHON_PACKAGE_DIR OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
-install(
-  FILES ${SERVICE_TEMPLATE_FILE}
-  DESTINATION "${PYTHON_PACKAGE_DIR}/dbusmock/templates/"
-)
-
 ###
 ###  The Tests
 ###

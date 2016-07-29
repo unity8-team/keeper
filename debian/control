@@ -10,7 +10,7 @@ Build-Depends: cmake,
                libarchive-dev (>= 3.1.2),
                libproperties-cpp-dev,
                libubuntu-app-launch2-dev (>= 0.9),
-               libstorage-framework-dev,
+               storage-framework-client-dev,
                libclick-0.4-dev,
                uuid-dev,
                libglib2.0-dev,
@@ -31,7 +31,7 @@ Build-Depends: cmake,
 # for the dbusmock template:
                python3-gi,
                gir1.2-glib-2.0 (>= 1.32),
-               python-flake8,
+               python3-flake8,
 Standards-Version: 3.9.5
 Homepage: https://launchpad.net/keeper
 # If you aren't a member of ~indicator-applet-developers but need to upload

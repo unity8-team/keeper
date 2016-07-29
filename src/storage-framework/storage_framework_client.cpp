@@ -35,16 +35,14 @@ using namespace unity::storage::qt::client;
 StorageFrameworkClient::StorageFrameworkClient(QObject *parent)
     : QObject(parent)
     , runtime_(Runtime::create())
-    , close_uploader_watcher_(parent)
     , uploader_ready_watcher_(parent)
     , uploader_()
 {
     QObject::connect(&uploader_ready_watcher_,&QFutureWatcher<std::shared_ptr<Uploader>>::finished, this, &StorageFrameworkClient::uploaderReady);
-    QObject::connect(&close_uploader_watcher_,&QFutureWatcher<unity::storage::TransferState>::finished, this, &StorageFrameworkClient::uploaderClosed);
 }
 
 
-void StorageFrameworkClient::getNewFileForBackup(quint64 /*n_bytes*/)
+void StorageFrameworkClient::getNewFileForBackup(quint64 n_bytes)
 {
     // Get the acccounts. (There is only one account for the local client implementation.)
     // We do this synchronously for simplicity.
@@ -62,7 +60,7 @@ void StorageFrameworkClient::getNewFileForBackup(quint64 /*n_bytes*/)
         QDateTime now = QDateTime::currentDateTime();
         QString new_file_name = QString("Backup_%1").arg(now.toString("dd.MM.yyyy-hh:mm:ss.zzz"));
 
-        uploader_ready_watcher_.setFuture(root->create_file(new_file_name));
+        uploader_ready_watcher_.setFuture(root->create_file(new_file_name, n_bytes));
     }
     catch (std::exception & e)
     {
@@ -101,12 +99,4 @@ void StorageFrameworkClient::uploaderReady()
     auto sd = int(socket->socketDescriptor());
     Q_EMIT (socketReady(sd));
 
-}
-
-void StorageFrameworkClient::uploaderClosed()
-{
-    qDebug() << "StorageFrameworkClient::uploaderClosed()";
-    auto state = close_uploader_watcher_.result();
-    qDebug() << "StorageFrameworkClient finished with result: " << static_cast<int>(state);
-    Q_EMIT (socketClosed());
 }
