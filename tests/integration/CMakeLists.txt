@@ -13,3 +13,10 @@ set(
 )
 
 add_subdirectory(helpers)
+
+set(
+  COVERAGE_TEST_TARGETS
+  ${COVERAGE_TEST_TARGETS}
+  PARENT_SCOPE
+)
+
