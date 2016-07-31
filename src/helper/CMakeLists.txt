@@ -48,4 +48,3 @@ set(
   ${HELPER_LIB}
   PARENT_SCOPE
 )
-

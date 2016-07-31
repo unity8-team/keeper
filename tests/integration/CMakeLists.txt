@@ -19,4 +19,3 @@ set(
   ${COVERAGE_TEST_TARGETS}
   PARENT_SCOPE
 )
-
