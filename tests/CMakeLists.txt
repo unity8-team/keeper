@@ -72,7 +72,7 @@ add_subdirectory(fakes)
 add_subdirectory(integration)
 
 set(
-  UNIT_TEST_TARGETS
-  ${UNIT_TEST_TARGETS}
+  COVERAGE_TEST_TARGETS
+  ${COVERAGE_TEST_TARGETS}
   PARENT_SCOPE
 )
