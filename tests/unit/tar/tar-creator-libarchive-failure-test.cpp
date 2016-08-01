@@ -55,6 +55,7 @@ namespace
     };
 
     int n_libarchive_calls {0};
+    bool libarchive_fail_enabled {false};
 }
 
 
@@ -67,12 +68,18 @@ protected:
         qsrand(time(nullptr));
 
         n_libarchive_calls = 0;
+        libarchive_fail_enabled = false;
     }
 
     void TearDown() override
     {
     }
 
+    void enable_libarchive_failure()
+    {
+        n_libarchive_calls = 0;
+        libarchive_fail_enabled = true;
+    }
 };
 
 // use ld -wrap to inject our versions of libarchive's API
@@ -106,8 +113,10 @@ extern "C"
 ****
 ***/
 
-TEST_F(TarCreatorFixture, ArchiveWriteHeaderFatal)
+TEST_F(TarCreatorFixture, ArchiveWriteHeaderErrorInCalculateSize)
 {
+    enable_libarchive_failure();
+
     // build a directory full of random files
     QTemporaryDir in;
     QDir indir(in.path());
@@ -126,6 +135,36 @@ TEST_F(TarCreatorFixture, ArchiveWriteHeaderFatal)
     try {
         tar_creator.calculate_size();
     } catch (std::exception const& e) {
+        error_string = QString::fromUtf8(e.what());
+    }
+
+    EXPECT_TRUE(error_string.contains(QString::fromUtf8(FATAL_ERROR_MESSAGE)))
+        << qPrintable(error_string);
+}
+
+TEST_F(TarCreatorFixture, ArchiveWriteHeaderErrorInStep)
+{
+    enable_libarchive_failure();
+
+    // build a directory full of random files
+    QTemporaryDir in;
+    QDir indir(in.path());
+    ASSERT_TRUE(FileUtils::fillTemporaryDirectory(in.path()));
+
+    // create the tar creator
+    EXPECT_TRUE(QDir::setCurrent(in.path()));
+    QStringList files;
+    for (file : FileUtils::getFilesRecursively(in.path()))
+        files += indir.relativeFilePath(file);
+    TarCreator tar_creator(files, false);
+
+    // build the tar blob
+    QString error_string;
+    std::vector<char> blob, step;
+    try {
+        while (tar_creator.step(step))
+            blob.insert(blob.end(), step.begin(), step.end());
+    } catch(std::exception& e) {
         error_string = QString::fromUtf8(e.what());
     }
 
