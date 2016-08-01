@@ -132,7 +132,7 @@ protected:
         }
     }
 
-    bool wait_for_backup_to_finish()
+    bool wait_for_tasks_to_finish()
     {
         auto tasks_exist = [this]{
             return !user_iface_->state().isEmpty();

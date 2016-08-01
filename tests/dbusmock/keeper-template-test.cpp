@@ -151,7 +151,7 @@ TEST_F(KeeperTemplateTest, BackupRun)
     // start the backup
     QDBusReply<void> reply = user_iface_->call("StartBackup", QStringList{uuid});
     EXPECT_TRUE(reply.isValid()) << qPrintable(reply.error().message());
-    ASSERT_TRUE(wait_for_backup_to_finish());
+    ASSERT_TRUE(wait_for_tasks_to_finish());
 
     // ask keeper for the blob
     QDBusReply<QByteArray> blob = mock_iface_->call(QStringLiteral("GetBackupData"), uuid);
