@@ -98,9 +98,7 @@ public:
 
                 // write the file's header
                 const auto& filename = filenames_[step_filenum_];
-                success = add_file_header_to_archive(step_archive_.get(), filename);
-                if (!success)
-                    break;
+                add_file_header_to_archive(step_archive_.get(), filename);
 
                 // prep it for reading
                 step_file_.reset(new QFile(filename));
@@ -163,7 +161,7 @@ private:
         return ssize_t(len);
     }
 
-    static bool add_file_header_to_archive(struct archive* archive,
+    static void add_file_header_to_archive(struct archive* archive,
                                            const QString& filename)
     {
         struct stat st;
@@ -179,7 +177,7 @@ private:
             ret = archive_write_header(archive, entry);
             if (ret==ARCHIVE_WARN)
                 qWarning() << archive_error_string(archive);
-            if (ret==ARCHIVE_FATAL) {
+            if ((ret==ARCHIVE_FATAL) || (ret==ARCHIVE_FAILED)) {
                 auto errstr = QString::fromUtf8("Error adding header for '%1': %2")
                                 .arg(filename)
                                 .arg(archive_error_string(archive));
@@ -189,7 +187,6 @@ private:
         } while (ret == ARCHIVE_RETRY);
 
         archive_entry_free(entry);
-        return (ret == ARCHIVE_OK) || (ret == ARCHIVE_WARN);
     }
 
     ssize_t calculate_uncompressed_size() const
