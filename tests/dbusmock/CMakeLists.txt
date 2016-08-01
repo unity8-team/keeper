@@ -43,3 +43,13 @@ add_test(
     ${TEST_NAME}
     ${TEST_NAME}
 )
+
+#
+#
+#
+set(
+  COVERAGE_TEST_TARGETS
+  ${COVERAGE_TEST_TARGETS}
+  ${TEST_NAME}
+  PARENT_SCOPE
+)

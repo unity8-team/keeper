@@ -32,7 +32,7 @@ add_subdirectory(metadata-providers)
 add_subdirectory(tar)
 
 set(
-  UNIT_TEST_TARGETS
-  ${UNIT_TEST_TARGETS}
+  COVERAGE_TEST_TARGETS
+  ${COVERAGE_TEST_TARGETS}
   PARENT_SCOPE
 )
