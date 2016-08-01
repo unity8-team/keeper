@@ -61,6 +61,39 @@ add_test(
   ${TAR_CREATOR_TEST}
 )
 
+
+#
+# tar-creator-libarchive-failure-test
+#
+
+set(
+  TAR_CREATOR_LIBARCHIVE_FAILURE_TEST
+  tar-creator-libarchive-failure-test
+)
+
+add_executable(
+  ${TAR_CREATOR_LIBARCHIVE_FAILURE_TEST}
+  tar-creator-libarchive-failure-test.cpp
+)
+
+target_link_libraries(
+  ${TAR_CREATOR_LIBARCHIVE_FAILURE_TEST}
+  ${UNIT_TEST_LIBRARIES}
+  Qt5::Core
+  Qt5::DBus
+  Qt5::Test
+)
+
+add_test(
+  ${TAR_CREATOR_LIBARCHIVE_FAILURE_TEST}
+  ${TAR_CREATOR_LIBARCHIVE_FAILURE_TEST}
+)
+
+set_property(
+  TARGET ${TAR_CREATOR_LIBARCHIVE_FAILURE_TEST}
+  APPEND_STRING PROPERTY LINK_FLAGS " -Wl,-wrap,archive_write_header -Wl,-wrap,archive_error_string"
+)
+
 #
 # keeper-tar-create-test
 #
@@ -95,6 +128,7 @@ set(
   COVERAGE_TEST_TARGETS
   ${COVERAGE_TEST_TARGETS}
   ${TAR_CREATOR_TEST}
+  ${TAR_CREATOR_LIBARCHIVE_FAILURE_TEST}
   ${KEEPER_TAR_CREATE_TEST}
   PARENT_SCOPE
 )
