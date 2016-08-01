@@ -8,11 +8,6 @@ include_directories(
   ${HELPERS_TEST_DEPS_INCLUDE_DIRS}
 )
 
-configure_file(
-  ${CMAKE_CURRENT_SOURCE_DIR}/tar/keeper-tar-create-invoke.sh.in
-  ${KEEPER_TAR_CREATE_INVOKE}
-)
-
 set(
   UNIT_TEST_LIBRARIES
   backup-helper

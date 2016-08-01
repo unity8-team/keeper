@@ -1,4 +1,40 @@
 #
+# create the wrapper scripts
+#
+
+set(
+  KTC_INVOKE
+  ${CMAKE_CURRENT_BINARY_DIR}/ktc-invoke.sh
+)
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/ktc-invoke.sh.in
+  ${KTC_INVOKE}
+)
+set(
+  KTC_INVOKE_NOBUS
+  ${CMAKE_CURRENT_BINARY_DIR}/ktc-invoke-nobus.sh
+)
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/ktc-invoke-nobus.sh.in
+  ${KTC_INVOKE_NOBUS}
+)
+set(
+  KTC_INVOKE_NOFILES
+  ${CMAKE_CURRENT_BINARY_DIR}/ktc-invoke-nofiles.sh
+)
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/ktc-invoke-nofiles.sh.in
+  ${KTC_INVOKE_NOFILES}
+)
+
+add_definitions(
+  -DKTC_INVOKE="${KTC_INVOKE}"
+  -DKTC_INVOKE_NOBUS="${KTC_INVOKE_NOBUS}"
+  -DKTC_INVOKE_NOFILES="${KTC_INVOKE_NOFILES}"
+)
+
+
+#
 # tar-creator-test
 #
 

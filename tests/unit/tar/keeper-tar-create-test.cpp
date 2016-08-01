@@ -45,7 +45,7 @@ TEST_F(KeeperTarCreateFixture, BackupRun)
             { KEY_NAME, QDir(in.path()).dirName() },
             { KEY_TYPE, QStringLiteral("folder") },
             { KEY_SUBTYPE, in.path() },
-            { KEY_HELPER, QString::fromUtf8(KEEPER_TAR_CREATE_INVOKE) }
+            { KEY_HELPER, QString::fromUtf8(KTC_INVOKE) }
         });
 
         // start the backup
