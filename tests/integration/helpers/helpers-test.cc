@@ -482,13 +482,13 @@ protected:
         return false;
     }
 
-    QString getUUIDforXdgFolderPath(QString const &path, QVariantDictMap const & choices)
+    QString getUUIDforXdgFolderPath(QString const &path, QVariantDictMap const & choices) const
     {
-        for(QVariantDictMap::const_iterator iter = choices.begin(); iter != choices.end(); ++iter)
+        for(auto iter = choices.begin(); iter != choices.end(); ++iter)
         {
-            auto values = iter.value();
-            auto iter_values = iter.value().find("path");
-            if (iter_values != iter.value().end())
+            const auto& values = iter.value();
+            auto iter_values = values.find("path");
+            if (iter_values != values.end())
             {
                 if (iter_values.value().toString() == path)
                 {
@@ -813,7 +813,7 @@ TEST_F(TestHelpers, StartFullTest)
     // search for the user folder uuid
     auto user_folder_uuid = getUUIDforXdgFolderPath(user_dir, choices.value());
     ASSERT_FALSE(user_folder_uuid.isEmpty());
-    qDebug() << "User forlder UUID is: " << user_folder_uuid;
+    qDebug() << "User folder UUID is: " << user_folder_uuid;
 
     // Now we know the music folder uuid, let's start the backup for it.
     QDBusReply<void> backup_reply = user_iface->call("StartBackup", QStringList{user_folder_uuid});

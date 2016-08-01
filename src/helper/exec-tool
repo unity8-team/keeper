@@ -29,10 +29,7 @@ IFS=' ' read -r -a URIS_ARRAY <<< "${CMD}"
 if [ ${#URIS_ARRAY[@]} -eq 2 ]; then
     # cd to the directory
     cd "${URIS_ARRAY[1]}"
-
-    # Launch the command
-    eval ${URIS_ARRAY[0]}
-else
-    # Launch the command
-    eval $CMD
 fi
+
+# Launch the command
+eval ${URIS_ARRAY[0]}

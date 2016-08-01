@@ -65,8 +65,6 @@ public:
         , read_error_{}
         , write_error_{}
         , cancelled_{}
-        , main_dir_path_(QString())
-        , bin_path_(QString())
     {
         ual_init();
 
@@ -136,16 +134,6 @@ public:
     int get_helper_socket() const
     {
         return int(helper_socket_->socketDescriptor());
-    }
-
-    void set_main_dir_path(QString const &path)
-    {
-        main_dir_path_ = path;
-    }
-
-    void set_bin_path(QString const &path)
-    {
-        bin_path_ = path;
     }
 
 private:
@@ -316,9 +304,9 @@ private:
         }
         else
         {
-            urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(bin_path_.toStdString()));
+            urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(q_ptr->get_bin_path().toStdString()));
         }
-        urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(main_dir_path_.toStdString()));
+        urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(q_ptr->get_main_dir_path().toStdString()));
 
         return urls;
     }
@@ -342,8 +330,6 @@ private:
     bool read_error_;
     bool write_error_;
     bool cancelled_;
-    QString main_dir_path_;
-    QString bin_path_;
 };
 
 /***
@@ -384,22 +370,6 @@ BackupHelper::set_storage_framework_socket(int sd)
     Q_D(BackupHelper);
 
     d->set_storage_framework_socket(sd);
-}
-
-void
-BackupHelper::set_main_dir_path(QString const &path)
-{
-    Q_D(BackupHelper);
-
-    d->set_main_dir_path(path);
-}
-
-void
-BackupHelper::set_bin_path(QString const &path)
-{
-    Q_D(BackupHelper);
-
-    d->set_bin_path(path);
 }
 
 int

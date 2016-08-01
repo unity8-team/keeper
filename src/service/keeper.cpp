@@ -138,7 +138,7 @@ private:
         backup_helper_->start();
     }
 
-    bool check_for_property(QString const & uuid, Metadata const & metadata, QString const &key)
+    bool check_for_property(QString const & uuid, Metadata const & metadata, QString const &key) const
     {
         if (!metadata.has_property(key))
         {

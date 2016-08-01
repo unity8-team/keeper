@@ -42,8 +42,6 @@ public:
     Q_DISABLE_COPY(BackupHelper)
 
     void set_storage_framework_socket(int sd);
-    void set_main_dir_path(QString const &path);
-    void set_bin_path(QString const &path);
     void start();
     void stop();
     int get_helper_socket() const;
