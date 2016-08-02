@@ -44,7 +44,7 @@ public:
     virtual ~BackupHelper();
     Q_DISABLE_COPY(BackupHelper)
 
-    void set_storage_framework_socket(int sd);
+    void set_storage_framework_socket(std::shared_ptr<QLocalSocket> const& sf_socket);
     void start();
     void stop();
     int get_helper_socket() const;

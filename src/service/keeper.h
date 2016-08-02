@@ -49,6 +49,8 @@ public:
 
     QDBusUnixFileDescriptor StartBackup(QDBusConnection, const QDBusMessage& message, quint64 nbytes);
 
+    void start_tasks(QStringList const & keys);
+
 public Q_SLOTS:
     // FOR TESTING PURPOSES ONLY
     // we should finish when the helper finishes

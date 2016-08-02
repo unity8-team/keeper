@@ -257,5 +257,5 @@ enable_coverage_report(
         ${CMAKE_SOURCE_DIR}/tests/*
         ${CMAKE_BINARY_DIR}/*
     TESTS
-        ${UNIT_TEST_TARGETS}
+        ${COVERAGE_TEST_TARGETS}
 )

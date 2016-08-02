@@ -32,6 +32,21 @@ public:
     Metadata();
     Metadata(const QString& key, const QString& display_name);
 
+    // metadata keys
+    static const QString TYPE_KEY;
+    static const QString PATH_KEY;
+    static const QString ICON_KEY;
+    static const QString NAME_KEY;
+    static const QString PACKAGE_KEY;
+    static const QString TITLE_KEY;
+    static const QString VERSION_KEY;
+
+    // metadata values
+    static const QString USER_FOLDER_VALUE;
+    static const QString SYSTEM_DATA_VALUE;
+    static const QString FOLDER_SYSTEM_VALUE;
+    static const QString APPLICATION_VALUE;
+
     QString key() const { return key_; }
     QString display_name() const { return display_name_; }
     bool has_property(const QString& property_name) const;
