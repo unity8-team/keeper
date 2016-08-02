@@ -48,6 +48,7 @@ KeeperUser::StartBackup (const QStringList& keys)
     // FIXME: writeme
 
     qDebug() << keys;
+    keeper_.start_tasks(keys);
 }
 
 void
