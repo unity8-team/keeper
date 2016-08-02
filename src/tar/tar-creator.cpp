@@ -110,12 +110,20 @@ public:
             const auto n = step_file_->read(inbuf, sizeof(inbuf));
             if (n > 0) // got data
             {
-                if (archive_write_data(step_archive_.get(), inbuf, size_t(n)) == -1)
-                {
-                    qWarning() << archive_error_string(step_archive_.get());
-                    success = false;
+                for(;;) {
+                    if (archive_write_data(step_archive_.get(), inbuf, size_t(n)) != -1)
+                        break;
+                    const auto err = archive_errno(step_archive_.get());
+                    if (err == ARCHIVE_RETRY)
+                        continue;
+                    auto errstr = QString::fromUtf8("Error adding data for '%1': %2 (%3)")
+                        .arg(step_file_->fileName())
+                        .arg(archive_error_string(step_archive_.get()))
+                        .arg(err);
+                    qWarning() << qPrintable(errstr);
+                    if (err != ARCHIVE_WARN)
+                        throw std::runtime_error(errstr.toStdString());
                 }
-                break;
             }
             else if (n < 0) // read error
             {
@@ -175,14 +183,15 @@ private:
         int ret;
         do {
             ret = archive_write_header(archive, entry);
-            if (ret==ARCHIVE_WARN)
-                qWarning() << archive_error_string(archive);
-            if ((ret==ARCHIVE_FATAL) || (ret==ARCHIVE_FAILED)) {
-                auto errstr = QString::fromUtf8("Error adding header for '%1': %2")
+            if ((ret==ARCHIVE_WARN) || (ret==ARCHIVE_FAILED) || (ret==ARCHIVE_FATAL))
+            {
+                auto errstr = QString::fromUtf8("Error adding header for '%1': %2 (%3)")
                                 .arg(filename)
-                                .arg(archive_error_string(archive));
+                                .arg(archive_error_string(archive))
+                                .arg(ret);
                 qWarning() << qPrintable(errstr);
-                throw std::runtime_error(errstr.toStdString());
+                if ((ret==ARCHIVE_FATAL) || (ret==ARCHIVE_FAILED))
+                    throw std::runtime_error(errstr.toStdString());
             }
         } while (ret == ARCHIVE_RETRY);
 
