@@ -122,7 +122,6 @@ protected:
     {
         QElapsedTimer timer;
         timer.start();
-        bool passed;
         for(;;) {
             if (test_function())
                 return true;
