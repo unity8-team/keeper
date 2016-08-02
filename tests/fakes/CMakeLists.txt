@@ -27,3 +27,8 @@ target_link_libraries(
     ${BACKUP_HELPER}
     ${LINK_LIBS}
 )
+
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/helper-test.sh.in
+  ${KEPPER_HELPER_TEST_LOCATION}
+)
