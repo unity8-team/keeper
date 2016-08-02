@@ -36,9 +36,12 @@ StorageFrameworkClient::StorageFrameworkClient(QObject *parent)
     : QObject(parent)
     , runtime_(Runtime::create())
     , uploader_ready_watcher_(parent)
+    , uploader_closed_watcher_(parent)
     , uploader_()
 {
     QObject::connect(&uploader_ready_watcher_,&QFutureWatcher<std::shared_ptr<Uploader>>::finished, this, &StorageFrameworkClient::uploaderReady);
+    QObject::connect(&uploader_closed_watcher_,&QFutureWatcher<std::shared_ptr<unity::storage::qt::client::File>>::finished, this, &StorageFrameworkClient::onUploaderClosed);
+
 }
 
 
@@ -83,7 +86,7 @@ void StorageFrameworkClient::closeUploader()
     try
     {
         uploader_->socket()->disconnectFromServer();
-        uploader_->finish_upload();
+        uploader_closed_watcher_.setFuture(uploader_->finish_upload());
     }
     catch (std::exception & e)
     {
@@ -96,4 +99,10 @@ void StorageFrameworkClient::uploaderReady()
     uploader_ = uploader_ready_watcher_.result();
 
     Q_EMIT (socketReady(uploader_->socket()));
+}
+
+void StorageFrameworkClient::onUploaderClosed()
+{
+    qDebug() << "Uploader was closed";
+    Q_EMIT(uploaderClosed());
 }

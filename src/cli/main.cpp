@@ -22,6 +22,7 @@
 #include <util/logging.h>
 
 #include "keeper_interface.h"
+#include "keeper_user_interface.h"
 
 #include <QCoreApplication>
 #include <QDBusConnection>
@@ -36,7 +37,7 @@ main(int argc, char **argv)
     qInstallMessageHandler(util::loggingFunction);
 
     QCoreApplication app(argc, argv);
-//    DBusTypes::registerMetaTypes();
+    DBusTypes::registerMetaTypes();
 //    Variant::registerMetaTypes();
     std::srand(unsigned(std::time(nullptr)));
 
@@ -51,15 +52,56 @@ main(int argc, char **argv)
         qDebug() << QDBusConnection::sessionBus().baseService();
     }
 
-    QScopedPointer<DBusInterfaceKeeper> keeperInterface(new DBusInterfaceKeeper(DBusTypes::KEEPER_SERVICE,
-                                                            DBusTypes::KEEPER_SERVICE_PATH,
-                                                            QDBusConnection::sessionBus(), 0));
-
-    QDBusReply<void> userResp = keeperInterface->call(QLatin1String("start"));
-
-    if (!userResp.isValid())
+    qDebug() << "Argc = " << argc;
+    if (argc == 2 && QString("--use-uuids") == argv[1])
     {
-        qWarning() << "Error starting backup: " << userResp.error().message();
+        QScopedPointer<DBusInterfaceKeeperUser> user_iface(new DBusInterfaceKeeperUser(
+                                                                DBusTypes::KEEPER_SERVICE,
+                                                                DBusTypes::KEEPER_USER_PATH,
+                                                                QDBusConnection::sessionBus()
+                                                            ) );
+        QDBusReply<QVariantDictMap> choices = user_iface->call("GetBackupChoices");
+        if (!choices.isValid())
+        {
+            qWarning() << "Error getting backup choices: " << choices.error().message();
+        }
+
+        QStringList uuids;
+        auto choices_values = choices.value();
+        for(auto iter = choices_values.begin(); iter != choices_values.end(); ++iter)
+        {
+            const auto& values = iter.value();
+            auto iter_values = values.find("type");
+            if (iter_values != values.end())
+            {
+                if (iter_values.value().toString() == "folder")
+                {
+                    // got it
+                    qDebug() << "Adding uuid " << iter.key() << " with type: " << "folder";
+                    uuids << iter.key();
+                }
+            }
+        }
+
+        QDBusReply<void> backup_reply = user_iface->call("StartBackup", uuids);
+
+        if (!backup_reply.isValid())
+        {
+            qWarning() << "Error starting backup: " << backup_reply.error().message();
+        }
+    }
+    else
+    {
+        QScopedPointer<DBusInterfaceKeeper> keeperInterface(new DBusInterfaceKeeper(DBusTypes::KEEPER_SERVICE,
+                                                                DBusTypes::KEEPER_SERVICE_PATH,
+                                                                QDBusConnection::sessionBus(), 0));
+
+        QDBusReply<void> userResp = keeperInterface->call(QLatin1String("start"));
+
+        if (!userResp.isValid())
+        {
+            qWarning() << "Error starting backup: " << userResp.error().message();
+        }
     }
 
 
