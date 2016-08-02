@@ -47,6 +47,7 @@ public:
     QScopedPointer<StorageFrameworkClient> storage_;
     QVector<Metadata> cached_backup_choices_;
     QVector<Metadata> cached_restore_choices_;
+    QStringList remaining_tasks_;
 
     KeeperPrivate(Keeper* keeper,
                   const QSharedPointer<MetadataProvider>& backup_choices,
@@ -58,6 +59,7 @@ public:
         , storage_(new StorageFrameworkClient())
         , cached_backup_choices_()
         , cached_restore_choices_()
+        , remaining_tasks_()
     {
         // listen for backup helper state changes
         QObject::connect(backup_helper_.data(), &Helper::state_changed,
@@ -68,6 +70,47 @@ public:
     ~KeeperPrivate() =default;
 
     Q_DISABLE_COPY(KeeperPrivate)
+
+    void start_task(QString const &uuid)
+    {
+        qDebug() << "Starting task: " << uuid;
+        auto metadata = get_uuid_metadata(cached_backup_choices_, uuid);
+        if (metadata.key() == uuid)
+        {
+            qDebug() << "Task is a backup task";
+            if (!metadata.has_property(Metadata::TYPE_KEY))
+            {
+                // TODO Report error to user
+                qWarning() << "ERROR: uuid: " << uuid << " has no property [" << Metadata::TYPE_KEY << "]";
+                return;
+            }
+            if (metadata.get_property(Metadata::TYPE_KEY).toString() == Metadata::USER_FOLDER_VALUE)
+            {
+                qDebug() << "Backup for folder type";
+                start_folder_type_backup(uuid, metadata);
+            }
+        }
+    }
+
+    void start_tasks(QStringList const& tasks)
+    {
+        remaining_tasks_ = tasks;
+        start_remaining_tasks();
+    }
+
+    void start_remaining_tasks()
+    {
+        if (remaining_tasks_.size())
+        {
+            auto task = remaining_tasks_.takeFirst();
+            start_task(task);
+        }
+    }
+
+    void clear_remaining_taks()
+    {
+        remaining_tasks_.clear();
+    }
 
 private:
 
@@ -83,12 +126,53 @@ private:
                 break;
 
             case Helper::State::CANCELLED:
+                qDebug() << "Backup helper cancelled... closing the socket.";
+                storage_->closeUploader();
+                break;
             case Helper::State::FAILED:
+                qDebug() << "Backup helper failed... closing the socket.";
+                storage_->closeUploader();
+                break;
             case Helper::State::COMPLETE:
                 qDebug() << "Backup helper finished... closing the socket.";
                 storage_->closeUploader();
                 break;
         }
+    }
+
+    Metadata get_uuid_metadata(QVector<Metadata> const &metadata, QString const & uuid)
+    {
+        for (auto item : metadata)
+        {
+            if (item.key() == uuid)
+            {
+                return item;
+            }
+        }
+        return Metadata();
+    }
+
+    void start_folder_type_backup(QString const & uuid, Metadata const & metadata)
+    {
+        if(!check_for_property(uuid, metadata, Metadata::PATH_KEY))
+        {
+            // TODO report error to user
+            return;
+        }
+        backup_helper_->set_main_dir_path(metadata.get_property(Metadata::PATH_KEY).toString());
+        backup_helper_->set_bin_path(FOLDER_HELPER_BIN_PATH);
+        backup_helper_->start();
+    }
+
+    bool check_for_property(QString const & uuid, Metadata const & metadata, QString const &key) const
+    {
+        if (!metadata.has_property(key))
+        {
+            // TODO Report error to user
+            qWarning() << "ERROR: uuid: " << uuid << " has no property [" << key << "]";
+            return false;
+        }
+        return true;
     }
 };
 
@@ -99,6 +183,8 @@ Keeper::Keeper(const QSharedPointer<MetadataProvider>& backup_choices,
     : QObject(parent)
     , d_ptr(new KeeperPrivate(this, backup_choices, restore_choices))
 {
+    Q_D(Keeper);
+    QObject::connect(d->storage_.data(), &StorageFrameworkClient::uploaderClosed, this, &Keeper::socketClosed);
 }
 
 Keeper::~Keeper() = default;
@@ -112,6 +198,13 @@ void Keeper::start()
     d->backup_helper_->start();
 }
 
+void Keeper::start_tasks(QStringList const & keys)
+{
+    Q_D(Keeper);
+
+    d->start_tasks(keys);
+}
+
 QDBusUnixFileDescriptor
 Keeper::StartBackup(QDBusConnection bus, const QDBusMessage& msg, quint64 n_bytes)
 {
@@ -120,21 +213,21 @@ Keeper::StartBackup(QDBusConnection bus, const QDBusMessage& msg, quint64 n_byte
     qDebug("Helper::StartBackup(n_bytes=%zu)", size_t(n_bytes));
 
     // the next time we get a socket from storage-framework, return it to our caller
-    auto conn = new QMetaObject::Connection();
-    auto on_socket_ready = [bus,msg,n_bytes,this,d,conn](int sd) {
-        qDebug("getNewFileForBackup() returned socket %d", sd);
-        if (sd != -1) {
-            qDebug("calling helper.set_storage_framework_socket(n_bytes=%zu socket=%d)", size_t(n_bytes), sd);
+    auto on_socket_ready = [bus,msg,n_bytes,this,d](std::shared_ptr<QLocalSocket> const &sf_socket)
+    {
+        if (sf_socket)
+        {
+            qDebug("getNewFileForBackup() returned socket %d", int(sf_socket->socketDescriptor()));
+            qDebug("calling helper.set_storage_framework_socket(n_bytes=%zu socket=%d)", size_t(n_bytes), int(sf_socket->socketDescriptor()));
             d->backup_helper_->set_expected_size(n_bytes);
-            d->backup_helper_->set_storage_framework_socket(sd);
+            d->backup_helper_->set_storage_framework_socket(sf_socket);
         }
         auto reply = msg.createReply();
         reply << QVariant::fromValue(QDBusUnixFileDescriptor(d->backup_helper_->get_helper_socket()));
         bus.send(reply);
-        delete conn;
     };
     // cppcheck-suppress deallocuse
-    *conn = QObject::connect(d->storage_.data(), &StorageFrameworkClient::socketReady, on_socket_ready);
+    QObject::connect(d->storage_.data(), &StorageFrameworkClient::socketReady, on_socket_ready);
 
     // ask storage framework for a new socket
     d->storage_->getNewFileForBackup(n_bytes);
@@ -157,7 +250,19 @@ void Keeper::finish()
 
 void Keeper::socketClosed()
 {
+    Q_D(Keeper);
+
     qDebug() << "The storage framework socket was closed";
+    if (d->backup_helper_->state() == Helper::State::COMPLETE)
+    {
+        // the helper finished successfully, process more tasks
+        d->start_remaining_tasks();
+    }
+    else
+    {
+        // error or cancel case... clear all remaining tasks
+        d->clear_remaining_taks();
+    }
 }
 
 QVector<Metadata>

@@ -53,8 +53,11 @@ XdgUserDirsSandbox::init()
         { "XDG_PICTURES_DIR", "Pictures" },
         { "XDG_VIDEOS_DIR", "Videos" }
     };
-    for(const auto& user_dir : user_dirs)
+    for(const auto& user_dir : user_dirs) {
         top.mkdir(QString::fromUtf8(user_dir.dirname));
+        auto env_value = QStringLiteral("%1%2%3").arg(top.path()).arg(QDir::separator()).arg(user_dir.dirname);
+        qputenv(user_dir.key, env_value.toUtf8());
+    }
 
     // create user-dirs.dirs
 
