@@ -44,7 +44,7 @@ public Q_SLOTS:
     void uploaderReady();
 
 Q_SIGNALS:
-    void socketReady(int socket);
+    void socketReady(std::shared_ptr<QLocalSocket> const& sf_socket);
 
 private:
     unity::storage::qt::client::Runtime::SPtr runtime_;
