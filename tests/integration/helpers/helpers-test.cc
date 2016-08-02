@@ -313,6 +313,9 @@ protected:
             qDebug("test failed; leaving '%s'", data_home_dir.path().toUtf8().constData());
 
         ASSERT_EQ(nullptr, bus);
+
+        // let's leave things clean
+        EXPECT_TRUE(removeHelperMarkBeforeStarting());
     }
 
     bool startKeeperClient()
@@ -323,6 +326,29 @@ protected:
         if (!keeper_client.waitForStarted())
             return false;
 
+        return true;
+    }
+
+    bool checkStorageFrameworkFiles(QStringList const & sourceDirs, bool compression=false)
+    {
+        QStringList dirs = sourceDirs;
+
+        while (dirs.size() > 0)
+        {
+            auto dir = dirs.takeLast();
+            QString lastFile = getLastStorageFrameworkFile();
+            if (lastFile.isEmpty())
+            {
+                qWarning() << "Did not found enough storage framework files";
+                return false;
+            }
+            if (!compareTarContent (lastFile, dir, compression))
+            {
+                return false;
+            }
+            // remove the last file, so next iteration the last one is different
+            QFile::remove(lastFile);
+        }
         return true;
     }
 
@@ -340,6 +366,8 @@ protected:
     bool compareTarContent (QString const & tarPath, QString const & sourceDir, bool compression)
     {
         QTemporaryDir tempDir;
+
+        qDebug() << "Comparing tar content for dir: " << sourceDir << " with tar: " << tarPath;
 
         QFileInfo checkFile(tarPath);
         if (!checkFile.exists())
@@ -411,26 +439,27 @@ protected:
             qWarning() << "ERROR: Storage framework directory: [" << storage_framework_dir_path << "] does not exist.";
             return QString();
         }
-        QFileInfo lastFile;
+
+        QStringList sortedFiles;
         QFileInfoList files = storage_framework_dir.entryInfoList();
         for (int i = 0; i < files.size(); ++i)
         {
             QFileInfo file = files[i];
             if (file.isFile())
             {
-                if (file.created() > lastFile.created())
-                {
-                    lastFile = file;
-                }
+                sortedFiles << files[i].absoluteFilePath();
             }
         }
-        if (!lastFile.isFile())
+
+        // we detect the last file by name.
+        // the file creation time had not enough precision
+        sortedFiles.sort();
+        if (sortedFiles.isEmpty())
         {
             qWarning() << "ERROR: last file in the storage-framework directory was not found";
             return QString();
         }
-
-        return lastFile.absoluteFilePath();
+        return sortedFiles.last();
     }
 
     bool checkStorageFrameworkContent(QString const & content)
@@ -465,21 +494,53 @@ protected:
 
 
 
-    bool waitUntilHelperFinishes(int maxTimeout = 15000)
+    bool waitUntilHelperFinishes(QString const & app_id, int maxTimeout = 15000, int times = 1)
     {
         // TODO create a new mock for upstart that controls the lifecycle of the
         // helper process so we can do this in a cleaner way.
         QFile helper_mark(SIMPLE_HELPER_MARK_FILE_PATH);
         QElapsedTimer timer;
         timer.start();
-        while (!timer.hasExpired(maxTimeout))
+        auto times_to_wait = times;
+        bool finished = false;
+        while (!timer.hasExpired(maxTimeout) && !finished)
         {
             if (helper_mark.exists())
             {
-                return true;
+                if (--times_to_wait)
+                {
+                    helper_mark.remove();
+                    timer.restart();
+                    qDebug() << "HELPER FINISHED, WAITING FOR " << times_to_wait << " MORE";
+                }
+                else
+                {
+                    qDebug() << "ALL HELPERS FINISHED";
+                    finished = true;
+                }
+                sendUpstartHelperTermination(app_id);
             }
         }
-        return false;
+        return finished;
+    }
+
+    void sendUpstartHelperTermination(QString const &app_id)
+    {
+        // send the upstart signal so keeper-service is aware of the helper termination
+        DbusTestDbusMockObject* objUpstart =
+            dbus_test_dbus_mock_get_object(mock, UPSTART_PATH, UPSTART_INTERFACE, NULL);
+
+        QString eventInfoStr = QString("('stopped', ['JOB=untrusted-helper', 'INSTANCE=backup-helper::%1'])").arg(app_id.toStdString().c_str());
+        dbus_test_dbus_mock_object_emit_signal(
+            mock, objUpstart, "EventEmitted", G_VARIANT_TYPE("(sas)"),
+            g_variant_new_parsed(
+                    eventInfoStr.toLocal8Bit().data()),
+            NULL);
+        g_usleep(100000);
+        while (g_main_pending())
+        {
+            g_main_iteration(TRUE);
+        }
     }
 
     QString getUUIDforXdgFolderPath(QString const &path, QVariantDictMap const & choices) const
@@ -809,37 +870,34 @@ TEST_F(TestHelpers, StartFullTest)
     // fill something in the music dir
     ASSERT_TRUE(FileUtils::fillTemporaryDirectory(user_dir, qrand() % 1000));
 
-
     // search for the user folder uuid
     auto user_folder_uuid = getUUIDforXdgFolderPath(user_dir, choices.value());
     ASSERT_FALSE(user_folder_uuid.isEmpty());
     qDebug() << "User folder UUID is: " << user_folder_uuid;
 
+    QString user_option_2 = "XDG_VIDEOS_DIR";
+
+    auto user_dir_2 = qgetenv(user_option_2.toLatin1().data());
+    ASSERT_FALSE(user_dir_2.isEmpty());
+    qDebug() << "USER DIR 2: " << user_dir_2;
+
+    // fill something in the music dir
+    ASSERT_TRUE(FileUtils::fillTemporaryDirectory(user_dir_2, qrand() % 1000));
+
+    // search for the user folder uuid
+    auto user_folder_uuid_2 = getUUIDforXdgFolderPath(user_dir_2, choices.value());
+    ASSERT_FALSE(user_folder_uuid_2.isEmpty());
+    qDebug() << "User folder 2 UUID is: " << user_folder_uuid_2;
+
     // Now we know the music folder uuid, let's start the backup for it.
-    QDBusReply<void> backup_reply = user_iface->call("StartBackup", QStringList{user_folder_uuid});
+    QDBusReply<void> backup_reply = user_iface->call("StartBackup", QStringList{user_folder_uuid, user_folder_uuid_2});
     ASSERT_TRUE(backup_reply.isValid()) << qPrintable(QDBusConnection::sessionBus().lastError().message());
 
     // Wait until the helper finishes
-    EXPECT_TRUE(waitUntilHelperFinishes());
-
-    // send the upstart signal so keeper-service is aware of the helper termination
-    DbusTestDbusMockObject* objUpstart =
-        dbus_test_dbus_mock_get_object(mock, UPSTART_PATH, UPSTART_INTERFACE, NULL);
-
-    QString eventInfoStr = QString("('stopped', ['JOB=untrusted-helper', 'INSTANCE=backup-helper::%1'])").arg(DEKKO_APP_ID);
-    dbus_test_dbus_mock_object_emit_signal(
-        mock, objUpstart, "EventEmitted", G_VARIANT_TYPE("(sas)"),
-        g_variant_new_parsed(
-                eventInfoStr.toLocal8Bit().data()),
-        NULL);
-    g_usleep(100000);
-    while (g_main_pending())
-    {
-        g_main_iteration(TRUE);
-    }
+    EXPECT_TRUE(waitUntilHelperFinishes(DEKKO_APP_ID, 15000, 2));
 
     // check that the content of the file is the expected
-    EXPECT_TRUE(checkLastStorageFrameworkFile(user_dir));
+    EXPECT_TRUE(checkStorageFrameworkFiles(QStringList{user_dir, user_dir_2}));
     // let's leave things clean
     EXPECT_TRUE(removeHelperMarkBeforeStarting());
 

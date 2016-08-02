@@ -122,6 +122,13 @@ public:
                          std::bind(&BackupHelperPrivate::on_data_uploaded, this, std::placeholders::_1)
                          );
 
+        auto testHelper = qgetenv("KEEPER_TEST_HELPER");
+        if (!testHelper.isEmpty())
+        {
+            // In the testing environment we don't have upstart.
+            // TODO investigate if there's a better way to send the started signal in the tests
+            q_ptr->set_state(Helper::State::STARTED);
+        }
         reset_inactivity_timer();
     }
 
@@ -152,9 +159,11 @@ private:
 
     void on_data_uploaded(qint64 n)
     {
-        n_uploaded_ += n;
+        // TODO review this after checking if there's a bug in storage framework.
+        // TODO The issue is that bytesWritten is called for every backup helper that was
+        // TODO executed before.
+//        n_uploaded_ += n;
         qDebug("n_read %zu n_uploaded %zu (newly uploaded %zu)", size_t(n_read_), size_t(n_uploaded_), size_t(n));
-        check_for_done();
         process_more();
     }
 
@@ -184,6 +193,7 @@ private:
             if (n > 0) {
                 upload_buffer_.remove(0, int(n));
                 qDebug("upload_buffer_.size() is %zu after writing %zu to cloud", size_t(upload_buffer_.size()), size_t(n));
+                n_uploaded_ += n;
                 continue;
             }
             else {
