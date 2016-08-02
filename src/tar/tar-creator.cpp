@@ -128,12 +128,12 @@ public:
             else if (n < 0) // read error
             {
                 success = false;
-                qWarning() << QStringLiteral("read()ing %1 returned %2 (%3)")
+                auto errstr = QStringLiteral("read()ing %1 returned %2 (%3)")
                                   .arg(step_file_->fileName())
                                   .arg(n)
                                   .arg(step_file_->errorString());
-
-                break;
+                qWarning() << errstr;
+                throw std::runtime_error(errstr.toStdString());
             }
             else if (step_file_->atEnd()) // eof
             {
@@ -244,11 +244,12 @@ private:
                 if (n_read > 0)
                     archive_write_data(a, buf, size_t(n_read));
                 if (n_read < 0) {
-                    qCritical() << QStringLiteral("Reading '%1' returned %2 (%3)")
+                    auto errstr = QStringLiteral("Reading '%1' returned %2 (%3)")
                                       .arg(file.fileName())
                                       .arg(n_read)
                                       .arg(file.errorString());
-                    break;
+                    qCritical() << errstr;
+                    throw std::runtime_error(errstr.toStdString());
                 }
             }
         }
