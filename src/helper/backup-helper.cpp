@@ -73,11 +73,6 @@ public:
             std::bind(&BackupHelperPrivate::on_inactivity_detected, this)
         );
 
-        // listen for data uploaded
-        QObject::connect(storage_framework_socket_.data(), &QLocalSocket::bytesWritten,
-            std::bind(&BackupHelperPrivate::on_data_uploaded, this, std::placeholders::_1)
-        );
-
         // listen for data ready to read
         QObject::connect(read_socket_.data(), &QLocalSocket::readyRead,
             std::bind(&BackupHelperPrivate::on_ready_read, this)
@@ -112,7 +107,7 @@ public:
         reset_inactivity_timer();
     }
 
-    void set_storage_framework_socket(int sd)
+    void set_storage_framework_socket(std::shared_ptr<QLocalSocket> const& sf_socket)
     {
         n_read_ = 0;
         n_uploaded_ = 0;
@@ -120,7 +115,12 @@ public:
         write_error_ = false;
         cancelled_ = false;
 
-        storage_framework_socket_->setSocketDescriptor(sd, QLocalSocket::ConnectedState, QIODevice::WriteOnly);
+        storage_framework_socket_ = sf_socket;
+
+        // listen for data uploaded
+        QObject::connect(storage_framework_socket_.get(), &QLocalSocket::bytesWritten,
+                         std::bind(&BackupHelperPrivate::on_data_uploaded, this, std::placeholders::_1)
+                         );
 
         reset_inactivity_timer();
     }
@@ -189,6 +189,7 @@ private:
             else {
                 if (n < 0) {
                     write_error_ = true;
+                    qWarning() << "Write error: " << storage_framework_socket_->errorString();
                     stop();
                 }
                 break;
@@ -321,7 +322,7 @@ private:
     const QString appid_;
     QScopedPointer<QTimer> timer_;
     std::shared_ptr<ubuntu::app_launch::Registry> registry_;
-    QScopedPointer<QLocalSocket> storage_framework_socket_;
+    std::shared_ptr<QLocalSocket> storage_framework_socket_;
     QScopedPointer<QLocalSocket> helper_socket_;
     QScopedPointer<QLocalSocket> read_socket_;
     QByteArray upload_buffer_;
@@ -365,11 +366,11 @@ BackupHelper::stop()
 }
 
 void
-BackupHelper::set_storage_framework_socket(int sd)
+BackupHelper::set_storage_framework_socket(std::shared_ptr<QLocalSocket> const &sf_socket)
 {
     Q_D(BackupHelper);
 
-    d->set_storage_framework_socket(sd);
+    d->set_storage_framework_socket(sf_socket);
 }
 
 int
