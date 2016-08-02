@@ -87,7 +87,9 @@ protected:
 extern "C"
 {
     const char * __real_archive_error_string(struct archive *);
+    int __real_archive_errno(struct archive *);
     int __real_archive_write_header(struct archive*, struct archive_entry *);
+    ssize_t __real_archive_write_data(struct archive*, const void*, size_t);
 
     const char * __wrap_archive_error_string(struct archive * archive)
     {
@@ -95,6 +97,15 @@ extern "C"
         return it == nth_call_errors.end()
             ? __real_archive_error_string(archive)
             : it->second.second;
+    }
+
+    int __wrap_archive_errno(struct archive * archive)
+    {
+        auto it = nth_call_errors.find(n_libarchive_calls);
+
+        return it == nth_call_errors.end()
+            ? __real_archive_errno(archive)
+            : it->second.first;
     }
 
     int __wrap_archive_write_header(struct archive * archive, struct archive_entry * entry)
@@ -106,6 +117,16 @@ extern "C"
             ? __real_archive_write_header(archive, entry)
             : it->second.first;
 
+    }
+
+    ssize_t __wrap_archive_write_data(struct archive * archive, const void* data, size_t n_bytes)
+    {
+        ++n_libarchive_calls;
+
+        auto it = nth_call_errors.find(n_libarchive_calls);
+        return it == nth_call_errors.end()
+            ? __real_archive_write_data(archive, data, n_bytes)
+            : -1;
     }
 }
 
@@ -169,5 +190,6 @@ TEST_F(TarCreatorFixture, ArchiveWriteHeaderErrorInStep)
     }
 
     EXPECT_TRUE(error_string.contains(QString::fromUtf8(FATAL_ERROR_MESSAGE)))
-        << qPrintable(error_string);
+        << "expected: '" << FATAL_ERROR_MESSAGE << "'" << std::endl
+        << " got: '" << qPrintable(error_string) << "'" << std::endl;
 }

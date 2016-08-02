@@ -18,6 +18,7 @@
  */
 
 #include "qdbus-stubs/dbus-types.h"
+#include "src/util/logging.h"
 
 #include <libqtdbusmock/DBusMock.h>
 
@@ -48,6 +49,8 @@ int main(int argc, char **argv)
     setlocale(LC_ALL, "");
     bindtextdomain(GETTEXT_PACKAGE, LOCALE_DIR);
     textdomain(GETTEXT_PACKAGE);
+
+    qInstallMessageHandler(util::loggingFunction);
 
     qsrand(time(nullptr));
 

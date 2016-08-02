@@ -89,10 +89,17 @@ add_test(
   ${TAR_CREATOR_LIBARCHIVE_FAILURE_TEST}
 )
 
-set_property(
-  TARGET ${TAR_CREATOR_LIBARCHIVE_FAILURE_TEST}
-  APPEND_STRING PROPERTY LINK_FLAGS " -Wl,-wrap,archive_write_header -Wl,-wrap,archive_error_string"
-)
+foreach(funcname
+        archive_errno
+        archive_error_string
+        archive_write_data
+        archive_write_header)
+  string(CONCAT LINK_FLAG "-Wl,-wrap," "${funcname}" " ")
+  set_property(
+    TARGET ${TAR_CREATOR_LIBARCHIVE_FAILURE_TEST}
+    APPEND_STRING PROPERTY LINK_FLAGS ${LINK_FLAG}
+  )
+endforeach(funcname)
 
 #
 # keeper-tar-create-test
