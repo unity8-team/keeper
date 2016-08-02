@@ -41,5 +41,7 @@ namespace FileUtils
 
     bool compareDirectories(QString const & dir1Path, QString const & dir2Path);
 
+    bool checkPathIsDir(QString const &dirPath);
+
     QStringList getFilesRecursively(QString const & dirPath);
 };

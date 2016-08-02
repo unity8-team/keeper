@@ -19,6 +19,27 @@
 
 #include "service/metadata.h"
 
+///
+///
+
+// Metadata keys
+const QString Metadata::TYPE_KEY = QStringLiteral("type");
+const QString Metadata::PATH_KEY = QStringLiteral("path");
+const QString Metadata::ICON_KEY = QStringLiteral("icon");
+const QString Metadata::NAME_KEY = QStringLiteral("name");
+const QString Metadata::PACKAGE_KEY = QStringLiteral("package");
+const QString Metadata::TITLE_KEY = QStringLiteral("title");
+const QString Metadata::VERSION_KEY = QStringLiteral("version");
+
+// Metadata values
+const QString Metadata::USER_FOLDER_VALUE = QStringLiteral("folder");
+const QString Metadata::SYSTEM_DATA_VALUE = QStringLiteral("system-data");
+const QString Metadata::FOLDER_SYSTEM_VALUE = QStringLiteral("folder-system");
+const QString Metadata::APPLICATION_VALUE = QStringLiteral("application");
+
+///
+///
+
 Metadata::Metadata()
     : key_()
     , display_name_()

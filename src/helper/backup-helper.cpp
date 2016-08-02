@@ -301,22 +301,12 @@ private:
             // check the directory and the path to the tar util binary
             urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(testHelper.toStdString()));
             qDebug() << "BackupHelperImpl::getHelperPath: returning the helper: " << testHelper;
-            // check if we need to backup any directory
-            auto dirToBackup = qgetenv("KEEPER_TEST_HELPER_DIR");
-            if (!dirToBackup.isEmpty())
-            {
-                urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(dirToBackup.toStdString()));
-            }
-            auto tarCreatePath = qgetenv("KEEPER_TEST_TAR_CREATE_BIN");
-            if (!tarCreatePath.isEmpty())
-            {
-                urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(tarCreatePath.toStdString()));
-            }
         }
         else
         {
-            urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(DEKKO_HELPER_BIN));
+            urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(q_ptr->get_bin_path().toStdString()));
         }
+        urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(q_ptr->get_main_dir_path().toStdString()));
 
         return urls;
     }

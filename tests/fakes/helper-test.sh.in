@@ -17,8 +17,7 @@
 # Authors:
 #     Xavi Garcia <xavi.garcia.mena@canonical.com>
 #
-DIR_TO_BACKUP=$1
-PATH_TO_KEEPER_TAR_CREATE=$2
 
-find $DIR_TO_BACKUP -type f -print0 | ${PATH_TO_KEEPER_TAR_CREATE} -0 -a /com/canonical/keeper/helper
+echo $PWD >> /tmp/helper-pwd
+find ./ -type f -print0 | @KEEPER_TAR_CREATE_BIN@ -0 -a /com/canonical/keeper/helper
 touch /tmp/simple-helper-finished

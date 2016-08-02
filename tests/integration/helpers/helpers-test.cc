@@ -37,8 +37,11 @@
 #include "mir-mock.h"
 #include <helper/backup-helper.h>
 #include <qdbus-stubs/dbus-types.h>
+#include "qdbus-stubs/keeper_user_interface.h"
+
 #include "tests/fakes/fake-backup-helper.h"
 #include "tests/utils/file-utils.h"
+#include "tests/utils/xdg-user-dirs-sandbox.h"
 #include "../../../src/service/app-const.h"
 
 
@@ -154,6 +157,8 @@ protected:
         g_setenv("XDG_CACHE_HOME", CMAKE_SOURCE_DIR "/libertine-data", TRUE);
         g_setenv("XDG_DATA_HOME", xdg_data_home_dir.path().toLatin1().data(), TRUE);
 
+        qDebug() << "XDG_DATA_HOME ON SETUP is: " << xdg_data_home_dir.path();
+
         service = dbus_test_service_new(NULL);
 
         keeper = dbus_test_process_new(KEEPER_SERVICE_BIN);
@@ -239,8 +244,11 @@ protected:
                             "        os.environ[keyVal[0]] = keyVal[1]\n"
                             "        if keyVal[0] == \"APP_URIS\":\n"
                             "            exec_app = keyVal[1].replace(\"'\", '')\n"
-                            "if (exec_app != \"\"):\n"
-                            "    proc = subprocess.Popen(exec_app, shell=True, stdout=subprocess.PIPE)\n"
+                            "            target.write(exec_app)\n"
+                            "            params = exec_app.split()\n"
+                            "            if len(params) > 1:\n"
+                            "                os.chdir(params[1])\n"
+                            "                proc = subprocess.Popen(params[0], shell=True, stdout=subprocess.PIPE)\n"
                             "target.close\n"
                             , NULL);
 
@@ -354,7 +362,7 @@ protected:
         {
             return false;
         }
-        return FileUtils::compareDirectories(sourceDir, QString("%1%2%3").arg(tempDir.path()).arg(QDir::separator()).arg(sourceDir));
+        return FileUtils::compareDirectories(sourceDir, tempDir.path());
     }
 
     bool extractTarContents(QString const & tarPath, QString const & destination, bool compression=false)
@@ -395,6 +403,7 @@ protected:
             qWarning() << "ERROR: XDG_DATA_HOME is not defined";
             return QString();
         }
+        qDebug() << "XDG_DATA_HOME is: " << data_home;
         QString storage_framework_dir_path = QString("%1%2storage-framework").arg(QString(data_home)).arg(QDir::separator());
         QDir storage_framework_dir(storage_framework_dir_path);
         if (!storage_framework_dir.exists())
@@ -471,6 +480,25 @@ protected:
             }
         }
         return false;
+    }
+
+    QString getUUIDforXdgFolderPath(QString const &path, QVariantDictMap const & choices) const
+    {
+        for(auto iter = choices.begin(); iter != choices.end(); ++iter)
+        {
+            const auto& values = iter.value();
+            auto iter_values = values.find("path");
+            if (iter_values != values.end())
+            {
+                if (iter_values.value().toString() == path)
+                {
+                    // got it
+                    return iter.key();
+                }
+            }
+        }
+
+        return QString();
     }
 
     GVariant* find_env(GVariant* env_array, const gchar* var)
@@ -576,6 +604,8 @@ TEST_F(TestHelpers, StartHelper)
         dbus_test_dbus_mock_get_object(mock, UNTRUSTED_HELPER_PATH, UPSTART_JOB, NULL);
 
     BackupHelper helper("com.test.multiple_first_1.2.3");
+    helper.set_bin_path(DEKKO_HELPER_BIN);
+    helper.set_main_dir_path(DEKKO_HELPER_DIR);
 
     QSignalSpy spy(&helper, &BackupHelper::state_changed);
 
@@ -589,7 +619,7 @@ TEST_F(TestHelpers, StartHelper)
     auto env = g_variant_get_child_value(calls->params, 0);
     EXPECT_ENV("com.test.multiple_first_1.2.3", env, "APP_ID");
 
-    QString appUrisStr = QString("'%1'").arg(DEKKO_HELPER_BIN);
+    QString appUrisStr = QString("'%1' '%2'").arg(DEKKO_HELPER_BIN).arg(DEKKO_HELPER_DIR);
     EXPECT_ENV(appUrisStr.toLocal8Bit().data(), env, "APP_URIS");
     EXPECT_ENV("backup-helper", env, "HELPER_TYPE");
     EXPECT_TRUE(have_env(env, "INSTANCE_ID"));
@@ -750,24 +780,44 @@ TEST_F(TestHelpers, StartStopHelperObserver)
 
 TEST_F(TestHelpers, StartFullTest)
 {
-    // build a directory full of random files
-    QTemporaryDir dir;
-    ASSERT_TRUE(FileUtils::fillTemporaryDirectory(dir.path(), qrand() % 1000));
-
     g_setenv("KEEPER_TEST_HELPER", TEST_SIMPLE_HELPER_SH, TRUE);
-    g_setenv("KEEPER_TEST_HELPER_DIR", dir.path().toLatin1().data(), TRUE);
-    g_setenv("KEEPER_TEST_TAR_CREATE_BIN", KEEPER_TAR_CREATE_BIN, TRUE);
 
-    // remove any previous marks that may exist.
-    EXPECT_TRUE(removeHelperMarkBeforeStarting());
+    XdgUserDirsSandbox tmp_dir;
 
     // starts the services, including keeper-service
     startTasks();
 
-    // start the keeper client, which triggers the backup process
-    // TODO when we have a more complex client we would need to pass here
-    // some parameters to the client.
-    ASSERT_TRUE(startKeeperClient());
+    QDBusConnection connection = QDBusConnection::sessionBus();
+    QScopedPointer<DBusInterfaceKeeperUser> user_iface(new DBusInterfaceKeeperUser(
+                                                            DBusTypes::KEEPER_SERVICE,
+                                                            DBusTypes::KEEPER_USER_PATH,
+                                                            connection
+                                                        ) );
+
+    ASSERT_TRUE(user_iface->isValid()) << qPrintable(QDBusConnection::sessionBus().lastError().message());
+
+    // ask for a list of backup choices
+    QDBusReply<QVariantDictMap> choices = user_iface->call("GetBackupChoices");
+    EXPECT_TRUE(choices.isValid()) << qPrintable(choices.error().message());
+
+    QString user_option = "XDG_MUSIC_DIR";
+
+    auto user_dir = qgetenv(user_option.toLatin1().data());
+    ASSERT_FALSE(user_dir.isEmpty());
+    qDebug() << "USER DIR: " << user_dir;
+
+    // fill something in the music dir
+    ASSERT_TRUE(FileUtils::fillTemporaryDirectory(user_dir, qrand() % 1000));
+
+
+    // search for the user folder uuid
+    auto user_folder_uuid = getUUIDforXdgFolderPath(user_dir, choices.value());
+    ASSERT_FALSE(user_folder_uuid.isEmpty());
+    qDebug() << "User folder UUID is: " << user_folder_uuid;
+
+    // Now we know the music folder uuid, let's start the backup for it.
+    QDBusReply<void> backup_reply = user_iface->call("StartBackup", QStringList{user_folder_uuid});
+    ASSERT_TRUE(backup_reply.isValid()) << qPrintable(QDBusConnection::sessionBus().lastError().message());
 
     // Wait until the helper finishes
     EXPECT_TRUE(waitUntilHelperFinishes());
@@ -787,11 +837,11 @@ TEST_F(TestHelpers, StartFullTest)
     {
         g_main_iteration(TRUE);
     }
+
     // check that the content of the file is the expected
-    EXPECT_TRUE(checkLastStorageFrameworkFile(dir.path().toLatin1().data()));
+    EXPECT_TRUE(checkLastStorageFrameworkFile(user_dir));
     // let's leave things clean
     EXPECT_TRUE(removeHelperMarkBeforeStarting());
+
     g_unsetenv("KEEPER_TEST_HELPER");
-    g_unsetenv("KEEPER_TEST_HELPER_DIR");
-    g_unsetenv("KEEPER_TEST_TAR_CREATE_BIN");
 }
