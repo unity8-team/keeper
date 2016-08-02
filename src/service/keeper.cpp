@@ -69,6 +69,27 @@ public:
 
     Q_DISABLE_COPY(KeeperPrivate)
 
+    void start_task(QString const &uuid)
+    {
+        qDebug() << "Starting task: " << uuid;
+        auto metadata = get_uuid_metadata(cached_backup_choices_, uuid);
+        if (metadata.key() == uuid)
+        {
+            qDebug() << "Task is a backup task";
+            if (!metadata.has_property(Metadata::TYPE_KEY))
+            {
+                // TODO Report error to user
+                qWarning() << "ERROR: uuid: " << uuid << " has no property [" << Metadata::TYPE_KEY << "]";
+                return;
+            }
+            if (metadata.get_property(Metadata::TYPE_KEY).toString() == Metadata::USER_FOLDER_VALUE)
+            {
+                qDebug() << "Backup for folder type";
+                start_folder_type_backup(uuid, metadata);
+            }
+        }
+    }
+
 private:
 
     void on_backup_helper_state_changed(Helper::State state)
@@ -90,6 +111,41 @@ private:
                 break;
         }
     }
+
+    Metadata get_uuid_metadata(QVector<Metadata> const &metadata, QString const & uuid)
+    {
+        for (auto item : metadata)
+        {
+            if (item.key() == uuid)
+            {
+                return item;
+            }
+        }
+        return Metadata();
+    }
+
+    void start_folder_type_backup(QString const & uuid, Metadata const & metadata)
+    {
+        if(!check_for_property(uuid, metadata, Metadata::PATH_KEY))
+        {
+            // TODO report error to user
+            return;
+        }
+        backup_helper_->set_main_dir_path(metadata.get_property(Metadata::PATH_KEY).toString());
+        backup_helper_->set_bin_path(FOLDER_HELPER_BIN_PATH);
+        backup_helper_->start();
+    }
+
+    bool check_for_property(QString const & uuid, Metadata const & metadata, QString const &key) const
+    {
+        if (!metadata.has_property(key))
+        {
+            // TODO Report error to user
+            qWarning() << "ERROR: uuid: " << uuid << " has no property [" << key << "]";
+            return false;
+        }
+        return true;
+    }
 };
 
 
@@ -110,6 +166,17 @@ void Keeper::start()
     qDebug() << "starting backup helper for test";
 
     d->backup_helper_->start();
+}
+
+void Keeper::start_tasks(QStringList const & keys)
+{
+    Q_D(Keeper);
+
+    // TODO maintain the list of remaining tasks
+    if (keys.size())
+    {
+        d->start_task(keys.at(0));
+    }
 }
 
 QDBusUnixFileDescriptor

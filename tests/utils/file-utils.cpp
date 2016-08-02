@@ -218,12 +218,28 @@ FileUtils::compareDirectories(QString const & dir1Path, QString const & dir2Path
         qWarning() << "Error comparing directories: path for directories must be absolute";
         return false;
     }
+
+    if (!checkPathIsDir(dir1Path))
+    {
+        return false;
+    }
+    if (!checkPathIsDir(dir2Path))
+    {
+        return false;
+    }
+
     QStringList filesDir1 = getFilesRecursively(dir1Path);
     QStringList filesDir2 = getFilesRecursively(dir2Path);
 
     if ( filesDir1.size() != filesDir2.size())
     {
-        qWarning() << "Number of files in directories mismatch";
+        qWarning() << "Number of files in directories mismatch, dir \""
+                   << dir1Path
+                   <<  "\" has ["
+                   << filesDir1.size()
+                   << "], dir \""
+                   << dir2Path
+                   << "\" has [" << filesDir2.size() << "]";
         return false;
     }
     for (auto file: filesDir1)
@@ -234,6 +250,25 @@ FileUtils::compareDirectories(QString const & dir1Path, QString const & dir2Path
         if (!compareFiles(file, filePath2))
         {
             qWarning() << "File [" << file << "] and file [" << filePath2 << "] are not equal";
+            return false;
+        }
+    }
+    return true;
+}
+
+bool FileUtils::checkPathIsDir(QString const &dirPath)
+{
+    QFileInfo dirInfo = QFileInfo(dirPath);
+    if (!dirInfo.isDir())
+    {
+        if (!dirInfo.exists())
+        {
+            qWarning() << "Directory: [" << dirPath << "] does not exist";
+            return false;
+        }
+        else
+        {
+            qWarning() << "Path: [" << dirPath << "] is not a directory";
             return false;
         }
     }
