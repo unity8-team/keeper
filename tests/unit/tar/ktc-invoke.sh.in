@@ -1,2 +1,2 @@
 find ./ -type f
-find ./ -type f -print0 | @KEEPER_TAR_CREATE_BIN@ -0 -a /com/canonical/keeper/helper
+find ./ -type f -print0 | @KEEPER_TAR_CREATE_BIN@ -a /com/canonical/keeper/helper
