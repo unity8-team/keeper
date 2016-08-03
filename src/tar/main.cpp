@@ -30,8 +30,6 @@
 #include <QFile>
 #include <QLocalSocket>
 
-#include <glib.h>
-
 #include <sys/select.h>
 #include <unistd.h>
 
@@ -44,7 +42,7 @@ namespace
 {
 
 QStringList
-get_filenames_from_file(FILE * fp, bool zero)
+get_filenames_from_file(FILE * fp)
 {
     // don't wait forever...
     int fd = fileno(fp);
@@ -65,29 +63,9 @@ get_filenames_from_file(FILE * fp, bool zero)
     auto filenames_raw = file.readAll();
     file.close();
 
-    QList<QByteArray> tokens;
-    if (zero)
-    {
-        tokens = filenames_raw.split('\0');
-    }
-    else
-    {
-        // can't find a Qt equivalent of g_shell_parse_argv()...
-        gchar** filenames_strv {};
-        GError* err {};
-        filenames_raw = QString(filenames_raw).toUtf8(); // ensure a trailing '\0'
-        g_shell_parse_argv(filenames_raw.constData(), nullptr, &filenames_strv, &err);
-        if (err != nullptr)
-            g_warning("Unable to parse file list: %s", err->message);
-        for(int i=0; filenames_strv && filenames_strv[i]; ++i)
-            tokens.append(QByteArray(filenames_strv[i]));
-        g_clear_pointer(&filenames_strv, g_strfreev);
-        g_clear_error(&err);
-    }
-
     // massage into a QStringList
     QStringList filenames;
-    for (const auto& token : tokens)
+    for (const auto& token : filenames_raw.split('\0'))
         if (!token.isEmpty())
             filenames.append(QString::fromUtf8(token));
 
@@ -102,28 +80,21 @@ parse_args(QCoreApplication& app)
     parser.addHelpOption();
     parser.setApplicationDescription(
         "\n"
-        "Reads filenames from the standard input, delimited either by blanks (which can\n"
-        "be protected with double or single quotes or a backslash), builds an in-memory\n"
-        "archive of those files, and sends them to the Keeper service to store remotely.\n"
+        "Reads filenames from the standard input, delimited either by a null character,\n"
+        "builds an in-memory archive of those files, and sends them to the Keeper service\n"
+        " to store remotely.\n"
         "\n"
-        "Because Unix filenames can contain blanks and newlines, it is generally better\n"
-        "to use the -0 option, which prevents such problems. When using this option you\n"
-        "will need to ensure the program which produces input also uses a null character\n"
-        "a separator. If that program is GNU find, for example, the -print0 option does\n"
+        "You will need to insure thta the program which produces input uses a null character\n"
+        "as a separator. If that program is GNU find, for example, the -print0 option does\n"
         "this for you.\n"
         "\n"
-        "Helper usage: find /your/data/path -print0 | "  APP_NAME " -0 -a /bus/path"
+        "Helper usage: find /your/data/path -print0 | "  APP_NAME " -a /bus/path"
     );
     QCommandLineOption compress_option{
         QStringList() << "c" << "compress",
         QStringLiteral("Compress files before adding to archive")
     };
     parser.addOption(compress_option);
-    QCommandLineOption zero_delimiter_option{
-        QStringList() << "0" << "null",
-        QStringLiteral("Input items are terminated by a null character instead of by whitespace")
-    };
-    parser.addOption(zero_delimiter_option);
     QCommandLineOption bus_path_option{
         QStringList() << "a" << "bus-path",
         QStringLiteral("Keeper service's DBus path"),
@@ -132,7 +103,6 @@ parse_args(QCoreApplication& app)
     parser.addOption(bus_path_option);
     parser.process(app);
     const bool compress = parser.isSet(compress_option);
-    const bool zero = parser.isSet(zero_delimiter_option);
     const auto bus_path = parser.value(bus_path_option);
 
     // gotta have the bus path
@@ -142,7 +112,7 @@ parse_args(QCoreApplication& app)
     }
 
     // gotta have files
-    const auto filenames = get_filenames_from_file(stdin, zero);
+    const auto filenames = get_filenames_from_file(stdin);
     for (const auto& filename : filenames)
         qDebug() << "filename: " << filename;
     if (filenames.empty()) {
