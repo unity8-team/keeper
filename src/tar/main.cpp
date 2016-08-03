@@ -182,9 +182,7 @@ send_tar_to_keeper(TarCreator& tar_creator, int fd)
     // send the tar to the socket piece by piece
     std::vector<char> buf;
     while(tar_creator.step(buf)) {
-        if (buf.empty())
-            continue;
-        const char* walk = &buf.front();
+        const char* walk {buf.data()};
         auto n_left = size_t{buf.size()};
         while(n_left > 0) {
             const auto n_written_in = write(fd, walk, n_left);
