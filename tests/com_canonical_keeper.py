@@ -25,32 +25,28 @@ __license__ = 'LGPL 3+'
 
 SERVICE_PATH = '/com/canonical/keeper'
 SERVICE_IFACE = 'com.canonical.keeper'
-USER_PATH = '/com/canonical/keeper/user'
-USER_IFACE = 'com.canonical.keeper.User'
-HELPER_PATH = '/com/canonical/keeper/helper'
-HELPER_IFACE = 'com.canonical.keeper.Helper'
-MOCK_IFACE = 'com.canonical.keeper.Mock'
+USER_PATH = '/'.join([SERVICE_PATH, 'user'])
+USER_IFACE = '.'.join([SERVICE_IFACE, 'User'])
+HELPER_PATH = '/'.join([SERVICE_PATH, 'helper'])
+HELPER_IFACE = '.'.join([SERVICE_IFACE, 'Helper'])
+MOCK_IFACE = '.'.join([SERVICE_IFACE, 'Mock'])
 
-# magic keys used by dbusmock
-BUS_NAME = 'com.canonical.keeper'
-MAIN_IFACE = SERVICE_IFACE
-MAIN_OBJ = SERVICE_PATH
-SYSTEM_BUS = False
-
-ACTION_QUEUED = 'queued'
-ACTION_SAVING = 'saving'
-ACTION_RESTORING = 'restoring'
 ACTION_CANCELLED = 'cancelled'
-ACTION_FAILED = 'failed'
 ACTION_COMPLETE = 'complete'
+ACTION_FAILED = 'failed'
+ACTION_RESTORING = 'restoring'
+ACTION_SAVING = 'saving'
+ACTION_QUEUED = 'queued'
 
 KEY_ACTION = 'action'
-KEY_CTIME = 'ctime'
 KEY_BLOB = 'blob-data'
+KEY_CTIME = 'ctime'
+KEY_ERROR = 'error'
 KEY_HELPER = 'helper-exec'
 KEY_NAME = 'display-name'
-KEY_SPEED = 'speed'
+KEY_PERCENT_DONE = 'percent-done'
 KEY_SIZE = 'size'
+KEY_SPEED = 'speed'
 KEY_SUBTYPE = 'subtype'
 KEY_TYPE = 'type'
 KEY_UUID = 'uuid'
@@ -58,6 +54,31 @@ KEY_UUID = 'uuid'
 TYPE_APP = 'application'
 TYPE_FOLDER = 'folder'
 TYPE_SYSTEM = 'system-data'
+
+# magic keys used by dbusmock
+BUS_NAME = 'com.canonical.keeper'
+MAIN_IFACE = SERVICE_IFACE
+MAIN_OBJ = SERVICE_PATH
+SYSTEM_BUS = False
+
+
+#
+#  classes
+#
+
+
+class TaskData:
+    def __init__(self):
+        self.action = ACTION_QUEUED
+        self.blob = None
+        self.n_bytes = 0
+        self.n_left = 0
+        self.error = ''
+        self.chunks = []
+        self.sock = None
+        self.uuid = None
+        self.bytes_per_second = {}
+
 
 #
 #  Utils
@@ -80,7 +101,7 @@ def fail(msg):
 
 def fail_if_busy():
     user = mockobject.objects[USER_PATH]
-    if user.all_tasks:
+    if user.remaining_tasks:
         fail("can't do that while service is busy")
 
 
@@ -107,15 +128,20 @@ def user_get_restore_choices(user):
 
 def user_start_next_task(user):
     if not user.remaining_tasks:
-        user.log('last task finished')
-        user.all_tasks = []
+        user.log('last task finished; setting user.current_task to None')
         user.current_task = None
-        user.log('setting user.current_task to None')
         user.update_state_property(user)
 
     else:
         uuid = user.remaining_tasks.pop(0)
         user.current_task = uuid
+
+        # update the action state
+        if user.backup_choices.get(uuid):
+            action = ACTION_SAVING
+        else:
+            action = ACTION_RESTORING
+        user.task_data[uuid].action = action
         user.update_state_property(user)
 
         # find the helper to run
@@ -124,7 +150,7 @@ def user_start_next_task(user):
             choice = user.restore_choices.get(uuid)
         helper_exec = choice.get(KEY_HELPER)
 
-        # build the env that we'll pass to the helper
+        # build the helper's environment variables
         henv = {}
         henv['QDBUS_DEBUG'] = '1'
         henv['G_DBUS_DEBUG'] = 'call,message,signal,return'
@@ -133,19 +159,92 @@ def user_start_next_task(user):
             if val:
                 henv[key] = val
 
-        # set the working directory for folder backups
-        helper_cwd = os.getcwd()
+        # set the helper's cwd
         if choice.get(KEY_TYPE) == TYPE_FOLDER:
             helper_cwd = choice.get(KEY_SUBTYPE)
+        else:
+            # FIXME: other types
+            helper_cwd = os.getcwd()
 
         # spawn the helper
         user.log('starting %s for %s, env %s' % (helper_exec, uuid, henv))
-        subprocess.Popen(
+        user.process = subprocess.Popen(
             [helper_exec, HELPER_PATH],
             env=henv, stdout=sys.stdout, stderr=sys.stderr,
             cwd=helper_cwd,
             shell=helper_exec.endswith('.sh')
         )
+
+        GLib.timeout_add(10, user.periodic_func, user)
+
+
+def user_periodic_func(user):
+
+    done = False
+    got_data_this_pass = False
+
+    if not user.process:
+        fail("bug: user_process_check_func called w/o user.process")
+
+    uuid = user.current_task
+    td = user.task_data[uuid]
+
+    # did the helper exit with an error code?
+    returncode = user.process.poll()
+    if returncode:
+        error = 'helper exited with a returncode of %s' % (str(returncode))
+        user.log(error)
+        td.error = error
+        td.action = ACTION_FAILED
+        done = True
+
+    # try to read the socket
+    if td.sock and not td.error:
+        chunk = td.sock.recv(4096*2)
+        chunk_len = len(chunk)
+        if chunk_len:
+            got_data_this_pass = True
+            td.chunks.append(chunk)
+            td.n_left -= chunk_len
+            user.log('got %s more bytes; %s left' % (chunk_len, td.n_left))
+        if td.n_left <= 0:
+            done = True
+
+    # if done, clean up the socket
+    if done and td.sock:
+        user.log('cleaning up sock')
+        td.sock.shutdown(socket.SHUT_RDWR)
+        td.sock.close()
+        td.sock = None
+
+    # if done successfully, save the blob
+    if done and not td.error:
+        user.log('setting blob')
+        blob = b''.join(td.chunks)
+        td.blob = blob
+        user.log('backup %s done; %s bytes' % (uuid, len(blob)))
+        td.action = ACTION_COMPLETE
+
+    # maybe update the task's state
+    if done or got_data_this_pass:
+        user.update_state_property(user)
+
+    if done:
+        user.process = None
+        user.start_next_task(user)
+
+    return not done
+
+
+def user_init_tasks(user, uuids):
+    user.all_tasks = uuids
+    user.remaining_tasks = copy.copy(uuids)
+    tds = {}
+    for uuid in uuids:
+        td = TaskData()
+        td.uuid = uuid
+        tds[uuid] = td
+    user.task_data = tds
 
 
 def user_start_backup(user, uuids):
@@ -156,8 +255,7 @@ def user_start_backup(user, uuids):
         if uuid not in user.backup_choices:
             badarg('uuid %s is not a valid backup choice' % (uuid))
 
-    user.all_tasks = uuids
-    user.remaining_tasks = copy.copy(uuids)
+    user.init_tasks(user, uuids)
     user.start_next_task(user)
 
 
@@ -167,11 +265,10 @@ def user_start_restore(user, uuids):
     fail_if_busy()
     for uuid in uuids:
         if uuid not in user.restore_choices:
-            badarg('uuid %s is not a valid backup choice' % (uuid))
+            badarg('uuid %s is not a valid restore choice' % (uuid))
 
-    user.all_tasks = uuids
-    user.remaining_tasks = copy.copy(uuids)
-    user.start_next_task()
+    user.init_tasks(user, uuids)
+    user.start_next_task(user)
 
 
 def user_cancel(user):
@@ -191,19 +288,12 @@ def user_build_state(user):
     for uuid in user.all_tasks:
         task_state = {}
 
-        # get the task's action
-        if uuid == user.current_task:
-            if uuid in user.backup_choices:
-                action = ACTION_SAVING
-            else:
-                action = ACTION_RESTORING
-        elif uuid in user.remaining_tasks:
-            action = ACTION_QUEUED
-        else:  # fixme: handle ACTION_CANCELLED, ACTION_FAILED
-            action = ACTION_COMPLETE
+        # action
+        td = user.task_data[uuid]
+        action = td.action
         task_state[KEY_ACTION] = dbus.String(action)
 
-        # get the task's display-name
+        # display-name
         choice = user.backup_choices.get(uuid, None)
         if not choice:
             choice = user.restore_choices.get(uuid, None)
@@ -212,30 +302,34 @@ def user_build_state(user):
         display_name = choice.get(KEY_NAME, None)
         task_state[KEY_NAME] = dbus.String(display_name)
 
+        # error
+        if action == ACTION_FAILED:
+            task_state[KEY_ERROR] = dbus.String(td.error)
+
+        # percent-done
+        if td.n_bytes:
+            p = dbus.Double((td.n_bytes - td.n_left) / td.n_bytes)
+        else:
+            p = dbus.Double(0.0)
+        task_state[KEY_PERCENT_DONE] = p
+
         # speed
         helper = mockobject.objects[HELPER_PATH]
-        if (uuid == user.current_task) and helper.work:
+        if uuid == user.current_task:
             n_secs = 2
             n_bytes = 0
             too_old = time.time() - n_secs
-            for key in helper.work.bytes_per_second:
+            for key in td.bytes_per_second:
+                helper.log('key is %s' % (str(key)))
                 if key > too_old:
-                    n_bytes += helper.work.bytes_per_second[key]
+                    n_bytes += td.bytes_per_second[key]
+            helper.log('n_bytes is %s' % (str(n_bytes)))
             bytes_per_second = n_bytes / n_secs
         else:
             bytes_per_second = 0
         task_state[KEY_SPEED] = dbus.Int32(bytes_per_second)
 
-        # FIXME: use a real percentage here
-        # FIXME: handle ACTION_CANCELLED, ACTION_FAILED
-        if action == ACTION_COMPLETE:
-            percent_done = dbus.Double(1.0)
-        elif action == ACTION_SAVING or action == ACTION_RESTORING:
-            percent_done = dbus.Double(0.5)
-        else:
-            percent_done = dbus.Double(0.0)
-        task_state['percent-done'] = percent_done
-
+        # uuid
         tasks_states[uuid] = dbus.Dictionary(task_state)
 
     return dbus.Dictionary(
@@ -256,73 +350,21 @@ def user_update_state_property(user):
 #  Helper Obj
 #
 
-class HelperWork:
-    chunks = None
-    n_bytes = None
-    n_left = None
-    sock = None
-    uuid = None
-    bytes_per_second = None
-
-
-def helper_periodic_func(helper):
-
-    if not helper.work:
-        fail("bug: helper_periodic_func called w/o helper.work")
-
-    # try to read a bit
-    chunk = helper.work.sock.recv(4096*2)
-    chunk_len = len(chunk)
-    if chunk_len:
-        helper.work.chunks.append(chunk)
-        helper.work.n_left -= chunk_len
-        key = int(time.time())
-        old_n_bytes = helper.work.bytes_per_second.get(key, 0)
-        new_n_bytes = old_n_bytes + chunk_len
-        helper.work.bytes_per_second[key] = new_n_bytes
-        helper.log('got %s bytes; %s left' % (chunk_len, helper.work.n_left))
-
-    # cleanup if done
-    done = helper.work.n_left <= 0
-    if done:
-        helper.work.sock.shutdown(socket.SHUT_RDWR)
-        helper.work.sock.close()
-        user = mockobject.objects[USER_PATH]
-        user.backup_data[helper.work.uuid] = b''.join(helper.work.chunks)
-        user.log(
-            'backup %s done; %s bytes' %
-            (helper.work.uuid, len(user.backup_data[helper.work.uuid]))
-        )
-        user.start_next_task(user)
-        helper.work = None
-
-    if chunk_len or done:
-        user = mockobject.objects[USER_PATH]
-        user.update_state_property(user)
-
-    return not done
-
 
 def helper_start_backup(helper, n_bytes):
 
     helper.log("got start_backup request for %s bytes" % (n_bytes))
-    if helper.work:
-        fail("can't start a new backup while one's already active")
 
     parent, child = socket.socketpair()
 
-    # set up helper's workarea
-    work = HelperWork()
-    work.chunks = []
-    work.n_bytes = n_bytes
-    work.n_left = n_bytes
-    work.sock = parent
-    work.uuid = mockobject.objects[USER_PATH].current_task
-    work.bytes_per_second = {}
-    helper.work = work
+    user = mockobject.objects[USER_PATH]
+    uuid = user.current_task
 
-    # start checking periodically
-    GLib.timeout_add(10, helper.periodic_func, helper)
+    td = user.task_data[uuid]
+    td.n_bytes = n_bytes
+    td.n_left = n_bytes
+    td.sock = parent
+
     return dbus.types.UnixFd(child.fileno())
 
 
@@ -366,9 +408,10 @@ def mock_add_restore_choice(mock, uuid, props):
 
 
 def mock_get_backup_data(mock, uuid):
-    blob = mockobject.objects[USER_PATH].backup_data[uuid]
-    mock.log('returning %s byte blob for uuid %s' % (len(blob), uuid))
-    return blob
+    user = mockobject.objects[USER_PATH]
+    td = user.task_data[uuid]
+    user.log('returning %s byte blob for uuid %s' % (len(td.blob), uuid))
+    return td.blob
 
 
 #
@@ -384,6 +427,7 @@ def load(main, parameters):
     main.AddObject(path, USER_IFACE, {}, [])
     o = mockobject.objects[path]
     o.get_backup_choices = user_get_backup_choices
+    o.init_tasks = user_init_tasks
     o.start_backup = user_start_backup
     o.get_restore_choices = user_get_restore_choices
     o.start_restore = user_start_restore
@@ -393,10 +437,13 @@ def load(main, parameters):
     o.start_next_task = user_start_next_task
     o.all_tasks = []
     o.remaining_tasks = []
+    o.task_data = {}
     o.backup_data = {}
     o.backup_choices = parameters.get('backup-choices', {})
     o.restore_choices = parameters.get('restore-choices', {})
     o.current_task = None
+    o.process = None
+    o.periodic_func = user_periodic_func
     o.defined_types = [TYPE_APP, TYPE_SYSTEM, TYPE_FOLDER]
     o.AddMethods(USER_IFACE, [
         ('GetBackupChoices', '', 'a{sa{sv}}',
@@ -418,8 +465,6 @@ def load(main, parameters):
     o = mockobject.objects[path]
     o.start_backup = helper_start_backup
     o.start_restore = helper_start_restore
-    o.periodic_func = helper_periodic_func
-    o.work = None
     o.AddMethods(HELPER_IFACE, [
         ('StartBackup', 't', 'h',
          'ret = self.start_backup(self, args[0])'),
