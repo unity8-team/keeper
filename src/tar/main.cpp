@@ -32,8 +32,10 @@
 
 #include <glib.h>
 
+#include <sys/select.h>
 #include <unistd.h>
 
+#include <cstdio> // fileno()
 #include <ctime>
 #include <iostream>
 #include <type_traits>
@@ -44,15 +46,22 @@ namespace
 QStringList
 get_filenames_from_file(FILE * fp, bool zero)
 {
-    // we want to read the file list from fp...
-    QFile file;
-    file.open(fp, QIODevice::ReadOnly);
-    if (!file.waitForReadyRead(2000)) {
+    // don't wait forever...
+    int fd = fileno(fp);
+    fd_set readfds;
+    FD_ZERO(&readfds);
+    FD_SET(fd, &readfds);
+    struct timeval tv {};
+    tv.tv_sec = 2;
+    select(1, &readfds, NULL, NULL, &tv);
+    if (!FD_ISSET(fd, &readfds)) {
         qWarning() << "Couldn't read files from stdin";
         return QStringList();
     }
 
     // read the file list
+    QFile file;
+    file.open(fp, QIODevice::ReadOnly);
     auto filenames_raw = file.readAll();
     file.close();
 
