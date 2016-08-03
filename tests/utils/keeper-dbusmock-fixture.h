@@ -33,19 +33,21 @@
 
 #include <memory>
 
-#define KEY_ACTION "action"
-#define KEY_CTIME "ctime"
-#define KEY_BLOB "blob-data"
-#define KEY_HELPER "helper-exec"
-#define KEY_NAME "display-name"
-#define KEY_PERCENT "percent-done"
-#define KEY_SIZE "size"
-#define KEY_SPEED "speed"
-#define KEY_SUBTYPE "subtype"
-#define KEY_TYPE "type"
-#define KEY_UUID "uuid"
+// FIXME: these should go in a shared header in include/
 
-// FIXME: this should go in a shared header in include/
+static constexpr char const * KEY_ACTION = {"action"};
+static constexpr char const * KEY_CTIME = {"ctime"};
+static constexpr char const * KEY_BLOB = {"blob-data"};
+static constexpr char const * KEY_ERROR = {"error"};
+static constexpr char const * KEY_HELPER = {"helper-exec"};
+static constexpr char const * KEY_NAME = {"display-name"};
+static constexpr char const * KEY_PERCENT = {"percent-done"};
+static constexpr char const * KEY_SIZE = {"size"};
+static constexpr char const * KEY_SPEED = {"speed"};
+static constexpr char const * KEY_SUBTYPE = {"subtype"};
+static constexpr char const * KEY_TYPE = {"type"};
+static constexpr char const * KEY_UUID = {"uuid"};
+
 static constexpr char const * ACTION_QUEUED = {"queued"};
 static constexpr char const * ACTION_SAVING = {"saving"};
 static constexpr char const * ACTION_RESTORING = {"restoring"};
@@ -113,23 +115,42 @@ protected:
     std::unique_ptr<DBusInterfaceKeeperUser> user_iface_;
     std::unique_ptr<QDBusInterface> mock_iface_;
 
-    void EXPECT_EVENTUALLY(std::function<bool()>&& test, qint64 timeout_msec=5000)
+    bool wait_for(
+        std::function<bool()>&& test_function,
+        qint64 timeout_msec=1000,
+        qint64 test_interval=100)
     {
         QElapsedTimer timer;
         timer.start();
         bool passed;
-        do {
-            passed = test();
-            if (!passed)
-                QThread::msleep(100);
-        } while (!passed && !timer.hasExpired(timeout_msec));
-        EXPECT_TRUE(passed);
+        for(;;) {
+            if (test_function())
+                return true;
+            if (timer.hasExpired(timeout_msec))
+                return false;
+            QThread::msleep(test_interval);
+        }
     }
 
-    void wait_for_backup_to_finish()
+    bool wait_for_tasks_to_finish()
     {
-        EXPECT_EVENTUALLY([this]{return !user_iface_->state().isEmpty();}); // backup running
-        EXPECT_EVENTUALLY([this]{return user_iface_->state().isEmpty();}); // backup finished
+        auto tasks_exist = [this]{
+            return !user_iface_->state().isEmpty();
+        };
+
+        auto all_tasks_finished = [this]{
+            const auto state = user_iface_->state();
+            bool all_done = true;
+            for(const auto& properties : state) {
+                const auto action = properties.value(KEY_ACTION);
+                bool task_done = (action == ACTION_CANCELLED) || (action == ACTION_FAILED) || (action == ACTION_COMPLETE);
+                if (!task_done)
+                    all_done = false;
+            }
+            return all_done;
+        };
+
+        return wait_for(tasks_exist) && wait_for(all_tasks_finished,5000);
     }
 
     QString add_backup_choice(const QMap<QString,QVariant>& properties)
