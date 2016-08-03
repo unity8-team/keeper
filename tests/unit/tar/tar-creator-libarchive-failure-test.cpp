@@ -55,7 +55,6 @@ namespace
     };
 
     int n_libarchive_calls {0};
-    bool libarchive_fail_enabled {false};
 }
 
 
@@ -68,17 +67,10 @@ protected:
         qsrand(time(nullptr));
 
         n_libarchive_calls = 0;
-        libarchive_fail_enabled = false;
     }
 
     void TearDown() override
     {
-    }
-
-    void enable_libarchive_failure()
-    {
-        n_libarchive_calls = 0;
-        libarchive_fail_enabled = true;
     }
 };
 
@@ -136,8 +128,6 @@ extern "C"
 
 TEST_F(TarCreatorFixture, ArchiveWriteHeaderErrorInCalculateSize)
 {
-    enable_libarchive_failure();
-
     // build a directory full of random files
     QTemporaryDir in;
     QDir indir(in.path());
@@ -165,8 +155,6 @@ TEST_F(TarCreatorFixture, ArchiveWriteHeaderErrorInCalculateSize)
 
 TEST_F(TarCreatorFixture, ArchiveWriteHeaderErrorInStep)
 {
-    enable_libarchive_failure();
-
     // build a directory full of random files
     QTemporaryDir in;
     QDir indir(in.path());
