@@ -144,7 +144,7 @@ get_socket_from_keeper(size_t n_bytes, const QString& bus_path)
         );
     } else {
         ret = fd_reply.value();
-    } 
+    }
 
     return ret;
 }
