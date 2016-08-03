@@ -84,7 +84,7 @@ parse_args(QCoreApplication& app)
         "builds an in-memory archive of those files, and sends them to the Keeper service\n"
         " to store remotely.\n"
         "\n"
-        "You will need to insure thta the program which produces input uses a null character\n"
+        "You will need to insure that the program which produces input uses a null character\n"
         "as a separator. If that program is GNU find, for example, the -print0 option does\n"
         "this for you.\n"
         "\n"
