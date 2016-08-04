@@ -1,1 +1,1 @@
-@KEEPER_TAR_CREATE_BIN@ -0 -a /com/canonical/keeper/helper
+@KEEPER_TAR_CREATE_BIN@ -a /com/canonical/keeper/helper
