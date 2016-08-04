@@ -230,11 +230,6 @@ endif()
 
 
 # Definitions for testing with valgrind.
-# Tests in CTestCustom.cmake are skipped for valgrind
-configure_file(
-  CTestCustom.cmake.in
-  CTestCustom.cmake
-)
 
 find_program(MEMORYCHECK_COMMAND NAMES valgrind)
 if (MEMORYCHECK_COMMAND)
