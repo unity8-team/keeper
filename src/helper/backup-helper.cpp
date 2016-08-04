@@ -226,7 +226,7 @@ private:
         {
             q_ptr->set_state(Helper::State::COMPLETE);
         }
-        else if (read_error_ || write_error_)
+        else if (read_error_ || write_error_ || n_uploaded_ != q_ptr->expected_size())
         {
             q_ptr->set_state(Helper::State::FAILED);
         }
@@ -341,6 +341,7 @@ private:
     bool read_error_;
     bool write_error_;
     bool cancelled_;
+    bool waiting_for_ual_started_;
 };
 
 /***
