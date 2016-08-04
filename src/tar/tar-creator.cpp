@@ -179,8 +179,13 @@ private:
             ret = archive_write_header(archive, entry);
             if (ret==ARCHIVE_WARN)
                 qWarning() << archive_error_string(archive);
-            if (ret==ARCHIVE_FATAL)
-                qFatal("%s", archive_error_string(archive));
+            if (ret==ARCHIVE_FATAL) {
+                auto errstr = QString::fromUtf8("Error adding header for '%1': %2")
+                                .arg(filename)
+                                .arg(archive_error_string(archive));
+                qWarning() << qPrintable(errstr);
+                throw std::runtime_error(errstr.toStdString());
+            }
         } while (ret == ARCHIVE_RETRY);
 
         archive_entry_free(entry);

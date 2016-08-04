@@ -24,66 +24,92 @@
 #include <gtest/gtest.h>
 
 #include <QDebug>
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <QProcess>
 #include <QString>
 #include <QTemporaryDir>
 
 #include <algorithm>
+#include <array>
 #include <cstdio>
 
 class TarCreatorFixture: public ::testing::Test
 {
 protected:
 
+    void SetUp() override
+    {
+        qsrand(time(nullptr));
+    }
+
+    void TearDown() override
+    {
+    }
+
 };
 
+/***
+****
+***/
 
-TEST_F(TarCreatorFixture, HelloWorld)
+TEST_F(TarCreatorFixture, Create)
 {
-}
-
-TEST_F(TarCreatorFixture, CreateUncompressed)
-{
-    static constexpr int n_runs = 10;
-
-    qsrand(time(nullptr));
+    static constexpr int n_runs {5};
 
     for (int i=0; i<n_runs; ++i)
     {
-        // build a directory full of random files
-        QTemporaryDir sandbox;
-        ASSERT_TRUE(FileUtils::fillTemporaryDirectory(sandbox.path()));
-        const auto files = FileUtils::getFilesRecursively(sandbox.path());
+        for (const auto compression_enabled : std::array<bool,2>{false, true})
+        {
+            // build a directory full of random files
+            QTemporaryDir in;
+            QDir indir(in.path());
+            ASSERT_TRUE(FileUtils::fillTemporaryDirectory(in.path()));
 
-        // create the tar creator
-        TarCreator tar_creator(files, false);
+            // create the tar creator
+            EXPECT_TRUE(QDir::setCurrent(in.path()));
+            QStringList files;
+            for (file : FileUtils::getFilesRecursively(in.path()))
+                files += indir.relativeFilePath(file);
+            TarCreator tar_creator(files, compression_enabled);
 
-        // simple sanity check on its size estimate
-        const auto filesize_sum = std::accumulate(files.begin(), files.end(), 0, [](ssize_t sum, QString const& filename){return sum + QFileInfo(filename).size();});
+            // simple sanity check on its size estimate
+            const auto estimated_size = tar_creator.calculate_size();
+            const auto filesize_sum = std::accumulate(
+                files.begin(),
+                files.end(),
+                0,
+                [](ssize_t sum, QString const& filename){return sum + QFileInfo(filename).size();}
+            );
+            if (!compression_enabled)
+                ASSERT_GT(estimated_size, filesize_sum);
 
-#if 0
-ssize_t filesize_sum {};
-template< class InputIt, class T, class BinaryOperation >
-T accumulate( InputIt first, InputIt last, T init,
-              BinaryOperation op );
-        for (const auto& file : files)
-            filesize_sum += QFileInfo(file).size();
-#endif
-        const auto estimated_size = tar_creator.calculate_size();
-        ASSERT_GT(estimated_size, filesize_sum);
+            // does it match the actual size?
+            size_t actual_size {};
+            std::vector<char> contents, step;
+            while (tar_creator.step(step)) {
+                contents.insert(contents.end(), step.begin(), step.end());
+                actual_size += step.size();
+            }
+            ASSERT_EQ(estimated_size, actual_size);
 
-        // does it match the actual size?
-        size_t actual_size {};
-        std::vector<char> buf;
-        while (tar_creator.step(buf))
-            actual_size += buf.size();
-        ASSERT_EQ(estimated_size, actual_size);
+            // untar it
+            QTemporaryDir out;
+            QDir outdir(out.path());
+            QFile tarfile(outdir.filePath("tmp.tar"));
+            tarfile.open(QIODevice::WriteOnly);
+            tarfile.write(contents.data(), contents.size());
+            tarfile.close();
+            QProcess untar;
+            untar.setWorkingDirectory(outdir.path());
+            untar.start("tar", QStringList() << "xf" << tarfile.fileName());
+            EXPECT_TRUE(untar.waitForFinished()) << qPrintable(untar.errorString());
 
-        // FIXME: now extract and confirm the checksums are the same
+            // compare it to the original
+            EXPECT_FALSE(FileUtils::compareDirectories(in.path(), out.path()));
+            EXPECT_TRUE(tarfile.remove());
+            EXPECT_TRUE(FileUtils::compareDirectories(in.path(), out.path()));
+        }
     }
 }
-
-// FIXME: calculate compressed size
-
-// FIXME: actually build the compressed tar and confirm the size eq calculated size
-
-// FIXME: what happens when we pass in a directory name instead of an ordinary file. We need to confirm the subtree gets walked correctly
