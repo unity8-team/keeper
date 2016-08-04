@@ -136,7 +136,7 @@ TEST_F(TarCreatorFixture, ArchiveWriteHeaderErrorInCalculateSize)
     // create the tar creator
     EXPECT_TRUE(QDir::setCurrent(in.path()));
     QStringList files;
-    for (file : FileUtils::getFilesRecursively(in.path()))
+    for (auto file : FileUtils::getFilesRecursively(in.path()))
         files += indir.relativeFilePath(file);
     TarCreator tar_creator(files, false);
 
@@ -163,7 +163,7 @@ TEST_F(TarCreatorFixture, ArchiveWriteHeaderErrorInStep)
     // create the tar creator
     EXPECT_TRUE(QDir::setCurrent(in.path()));
     QStringList files;
-    for (file : FileUtils::getFilesRecursively(in.path()))
+    for (auto file : FileUtils::getFilesRecursively(in.path()))
         files += indir.relativeFilePath(file);
     TarCreator tar_creator(files, false);
 
