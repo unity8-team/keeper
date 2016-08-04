@@ -156,6 +156,8 @@ parse_args(QCoreApplication& app)
 QDBusUnixFileDescriptor
 get_socket_from_keeper(size_t n_bytes, const QString& bus_path)
 {
+    QDBusUnixFileDescriptor ret;
+
     qDebug() << "asking keeper for a socket";
     DBusInterfaceKeeperHelper helperInterface(
         DBusTypes::KEEPER_SERVICE,
@@ -165,26 +167,27 @@ get_socket_from_keeper(size_t n_bytes, const QString& bus_path)
     auto fd_reply = helperInterface.StartBackup(n_bytes);
     fd_reply.waitForFinished();
     if (fd_reply.isError()) {
-        qFatal("Call to '%s.StartBackup() at '%s' call failed: %s",
+        qCritical("Call to '%s.StartBackup() at '%s' call failed: %s",
             DBusTypes::KEEPER_SERVICE,
             qPrintable(bus_path),
             qPrintable(fd_reply.error().message())
         );
+    } else {
+        ret = fd_reply.value();
     }
-    return fd_reply.value();
+
+    return ret;
 }
 
-size_t
+ssize_t
 send_tar_to_keeper(TarCreator& tar_creator, int fd)
 {
-    size_t n_sent {};
+    ssize_t n_sent {};
 
     // send the tar to the socket piece by piece
     std::vector<char> buf;
     while(tar_creator.step(buf)) {
-        if (buf.empty())
-            continue;
-        const char* walk = &buf.front();
+        const char* walk {buf.data()};
         auto n_left = size_t{buf.size()};
         while(n_left > 0) {
             const auto n_written_in = write(fd, walk, n_left);
@@ -196,7 +199,8 @@ send_tar_to_keeper(TarCreator& tar_creator, int fd)
             } else if (errno == EAGAIN) {
                 QThread::msleep(100);
             } else {
-                qFatal("error sending binary blob to Keeper: %s", strerror(errno));
+                qCritical("error sending binary blob to Keeper: %s", strerror(errno));
+                return -1;
             }
         }
     }
@@ -220,13 +224,19 @@ main(int argc, char **argv)
     // build the creator
     TarCreator tar_creator{filenames, compress};
     const auto n_bytes_in = tar_creator.calculate_size();
-    if (n_bytes_in < 0)
-        qFatal("Unable to estimate tar size");
+    if (n_bytes_in < 0) {
+        qCritical("Unable to estimate tar size");
+        return EXIT_FAILURE;
+    }
     const auto n_bytes = size_t(n_bytes_in);
     qDebug() << "tar size should be" << n_bytes;
 
     // do it!
     const auto qfd = get_socket_from_keeper(n_bytes, bus_path);
+    if (!qfd.isValid()) {
+        qCritical() << "Can't proceed without a socket from keeper";
+        return EXIT_FAILURE;
+    }
     const auto fd = qfd.fileDescriptor();
     const auto n_sent = send_tar_to_keeper(tar_creator, fd);
     qDebug() << "tar size was" << n_sent;

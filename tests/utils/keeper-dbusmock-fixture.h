@@ -122,7 +122,6 @@ protected:
     {
         QElapsedTimer timer;
         timer.start();
-        bool passed;
         for(;;) {
             if (test_function())
                 return true;
@@ -159,5 +158,11 @@ protected:
         auto msg = mock_iface_->call(QStringLiteral("AddBackupChoice"), uuid, properties);
         EXPECT_NE(QDBusMessage::ErrorMessage, msg.type()) << qPrintable(msg.errorMessage());
         return uuid;
+    }
+
+    void fail_next_helper_start()
+    {
+        auto msg = mock_iface_->call(QStringLiteral("FailNextHelperStart"));
+        EXPECT_NE(QDBusMessage::ErrorMessage, msg.type()) << qPrintable(msg.errorMessage());
     }
 };
