@@ -341,7 +341,6 @@ private:
     bool read_error_;
     bool write_error_;
     bool cancelled_;
-    bool waiting_for_ual_started_;
 };
 
 /***
