@@ -129,8 +129,6 @@ public:
         : q_ptr{helper}
         , clock_{clock}
         , state_{State::NOT_STARTED}
-        , speed_{}
-        , percent_done_{}
         , size_{}
         , sized_{}
         , expected_size_{}
@@ -228,8 +226,6 @@ private:
     Helper * const q_ptr;
     clock_func clock_;
     State state_ {};
-    int speed_ {};
-    float percent_done_ {};
     qint64 size_ {};
     double sized_ {};
     qint64 expected_size_ {};
