@@ -925,7 +925,7 @@ TEST_F(TestHelpers, Inactivity)
 
     QElapsedTimer timer;
     timer.start();
-    int nb_stop_calls;
+    int nb_stop_calls = 0;
     // we wait 1 second more compared to the inactivity time...
     while(!timer.hasExpired(BackupHelper::MAX_INACTIVITY_TIME + 1000) && (nb_stop_calls == 0))
     {
