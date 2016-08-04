@@ -211,7 +211,7 @@ private:
 
     void reset_inactivity_timer()
     {
-        static constexpr int MAX_TIME_WAITING_FOR_DATA {10000};
+        static constexpr int MAX_TIME_WAITING_FOR_DATA {BackupHelper::MAX_INACTIVITY_TIME};
         timer_->start(MAX_TIME_WAITING_FOR_DATA);
     }
 

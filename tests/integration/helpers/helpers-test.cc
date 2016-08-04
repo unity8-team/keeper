@@ -492,8 +492,6 @@ protected:
         return true;
     }
 
-
-
     bool waitUntilHelperFinishes(QString const & app_id, int maxTimeout = 15000, int times = 1)
     {
         // TODO create a new mock for upstart that controls the lifecycle of the
@@ -902,4 +900,50 @@ TEST_F(TestHelpers, StartFullTest)
     EXPECT_TRUE(removeHelperMarkBeforeStarting());
 
     g_unsetenv("KEEPER_TEST_HELPER");
+}
+
+TEST_F(TestHelpers, Inactivity)
+{
+    // starts the services, including keeper-service
+    startTasks();
+
+    DbusTestDbusMockObject* obj =
+        dbus_test_dbus_mock_get_object(mock, UNTRUSTED_HELPER_PATH, UPSTART_JOB, NULL);
+
+    BackupHelper helper("com.bar_foo_8432.13.1");
+
+    helper.start();
+
+    DbusTestDbusMockObject* objUpstart =
+        dbus_test_dbus_mock_get_object(mock, UPSTART_PATH, UPSTART_INTERFACE, NULL);
+
+    /* Basic start */
+    dbus_test_dbus_mock_object_emit_signal(
+        mock, objUpstart, "EventEmitted", G_VARIANT_TYPE("(sas)"),
+        g_variant_new_parsed("('started', ['JOB=untrusted-helper', 'INSTANCE=backup-helper::com.bar_foo_8432.13.1'])"),
+        NULL);
+
+    QElapsedTimer timer;
+    timer.start();
+    int nb_stop_calls = 0;
+    // we wait 1 second more compared to the inactivity time...
+    while(!timer.hasExpired(BackupHelper::MAX_INACTIVITY_TIME + 1000) && (nb_stop_calls == 0))
+    {
+        nb_stop_calls = dbus_test_dbus_mock_object_check_method_call(mock, obj, "Stop", NULL, NULL);
+        QCoreApplication::processEvents();
+    }
+
+    EXPECT_EQ(nb_stop_calls, 1);
+
+    dbus_test_dbus_mock_object_emit_signal(
+            mock, objUpstart, "EventEmitted", G_VARIANT_TYPE("(sas)"),
+            g_variant_new_parsed(
+                "('stopped', ['JOB=untrusted-helper', 'INSTANCE=backup-helper::com.bar_foo_8432.13.1'])"),
+            NULL);
+
+    g_usleep(100000);
+    while (g_main_pending())
+    {
+        g_main_iteration(TRUE);
+    }
 }
