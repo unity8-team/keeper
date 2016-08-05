@@ -220,8 +220,18 @@ private:
         timer_->stop();
     }
 
+    void wait_backup_socket_is_clear()
+    {
+        while (read_socket_->bytesAvailable())
+        {
+            process_more();
+        }
+    }
+
     void check_for_done()
     {
+        wait_backup_socket_is_clear();
+
         if (n_uploaded_ == q_ptr->expected_size())
         {
             q_ptr->set_state(Helper::State::COMPLETE);
