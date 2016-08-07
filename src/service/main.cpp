@@ -76,8 +76,8 @@ main(int argc, char **argv)
         // register the service
         if (!connection.registerService(DBusTypes::KEEPER_SERVICE))
         {
-            qFatal("Could not register keeper dbus service: [%s]", connection.lastError().message().toStdString().c_str());
-            return 1;
+            qCritical("Could not register keeper dbus service: [%s]", connection.lastError().message().toStdString().c_str());
+            return EXIT_FAILURE;
         }
 
         QSharedPointer<MetadataProvider> possible (new BackupChoices());
@@ -86,8 +86,8 @@ main(int argc, char **argv)
         new KeeperAdaptor(service);
         if (!connection.registerObject(DBusTypes::KEEPER_SERVICE_PATH, service))
         {
-            qFatal("Could not register keeper dbus service object: [%s]", connection.lastError().message().toStdString().c_str());
-            return 1;
+            qCritical("Could not register keeper dbus service object: [%s]", connection.lastError().message().toStdString().c_str());
+            return EXIT_FAILURE;
         }
 
         // register the helper object
@@ -95,8 +95,8 @@ main(int argc, char **argv)
         new KeeperHelperAdaptor(helper);
         if (!connection.registerObject(DBusTypes::KEEPER_HELPER_PATH, helper))
         {
-            qFatal("Could not register keeper dbus helper object: [%s]", connection.lastError().message().toStdString().c_str());
-            return 1;
+            qCritical("Could not register keeper dbus helper object: [%s]", connection.lastError().message().toStdString().c_str());
+            return EXIT_FAILURE;
         }
 
         // register the user object
@@ -104,8 +104,8 @@ main(int argc, char **argv)
         new KeeperUserAdaptor(user);
         if (!connection.registerObject(DBusTypes::KEEPER_USER_PATH, user))
         {
-            qFatal("Could not register keeper dbus user object: [%s]", connection.lastError().message().toStdString().c_str());
-            return 1;
+            qCritical("Could not register keeper dbus user object: [%s]", connection.lastError().message().toStdString().c_str());
+            return EXIT_FAILURE;
         }
     }
 
