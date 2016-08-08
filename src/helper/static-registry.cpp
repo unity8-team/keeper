@@ -40,7 +40,7 @@ public:
         {
             qCritical() << "task had no" << Metadata::TYPE_KEY << "property";
         }
-        else if (type == Metadata::USER_FOLDER_VALUE)
+        else if (type == Metadata::FOLDER_VALUE)
         {
             ret = get_folder_backup_helper_urls(task);
         }

@@ -42,9 +42,8 @@ public:
     static QString const VERSION_KEY;
 
     // metadata values
-    static QString const USER_FOLDER_VALUE;
+    static QString const FOLDER_VALUE;
     static QString const SYSTEM_DATA_VALUE;
-    static QString const FOLDER_SYSTEM_VALUE;
     static QString const APPLICATION_VALUE;
 
     QString uuid() const { return uuid_; }

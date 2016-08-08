@@ -32,9 +32,8 @@ const QString Metadata::TITLE_KEY = QStringLiteral("title");
 const QString Metadata::VERSION_KEY = QStringLiteral("version");
 
 // Metadata values
-const QString Metadata::USER_FOLDER_VALUE = QStringLiteral("folder");
+const QString Metadata::FOLDER_VALUE = QStringLiteral("folder");
 const QString Metadata::SYSTEM_DATA_VALUE = QStringLiteral("system-data");
-const QString Metadata::FOLDER_SYSTEM_VALUE = QStringLiteral("folder-system");
 const QString Metadata::APPLICATION_VALUE = QStringLiteral("application");
 
 ///
