@@ -122,13 +122,9 @@ public:
                          std::bind(&BackupHelperPrivate::on_data_uploaded, this, std::placeholders::_1)
                          );
 
-        auto testHelper = qgetenv("KEEPER_TEST_HELPER");
-        if (!testHelper.isEmpty())
-        {
-            // In the testing environment we don't have upstart.
-            // TODO investigate if there's a better way to send the started signal in the tests
-            q_ptr->set_state(Helper::State::STARTED);
-        }
+        // TODO xavi is going to remove this line
+        q_ptr->set_state(Helper::State::STARTED);
+
         reset_inactivity_timer();
     }
 
