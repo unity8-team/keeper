@@ -305,34 +305,6 @@ private:
         self->stop_inactivity_timer();
     }
 
-#if 0
-    std::vector<ubuntu::app_launch::Helper::URL> get_helper_urls(QString const & /*appId*/)
-    {
-        //TODO retrieve the helper path from the package information
-        std::vector<ubuntu::app_launch::Helper::URL> urls;
-
-#if 0
-        // This is added for testing purposes only
-        auto testHelper = qgetenv("KEEPER_TEST_HELPER");
-        if (!testHelper.isEmpty())
-        {
-            // check the directory and the path to the tar util binary
-            urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(testHelper.toStdString()));
-            qDebug() << "BackupHelperImpl::getHelperPath: returning the helper: " << testHelper;
-        }
-        else
-        {
-            urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(q_ptr->get_bin_path().toStdString()));
-        }
-        urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(q_ptr->get_main_dir_path().toStdString()));
-#else
-        urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(url_.toStdString());
-#endif
-
-        return urls;
-    }
-#endif
-
     /***
     ****
     ***/

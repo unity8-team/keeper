@@ -58,24 +58,6 @@ private:
     {
         QStringList ret;
 
-#if 0 // proposal: push everything into the query in case we need to extend later
-
-        QUrlQuery query;
-        query.addQueryItem("QDBUS_DEBUG", "1");
-        query.addQueryItem("G_DBUS_DEBUG", "call,message,signal,return");
-        query.addQueryItem("cwd", subtype);
-
-        QUrl url;
-        url.setScheme("file");
-        url.setPath(QString::fromUtf8(FOLDER_BACKUP_EXEC));
-        url.setQuery(query);
-
-        qDebug() << url.toDisplayString();
-        qDebug() << url.toEncoded();
-        ret.push_back(url.toEncoded());
-
-#else // current impl: multiple urls with predefined meanings
-
         QString exec;
         QString cwd;
 
@@ -99,8 +81,6 @@ private:
 
         ret.push_back(exec);
         ret.push_back(cwd);
-
-#endif
 
         return ret;
     }
