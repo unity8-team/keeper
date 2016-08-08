@@ -30,5 +30,5 @@ target_link_libraries(
 
 configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/helper-test.sh.in
-  ${KEPPER_HELPER_TEST_LOCATION}
+  ${KEEPER_HELPER_TEST_LOCATION}
 )
