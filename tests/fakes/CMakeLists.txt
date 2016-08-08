@@ -28,6 +28,21 @@ target_link_libraries(
     ${LINK_LIBS}
 )
 
+add_executable(
+    ${BACKUP_HELPER_FAILURE}
+    fake-backup-helper.cpp
+)
+target_compile_definitions(
+    ${BACKUP_HELPER_FAILURE}
+    PRIVATE
+    -DCOMPILE_WITH_FAILURE
+)
+
+target_link_libraries(
+    ${BACKUP_HELPER_FAILURE}
+    ${LINK_LIBS}
+)
+
 configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/helper-test.sh.in
   ${KEPPER_HELPER_TEST_LOCATION}

@@ -24,9 +24,16 @@ set(
   helpers-test
 )
 
+set(
+  HELPERS_TEST_FAILURES
+  helpers-test-failures
+)
+
+
 add_executable(
   ${HELPERS_TEST}
   helpers-test.cc
+  test-helpers-base.cpp
   mir-mock.cpp
 )
 
@@ -51,9 +58,38 @@ add_test(
   COMMAND ${HELPERS_TEST}
 )
 
+add_executable(
+  ${HELPERS_TEST_FAILURES}
+  helpers-test-failure.cpp
+  test-helpers-base.cpp
+  mir-mock.cpp
+)
+
+set_target_properties(
+  ${HELPERS_TEST_FAILURES}
+  PROPERTIES
+  COMPILE_FLAGS -fPIC
+  AUTOMOC TRUE
+)
+
+target_link_libraries(
+  ${HELPERS_TEST_FAILURES}
+  ${HELPERS_TEST_DEPS_LDFLAGS}
+  ${INTEGRATION_TEST_LIBRARIES}
+  Qt5::Core
+  Qt5::DBus
+  Qt5::Test
+)
+
+add_test(
+  NAME ${HELPERS_TEST_FAILURES}
+  COMMAND ${HELPERS_TEST_FAILURES}
+)
+
 set(
   COVERAGE_TEST_TARGETS
   ${COVERAGE_TEST_TARGETS}
   ${HELPERS_TEST}
+  {HELPERS_TEST_FAILURES}
   PARENT_SCOPE
 )

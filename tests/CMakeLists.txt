@@ -19,6 +19,11 @@ set(
     fake-backup-helper
 )
 
+set(
+    BACKUP_HELPER_FAILURE
+    fake-backup-helper-failure
+)
+
 set(KEEPER_TAR_CREATE_BIN ${CMAKE_BINARY_DIR}/src/tar/keeper-tar-create)
 set(KEPPER_HELPER_TEST_LOCATION ${CMAKE_BINARY_DIR}/tests/fakes/helpers-test.sh)
 
@@ -26,6 +31,7 @@ add_definitions(
   -DCMAKE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
   -DCMAKE_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}"
   -DTEST_SIMPLE_HELPER="${CMAKE_BINARY_DIR}/tests/fakes/${BACKUP_HELPER}"
+  -DTEST_SIMPLE_HELPER_FAILURE="${CMAKE_BINARY_DIR}/tests/fakes/${BACKUP_HELPER_FAILURE}"
   -DKEEPER_SERVICE_BIN="${CMAKE_BINARY_DIR}/src/service/keeper-service"
   -DKEEPER_CLIENT_BIN="${CMAKE_BINARY_DIR}/src/cli/keeper"
   -DTEST_SIMPLE_HELPER_SH="${KEPPER_HELPER_TEST_LOCATION}"

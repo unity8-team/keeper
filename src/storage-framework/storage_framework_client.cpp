@@ -32,6 +32,12 @@
 
 using namespace unity::storage::qt::client;
 
+namespace
+{
+    constexpr char const TMP_SUFFIX[] = ".KEEPER_TMP";
+}
+
+
 StorageFrameworkClient::StorageFrameworkClient(QObject *parent)
     : QObject(parent)
     , runtime_(Runtime::create())
@@ -61,7 +67,7 @@ void StorageFrameworkClient::getNewFileForBackup(quint64 n_bytes)
 
         // get the current date and time to create the new file
         QDateTime now = QDateTime::currentDateTime();
-        QString new_file_name = QString("Backup_%1").arg(now.toString("dd.MM.yyyy-hh:mm:ss.zzz"));
+        QString new_file_name = QString("Backup_%1%2").arg(now.toString("dd.MM.yyyy-hh:mm:ss.zzz")).arg(TMP_SUFFIX);
 
         uploader_ready_watcher_.setFuture(root->create_file(new_file_name, n_bytes));
     }
@@ -103,6 +109,62 @@ void StorageFrameworkClient::uploaderReady()
 
 void StorageFrameworkClient::onUploaderClosed()
 {
+    auto file = uploader_closed_watcher_.result();
+    qDebug() << "Uploader for file " << file->name() << " was closed";
     qDebug() << "Uploader was closed";
-    Q_EMIT(uploaderClosed());
+    Q_EMIT(uploaderClosed(file));
+}
+
+bool StorageFrameworkClient::removeTmpSuffix(std::shared_ptr<unity::storage::qt::client::File> const &file)
+{
+    if (!file)
+    {
+        qWarning() << "The storage framework file passed to remove tmp suffix is null";
+        return false;
+    }
+    try
+    {
+        qDebug() << "Retrieving parents of file " << file->name();
+
+        // block here until we get a response
+        QVector<std::shared_ptr<Folder>> parents = file->parents().result();
+
+        QString suffix = QString(TMP_SUFFIX);
+        QString newName = file->name();
+
+        if (file->name().length() < suffix.length() + 1)
+        {
+            qWarning() << "The file " << file->name() << " has an invalid name, and could not remove the suffix " << TMP_SUFFIX << " from it";
+            return false;
+        }
+        newName.remove((file->name().length() - suffix.length()), suffix.length());
+        // rename the file for all its parents
+        // Storage framework states that we should not assume that a single parent is returned.
+        for (const auto parent : parents)
+        {
+            auto item = file->move(parent, newName).result();
+            qDebug() << "File name changed to " << item->name();
+        }
+    }
+    catch (std::exception & e)
+    {
+        qDebug() << "ERROR: StorageFrameworkClient::removeTmpSuffix(): " << e.what();
+        return false;
+    }
+    return true;
+}
+
+bool StorageFrameworkClient::deleteFile(std::shared_ptr<unity::storage::qt::client::File> const &file)
+{
+    try
+    {
+        auto res = file->delete_item();
+        res.waitForFinished();
+    }
+    catch (std::exception & e)
+    {
+        qDebug() << "ERROR: StorageFrameworkClient::deleteFile(): " << e.what();
+        return false;
+    }
+    return true;
 }

@@ -40,13 +40,16 @@ public:
 
     int getUploaderSocketDescriptor();
 
+    bool removeTmpSuffix(std::shared_ptr<unity::storage::qt::client::File> const &file);
+    bool deleteFile(std::shared_ptr<unity::storage::qt::client::File> const &file);
+
 public Q_SLOTS:
     void uploaderReady();
     void onUploaderClosed();
 
 Q_SIGNALS:
     void socketReady(std::shared_ptr<QLocalSocket> const& sf_socket);
-    void uploaderClosed();
+    void uploaderClosed(std::shared_ptr<unity::storage::qt::client::File> const &);
 
 private:
     unity::storage::qt::client::Runtime::SPtr runtime_;
