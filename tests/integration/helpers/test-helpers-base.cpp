@@ -335,28 +335,9 @@ bool TestHelpersBase::extractTarContents(QString const & tarPath, QString const 
     QProcess tarProcess;
     QString tarParams = compression ? QString("-xzvf") : QString("-xvf");
     qDebug() << "Starting the process...";
-    tarProcess.start("tar", QStringList()
-                                    << "-C"
-                                    << destination
-                                    << tarParams
-                                    << tarPath);
-    if (!tarProcess.waitForStarted())
-    {
-        qWarning() << "Error starting tar process: " << tarProcess.errorString();
-        return false;
-    }
-
-    if (!tarProcess.waitForFinished())
-    {
-        qWarning() << "Error waiting for tar process: " << tarProcess.errorString();
-        return false;
-    }
-
-    if (tarProcess.exitCode() != 0)
-    {
-        qWarning() << "Process error: " << tarProcess.readAllStandardError();
-    }
-    return tarProcess.exitCode() == 0;
+    QString tarCmd = QString("tar -C %1 %2 %3").arg(destination).arg(tarParams).arg(tarPath);
+    system(tarCmd.toStdString().c_str());
+    return true;
 }
 
 QString TestHelpersBase::getLastStorageFrameworkFile()
