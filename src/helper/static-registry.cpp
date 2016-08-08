@@ -35,21 +35,18 @@ public:
     {
         QStringList ret;
 
-        if (task.has_property(Metadata::TYPE_KEY))
+        QString type;
+        if (!task.get_property(Metadata::TYPE_KEY, type))
         {
-            auto typestr = task.get_property(Metadata::TYPE_KEY).value<QString>();
-            if (typestr == Metadata::USER_FOLDER_VALUE)
-            {
-                ret = get_folder_backup_helper_urls(task);
-            }
-            else
-            {
-                qCritical() << "unhandled type" << typestr;
-            }
+            qCritical() << "task had no" << Metadata::TYPE_KEY << "property";
+        }
+        else if (type == Metadata::USER_FOLDER_VALUE)
+        {
+            ret = get_folder_backup_helper_urls(task);
         }
         else
         {
-            qCritical() << "task had no" << Metadata::TYPE_KEY << "property";
+            qCritical() << "unhandled type" << type;
         }
 
         return ret;
@@ -94,15 +91,8 @@ private:
             exec = QString::fromUtf8(FOLDER_BACKUP_EXEC);
         }
 
-        if (task.has_property(Metadata::PATH_KEY))
-        {
-            cwd = task.get_property(Metadata::PATH_KEY).value<QString>();
-        }
-        else if (task.has_property(Metadata::SUBTYPE_KEY))
-        {
-            cwd = task.get_property(Metadata::PATH_KEY).value<QString>();
-        }
-        else
+        if (!task.get_property(Metadata::PATH_KEY, cwd) &&
+            !task.get_property(Metadata::SUBTYPE_KEY, cwd))
         {
             qCritical() << "get_folder_backup_helper_urls: no subtype property found";
         }

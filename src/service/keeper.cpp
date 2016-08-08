@@ -78,7 +78,7 @@ public:
     {
         qDebug() << "Starting task: " << uuid;
         auto metadata = get_uuid_metadata(cached_backup_choices_, uuid);
-        if (metadata.key() == uuid)
+        if (metadata.uuid() == uuid)
         {
             qDebug() << "Task is a backup task";
 
@@ -146,23 +146,12 @@ private:
     {
         for (auto item : metadata)
         {
-            if (item.key() == uuid)
+            if (item.uuid() == uuid)
             {
                 return item;
             }
         }
         return Metadata();
-    }
-
-    bool check_for_property(QString const & uuid, Metadata const & metadata, QString const &key) const
-    {
-        if (!metadata.has_property(key))
-        {
-            // TODO Report error to user
-            qWarning() << "ERROR: uuid: " << uuid << " has no property [" << key << "]";
-            return false;
-        }
-        return true;
     }
 };
 

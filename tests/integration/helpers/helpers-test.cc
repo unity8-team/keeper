@@ -352,17 +352,6 @@ protected:
         return true;
     }
 
-    bool checkLastStorageFrameworkFile (QString const & sourceDir, bool compression=false)
-    {
-        QString lastFile = getLastStorageFrameworkFile();
-        if (lastFile.isEmpty())
-        {
-            qWarning() << "Last file from storage framework is empty";
-            return false;
-        }
-        return compareTarContent (lastFile, sourceDir, compression);
-    }
-
     bool compareTarContent (QString const & tarPath, QString const & sourceDir, bool compression)
     {
         QTemporaryDir tempDir;
@@ -460,26 +449,6 @@ protected:
             return QString();
         }
         return sortedFiles.last();
-    }
-
-    bool checkStorageFrameworkContent(QString const & content)
-    {
-        QString lastFile = getLastStorageFrameworkFile();
-        if (lastFile.isEmpty())
-        {
-            qWarning() << "Last file from the storage framework was not found";
-            return false;
-        }
-        QFile storage_framework_file(lastFile);
-        if(!storage_framework_file.open(QFile::ReadOnly))
-        {
-            qWarning() << "ERROR: opening file: " << lastFile;
-            return false;
-        }
-
-        QString file_content = storage_framework_file.readAll();
-
-        return file_content == content;
     }
 
     bool removeHelperMarkBeforeStarting()

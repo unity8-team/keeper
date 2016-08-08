@@ -19,8 +19,8 @@
 
 #pragma once
 
+#include <QMap>
 #include <QString>
-#include <QVariant>
 
 /**
  * Information about a backup
@@ -30,35 +30,33 @@ class Metadata
 public:
 
     Metadata();
-    Metadata(const QString& key, const QString& display_name);
+    Metadata(QString const& uuid, QString const& display_name);
 
     // metadata keys
-    static const QString TYPE_KEY;
-    static const QString SUBTYPE_KEY;
-    static const QString PATH_KEY;
-    static const QString NAME_KEY;
-    static const QString PACKAGE_KEY;
-    static const QString TITLE_KEY;
-    static const QString VERSION_KEY;
+    static QString const TYPE_KEY;
+    static QString const SUBTYPE_KEY;
+    static QString const PATH_KEY;
+    static QString const NAME_KEY;
+    static QString const PACKAGE_KEY;
+    static QString const TITLE_KEY;
+    static QString const VERSION_KEY;
 
     // metadata values
-    static const QString USER_FOLDER_VALUE;
-    static const QString SYSTEM_DATA_VALUE;
-    static const QString FOLDER_SYSTEM_VALUE;
-    static const QString APPLICATION_VALUE;
+    static QString const USER_FOLDER_VALUE;
+    static QString const SYSTEM_DATA_VALUE;
+    static QString const FOLDER_SYSTEM_VALUE;
+    static QString const APPLICATION_VALUE;
 
-    QString key() const { return key_; }
+    QString uuid() const { return uuid_; }
     QString display_name() const { return display_name_; }
-    bool has_property(const QString& property_name) const;
-    QVariant get_property(const QString& property_name) const;
+    bool get_property(QString const& property_name, QString& setme_value) const;
+    void set_property(QString const& property_name, QString const& value);
 
-    void set_property(const QString& property_name, const QVariant& value);
-
-    QVariantMap get_public_properties() const;
+    QMap<QString,QString> get_public_properties() const;
 
 private:
 
-    QString key_;
+    QString uuid_;
     QString display_name_;
-    QVariantMap properties_ {};
+    QMap<QString,QString> properties_{};
 };
