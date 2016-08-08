@@ -34,8 +34,8 @@ public:
 
     // metadata keys
     static const QString TYPE_KEY;
+    static const QString SUBTYPE_KEY;
     static const QString PATH_KEY;
-    static const QString ICON_KEY;
     static const QString NAME_KEY;
     static const QString PACKAGE_KEY;
     static const QString TITLE_KEY;

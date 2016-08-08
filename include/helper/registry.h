@@ -14,23 +14,23 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authors:
- *   Charles Kerr <charles.kerr@canoincal.com>
+ *     Charles Kerr <charles.kerr@canonical.com>
  */
 
 #pragma once
 
 #include "helper/metadata.h"
 
-#include <QVector>
+#include <QString>
 
-class MetadataProvider
+class HelperRegistry
 {
 public:
-    virtual ~MetadataProvider() =0;
-    virtual QVector<Metadata> get_backups() =0;
+    virtual ~HelperRegistry() =default;
+    Q_DISABLE_COPY(HelperRegistry)
+
+    virtual QStringList get_backup_helper_urls(Metadata const& task) =0;
 
 protected:
-    MetadataProvider() =default;
+    HelperRegistry() =default;
 };
-
-inline MetadataProvider::~MetadataProvider() =default;

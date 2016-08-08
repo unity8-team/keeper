@@ -19,6 +19,7 @@
  */
 
 #include "dbus-types.h"
+#include "helper/static-registry.h"
 #include "service/backup-choices.h"
 #include "service/restore-choices.h"
 #include "service/keeper.h"
@@ -80,9 +81,10 @@ main(int argc, char **argv)
             return 1;
         }
 
+        QSharedPointer<HelperRegistry> registry (new StaticRegistry());
         QSharedPointer<MetadataProvider> possible (new BackupChoices());
         QSharedPointer<MetadataProvider> available (new RestoreChoices());
-        auto service = new Keeper(possible, available, &app);
+        auto service = new Keeper(registry, possible, available, &app);
         new KeeperAdaptor(service);
         if (!connection.registerObject(DBusTypes::KEEPER_SERVICE_PATH, service))
         {

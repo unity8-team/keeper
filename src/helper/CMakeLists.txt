@@ -1,3 +1,32 @@
+#
+# the builtin helpers
+#
+
+set(
+  FOLDER_BACKUP
+  folder-backup.sh
+)
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/${FOLDER_BACKUP}.in
+  ${CMAKE_CURRENT_BINARY_DIR}/${FOLDER_BACKUP}
+)
+
+install(
+  FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/${FOLDER_BACKUP}
+  RUNTIME DESTINATION
+    ${CMAKE_INSTALL_FULL_PKGLIBEXECDIR}
+)
+
+
+#
+# the library
+#
+
+add_definitions(
+  -DFOLDER_BACKUP_EXEC="${CMAKE_CURRENT_BINARY_DIR}/${FOLDER_BACKUP}"
+)
+
 include(FindPkgConfig)
 pkg_check_modules(BACKUP_HELPER_DEPENDENCIES REQUIRED
   ubuntu-app-launch-2
@@ -17,10 +46,15 @@ set(
 add_library(
   ${HELPER_LIB}
   STATIC
-  helper.cpp
   backup-helper.cpp
-  ${CMAKE_SOURCE_DIR}/include/helper/helper.h
+  helper.cpp
+  metadata.cpp
+  static-registry.cpp
   ${CMAKE_SOURCE_DIR}/include/helper/backup-helper.h
+  ${CMAKE_SOURCE_DIR}/include/helper/helper.h
+  ${CMAKE_SOURCE_DIR}/include/helper/registry.h
+  ${CMAKE_SOURCE_DIR}/include/helper/metadata.h
+  ${CMAKE_SOURCE_DIR}/include/helper/static-registry.h
 )
 
 set_target_properties(

@@ -135,8 +135,6 @@ public:
         , sized_{}
         , expected_size_{}
         , history_{}
-        , main_dir_path_{}
-        , bin_path_{}
     {
     }
 
@@ -187,26 +185,6 @@ public:
         return float(expected_size_ != 0 ? sized_ / double(expected_size_) : 0);
     }
 
-    void set_main_dir_path(QString const &path)
-    {
-        main_dir_path_ = path;
-    }
-
-    void set_bin_path(QString const &path)
-    {
-        bin_path_ = path;
-    }
-
-    QString get_main_dir_path() const
-    {
-        return main_dir_path_;
-    }
-
-    QString get_bin_path() const
-    {
-        return bin_path_;
-    }
-
 private:
 
     QString toString(Helper::State state)
@@ -234,8 +212,6 @@ private:
     double sized_ {};
     qint64 expected_size_ {};
     RateHistory history_;
-    QString main_dir_path_;
-    QString bin_path_;
 };
 
 /***
@@ -320,35 +296,3 @@ Helper::default_clock = []()
     gettimeofday (&tv, nullptr);
     return uint64_t(tv.tv_sec*1000 + (tv.tv_usec/1000));
 };
-
-void
-Helper::set_main_dir_path(QString const &path)
-{
-    Q_D(Helper);
-
-    d->set_main_dir_path(path);
-}
-
-void
-Helper::set_bin_path(QString const &path)
-{
-    Q_D(Helper);
-
-    d->set_bin_path(path);
-}
-
-QString
-Helper::get_main_dir_path() const
-{
-    Q_D(const Helper);
-
-    return d->get_main_dir_path();
-}
-
-QString
-Helper::get_bin_path() const
-{
-    Q_D(const Helper);
-
-    return d->get_bin_path();
-}

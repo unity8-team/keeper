@@ -17,15 +17,15 @@
  *   Charles Kerr <charles.kerr@canoincal.com>
  */
 
-#include "service/metadata.h"
+#include "helper/metadata.h"
 
 ///
 ///
 
 // Metadata keys
 const QString Metadata::TYPE_KEY = QStringLiteral("type");
+const QString Metadata::SUBTYPE_KEY = QStringLiteral("subtype");
 const QString Metadata::PATH_KEY = QStringLiteral("path");
-const QString Metadata::ICON_KEY = QStringLiteral("icon");
 const QString Metadata::NAME_KEY = QStringLiteral("name");
 const QString Metadata::PACKAGE_KEY = QStringLiteral("package");
 const QString Metadata::TITLE_KEY = QStringLiteral("title");

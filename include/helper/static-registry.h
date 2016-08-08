@@ -14,42 +14,35 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authors:
- *     Xavi Garcia <xavi.garcia.mena@canonical.com>
  *     Charles Kerr <charles.kerr@canonical.com>
  */
 
 #pragma once
 
-#include <helper/helper.h> // parent class
-#include <helper/registry.h>
+#include "helper/registry.h" // parent class
 
 #include <QObject>
-#include <QScopedPointer>
-#include <QLocalSocket>
 #include <QString>
 
 #include <memory>
 
-class BackupHelperPrivate;
-class BackupHelper : public Helper
+/**
+ * A simple hardcoded registry of Keeper 1.0's builtin helpers.
+ *
+ * TODO: allow 3rd party apps to supply their own helpers
+ */
+class StaticRegistry: public HelperRegistry
 {
-    Q_OBJECT
-    Q_DECLARE_PRIVATE(BackupHelper)
-
 public:
-    BackupHelper(
-        QString const & appid,
-        clock_func const & clock=Helper::default_clock,
-        QObject * parent=nullptr
-    );
-    virtual ~BackupHelper();
-    Q_DISABLE_COPY(BackupHelper)
+    StaticRegistry();
+    ~StaticRegistry();
 
-    void set_storage_framework_socket(std::shared_ptr<QLocalSocket> const& sf_socket);
-    void start(QStringList const& urls);
-    void stop();
-    int get_helper_socket() const;
+    Q_DISABLE_COPY(StaticRegistry)
+
+    QStringList get_backup_helper_urls(Metadata const& metadata) override;
 
 private:
-    QScopedPointer<BackupHelperPrivate> const d_ptr;
+    class Impl;
+    friend class Impl;
+    std::unique_ptr<Impl> impl_;
 };

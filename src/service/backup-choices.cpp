@@ -60,7 +60,6 @@ BackupChoices::get_backups()
     {
         Metadata m(generate_new_uuid(), "System Data"); // FIXME: how to i18n in a Qt DBus service?
         m.set_property(Metadata::TYPE_KEY, Metadata::SYSTEM_DATA_VALUE);
-        m.set_property(Metadata::ICON_KEY, Metadata::FOLDER_SYSTEM_VALUE);
         ret.push_back(m);
     }
 

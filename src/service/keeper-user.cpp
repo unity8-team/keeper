@@ -17,7 +17,7 @@
  *   Charles Kerr <charles.kerr@canonical.com>
  */
 
-#include "service/metadata.h"
+#include "helper/metadata.h"
 #include "service/keeper.h"
 #include "service/keeper-user.h"
 

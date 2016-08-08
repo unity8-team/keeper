@@ -20,7 +20,7 @@
 
 #include "app-const.h" // DEKKO_APP_ID
 #include "helper/backup-helper.h"
-#include "service/metadata.h"
+#include "helper/metadata.h"
 #include "service/metadata-provider.h"
 #include "service/keeper.h"
 #include "storage-framework/storage_framework_client.h"
@@ -41,6 +41,7 @@ class KeeperPrivate
 public:
 
     Keeper * const q_ptr;
+    QSharedPointer<HelperRegistry> helper_registry_;
     QSharedPointer<MetadataProvider> backup_choices_;
     QSharedPointer<MetadataProvider> restore_choices_;
     QScopedPointer<BackupHelper> backup_helper_;
@@ -50,9 +51,11 @@ public:
     QStringList remaining_tasks_;
 
     KeeperPrivate(Keeper* keeper,
+                  const QSharedPointer<HelperRegistry>& helper_registry,
                   const QSharedPointer<MetadataProvider>& backup_choices,
                   const QSharedPointer<MetadataProvider>& restore_choices)
         : q_ptr(keeper)
+        , helper_registry_(helper_registry)
         , backup_choices_(backup_choices)
         , restore_choices_(restore_choices)
         , backup_helper_(new BackupHelper(DEKKO_APP_ID))
@@ -78,17 +81,16 @@ public:
         if (metadata.key() == uuid)
         {
             qDebug() << "Task is a backup task";
-            if (!metadata.has_property(Metadata::TYPE_KEY))
+
+            const auto urls = helper_registry_->get_backup_helper_urls(metadata);
+            if (urls.isEmpty())
             {
                 // TODO Report error to user
-                qWarning() << "ERROR: uuid: " << uuid << " has no property [" << Metadata::TYPE_KEY << "]";
+                qWarning() << "ERROR: uuid: " << uuid << " has no url";
                 return;
             }
-            if (metadata.get_property(Metadata::TYPE_KEY).toString() == Metadata::USER_FOLDER_VALUE)
-            {
-                qDebug() << "Backup for folder type";
-                start_folder_type_backup(uuid, metadata);
-            }
+
+            backup_helper_->start(urls);
         }
     }
 
@@ -152,18 +154,6 @@ private:
         return Metadata();
     }
 
-    void start_folder_type_backup(QString const & uuid, Metadata const & metadata)
-    {
-        if(!check_for_property(uuid, metadata, Metadata::PATH_KEY))
-        {
-            // TODO report error to user
-            return;
-        }
-        backup_helper_->set_main_dir_path(metadata.get_property(Metadata::PATH_KEY).toString());
-        backup_helper_->set_bin_path(FOLDER_HELPER_BIN_PATH);
-        backup_helper_->start();
-    }
-
     bool check_for_property(QString const & uuid, Metadata const & metadata, QString const &key) const
     {
         if (!metadata.has_property(key))
@@ -177,26 +167,18 @@ private:
 };
 
 
-Keeper::Keeper(const QSharedPointer<MetadataProvider>& backup_choices,
+Keeper::Keeper(const QSharedPointer<HelperRegistry>& helper_registry,
+               const QSharedPointer<MetadataProvider>& backup_choices,
                const QSharedPointer<MetadataProvider>& restore_choices,
                QObject* parent)
     : QObject(parent)
-    , d_ptr(new KeeperPrivate(this, backup_choices, restore_choices))
+    , d_ptr(new KeeperPrivate(this, helper_registry, backup_choices, restore_choices))
 {
     Q_D(Keeper);
     QObject::connect(d->storage_.data(), &StorageFrameworkClient::uploaderClosed, this, &Keeper::socketClosed);
 }
 
 Keeper::~Keeper() = default;
-
-void Keeper::start()
-{
-    Q_D(Keeper);
-
-    qDebug() << "starting backup helper for test";
-
-    d->backup_helper_->start();
-}
 
 void Keeper::start_tasks(QStringList const & keys)
 {

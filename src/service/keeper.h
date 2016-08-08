@@ -26,6 +26,7 @@
 #include <QString>
 #include <QVector>
 
+class HelperRegistry;
 class Metadata;
 class MetadataProvider;
 
@@ -38,7 +39,8 @@ class Keeper : public QObject
 public:
     Q_DISABLE_COPY(Keeper)
 
-    Keeper(const QSharedPointer<MetadataProvider>& possible,
+    Keeper(const QSharedPointer<HelperRegistry>& helper_registry,
+           const QSharedPointer<MetadataProvider>& possible,
            const QSharedPointer<MetadataProvider>& available,
            QObject* parent = nullptr);
 
@@ -54,7 +56,6 @@ public:
 public Q_SLOTS:
     // FOR TESTING PURPOSES ONLY
     // we should finish when the helper finishes
-    void start();
     void finish();
 
     void socketClosed();

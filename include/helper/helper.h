@@ -55,11 +55,6 @@ public:
     using clock_func = std::function<uint64_t()>;
     static clock_func default_clock;
 
-    void set_main_dir_path(QString const &path);
-    void set_bin_path(QString const &path);
-    QString get_main_dir_path() const;
-    QString get_bin_path() const;
-
 Q_SIGNALS:
     void state_changed(Helper::State);
 
