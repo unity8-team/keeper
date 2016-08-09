@@ -43,3 +43,12 @@ install(
   TARGETS ${CLIENT_LIB}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/keeper
 )
+
+configure_file(
+    keeper-client.pc.in
+    keeper-client.pc
+)
+install(
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/keeper-client.pc
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
+)

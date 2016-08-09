@@ -1,1 +1,2 @@
 usr/include/keeper
+usr/lib/*/pkgconfig/keeper-client.pc
