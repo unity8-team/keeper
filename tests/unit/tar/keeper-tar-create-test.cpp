@@ -157,3 +157,35 @@ TEST_F(KeeperTarCreateFixture, BadArgNoFiles)
         << qPrintable(properties.value(KEY_ACTION).toString());
     EXPECT_FALSE(properties.value(KEY_ERROR).toString().isEmpty());
 }
+
+/***
+****
+***/
+
+TEST_F(KeeperTarCreateFixture, KeeperHelperStartBackupFailure)
+{
+    // build a directory full of random files
+    QTemporaryDir in;
+    FileUtils::fillTemporaryDirectory(in.path());
+
+    // tell keeper that's a backup choice
+    const auto uuid = add_backup_choice(QMap<QString,QVariant>{
+        { KEY_NAME, QDir(in.path()).dirName() },
+        { KEY_TYPE, QStringLiteral("folder") },
+        { KEY_SUBTYPE, in.path() },
+        { KEY_HELPER, QString::fromUtf8(KTC_INVOKE) }
+    });
+
+    // start the backup
+    fail_next_helper_start();
+    QDBusReply<void> reply = user_iface_->call("StartBackup", QStringList{uuid});
+    ASSERT_TRUE(reply.isValid()) << qPrintable(reply.error().message());
+    EXPECT_TRUE(wait_for_tasks_to_finish());
+
+    // confirm that the backup ended in error
+    const auto state = user_iface_->state();
+    const auto& properties = state[uuid];
+    EXPECT_EQ(QString::fromUtf8("failed"), properties.value(KEY_ACTION))
+        << qPrintable(properties.value(KEY_ACTION).toString());
+    EXPECT_FALSE(properties.value(KEY_ERROR).toString().isEmpty());
+}

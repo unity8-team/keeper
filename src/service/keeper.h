@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <unity/storage/qt/client/client-api.h>
+
 #include <QDBusContext>
 #include <QDBusUnixFileDescriptor>
 #include <QObject>
@@ -25,6 +27,8 @@
 #include <QSharedPointer>
 #include <QString>
 #include <QVector>
+
+#include <memory> // sd::shared_ptr
 
 class HelperRegistry;
 class Metadata;
@@ -58,7 +62,7 @@ public Q_SLOTS:
     // we should finish when the helper finishes
     void finish();
 
-    void socketClosed();
+    void socketClosed(std::shared_ptr<unity::storage::qt::client::File> const & file_created);
 
 private:
     QScopedPointer<KeeperPrivate> const d_ptr;

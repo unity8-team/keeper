@@ -353,6 +353,12 @@ def user_update_state_property(user):
 
 def helper_start_backup(helper, n_bytes):
 
+    # are we forcing a fail?
+    main = mockobject.objects[SERVICE_PATH]
+    if main.fail_next_helper_start:
+        main.fail_next_helper_start = False
+        fail('main.fail_next_helper_start was set')
+
     helper.log("got start_backup request for %s bytes" % (n_bytes))
 
     parent, child = socket.socketpair()
@@ -477,13 +483,16 @@ def load(main, parameters):
     o.add_backup_choice = mock_add_backup_choice
     o.add_restore_choice = mock_add_restore_choice
     o.get_backup_data = mock_get_backup_data
+    o.fail_next_helper_start = False
     o.AddMethods(MOCK_IFACE, [
         ('AddBackupChoice', 'sa{sv}', '',
          'self.add_backup_choice(self, args[0], args[1])'),
         ('AddRestoreChoice', 'sa{sv}', '',
          'self.add_restore_choice(self, args[0], args[1])'),
         ('GetBackupData', 's', 'ay',
-         'ret = self.get_backup_data(self, args[0])')
+         'ret = self.get_backup_data(self, args[0])'),
+        ('FailNextHelperStart', '', '',
+         'self.fail_next_helper_start = True'),
     ])
     o.EmitSignal(
         OBJECT_MANAGER_IFACE,

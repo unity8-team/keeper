@@ -45,13 +45,30 @@ main(int argc, char **argv)
     for(const auto& key : env.keys())
         qDebug() << "env" << qPrintable(key) << "is" << qPrintable(env.value(key));
 
+    qDebug() << "Retrieving connection";
     // ask the service for a socket
     auto conn = QDBusConnection::connectToBus(QDBusConnection::SessionBus, DBusTypes::KEEPER_SERVICE);
-    const auto object_path = QString::fromUtf8(argv[1]);
+    const auto object_path = QString::fromUtf8(DBusTypes::KEEPER_HELPER_PATH);
     DBusInterfaceKeeperHelper helper_iface (DBusTypes::KEEPER_SERVICE, object_path, conn);
-    QDBusReply<QDBusUnixFileDescriptor> reply = helper_iface.call("StartBackup", blob.size());
-    const auto ufd = reply.value();
-    Q_ASSERT(reply.isValid());
+
+    qDebug() << "Is valid: " << helper_iface.isValid();
+
+    auto blob_size = blob.size();
+#ifdef COMPILE_WITH_FAILURE
+        // just remove 1 byte from the size to emulate a failure
+        blob_size--;
+#endif
+    auto fd_reply = helper_iface.StartBackup(blob_size);
+    fd_reply.waitForFinished();
+    if (fd_reply.isError())
+    {
+        qFatal("Call to '%s.StartBackup() at '%s' call failed: %s",
+            DBusTypes::KEEPER_SERVICE,
+            qPrintable(object_path),
+            qPrintable(fd_reply.error().message())
+        );
+    }
+    const auto ufd = fd_reply.value();
 
     // write the blob
     QLocalSocket sock;

@@ -1,2 +1,2 @@
 find ./ -type f
-find ./ -type f -print0 | @KEEPER_TAR_CREATE_BIN@ -0
+find ./ -type f -print0 | @KEEPER_TAR_CREATE_BIN@

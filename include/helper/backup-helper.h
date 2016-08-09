@@ -45,6 +45,8 @@ public:
     virtual ~BackupHelper();
     Q_DISABLE_COPY(BackupHelper)
 
+    static constexpr int MAX_INACTIVITY_TIME = 10000;
+
     void set_storage_framework_socket(std::shared_ptr<QLocalSocket> const& sf_socket);
     void start(QStringList const& urls);
     void stop();

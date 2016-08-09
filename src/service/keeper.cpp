@@ -219,18 +219,22 @@ void Keeper::finish()
     d->storage_->closeUploader();
 }
 
-void Keeper::socketClosed()
+void Keeper::socketClosed(std::shared_ptr<unity::storage::qt::client::File> const & file_created)
 {
     Q_D(Keeper);
 
     qDebug() << "The storage framework socket was closed";
     if (d->backup_helper_->state() == Helper::State::COMPLETE)
     {
-        // the helper finished successfully, process more tasks
-        d->start_remaining_tasks();
+        if (d->storage_->removeTmpSuffix(file_created))
+        {
+            // the helper finished successfully, process more tasks
+            d->start_remaining_tasks();
+        }
     }
     else
     {
+        d->storage_->deleteFile(file_created);
         // error or cancel case... clear all remaining tasks
         d->clear_remaining_taks();
     }

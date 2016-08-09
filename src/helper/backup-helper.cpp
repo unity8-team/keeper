@@ -207,7 +207,7 @@ private:
 
     void reset_inactivity_timer()
     {
-        static constexpr int MAX_TIME_WAITING_FOR_DATA {10000};
+        static constexpr int MAX_TIME_WAITING_FOR_DATA {BackupHelper::MAX_INACTIVITY_TIME};
         timer_->start(MAX_TIME_WAITING_FOR_DATA);
     }
 
@@ -216,13 +216,23 @@ private:
         timer_->stop();
     }
 
+    void wait_backup_socket_is_clear()
+    {
+        while (read_socket_->bytesAvailable())
+        {
+            process_more();
+        }
+    }
+
     void check_for_done()
     {
+        wait_backup_socket_is_clear();
+
         if (n_uploaded_ == q_ptr->expected_size())
         {
             q_ptr->set_state(Helper::State::COMPLETE);
         }
-        else if (read_error_ || write_error_)
+        else if (read_error_ || write_error_ || n_uploaded_ != q_ptr->expected_size())
         {
             q_ptr->set_state(Helper::State::FAILED);
         }
