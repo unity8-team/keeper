@@ -82,6 +82,15 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 
 
 ##
+##  Global names
+##
+
+set(
+  HELPER_REGISTRY_FILENAME
+  helper-registry.json
+)
+
+##
 ##  Global build options
 ##
 

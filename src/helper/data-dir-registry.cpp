@@ -119,7 +119,9 @@ private:
     void load_registry()
     {
         // find the registry file
-        auto subpath = QStringLiteral(PROJECT_NAME) + QLatin1Char('/') + QStringLiteral(HELPER_REGISTRY);
+        auto subpath = QStringLiteral(PROJECT_NAME)
+                     + QLatin1Char('/')
+                     + QStringLiteral(HELPER_REGISTRY_FILENAME);
         auto path = QStandardPaths::locate(QStandardPaths::GenericDataLocation, subpath);
         if (path.isEmpty())
         {
