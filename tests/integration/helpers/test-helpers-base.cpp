@@ -409,7 +409,10 @@ QString TestHelpersBase::getLastStorageFrameworkFile()
 int TestHelpersBase::checkStorageFrameworkNbFiles()
 {
     auto sf_dir = find_storage_framework_dir();
-    return sf_dir.entryInfoList(QDir::Files).size();
+
+    return sf_dir.exists()
+        ? sf_dir.entryInfoList(QDir::Files).size();
+        : -1;
 }
 
 bool TestHelpersBase::checkStorageFrameworkContent(QString const & content)
