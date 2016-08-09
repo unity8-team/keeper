@@ -266,7 +266,7 @@ bool TestHelpersBase::init_helper_registry(QString const& registry)
     QFileInfo registry_file(registry);
     bool copied = QFile::copy(
         registry_file.absoluteFilePath(),
-        keeper_data_home.absoluteFilePath(QStringLiteral(HELPER_REGISTRY_FILENAME));
+        keeper_data_home.absoluteFilePath(QStringLiteral(HELPER_REGISTRY_FILENAME))
     );
 
     return copied;
