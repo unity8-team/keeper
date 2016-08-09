@@ -1,5 +1,23 @@
 
 #
+# helpers-test fake helper registry
+#
+set(
+  HELPER_REGISTRY
+  helper-registry.json
+)
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/${HELPER_REGISTRY}.in
+  ${CMAKE_CURRENT_BINARY_DIR}/${HELPER_REGISTRY}
+  @ONLY
+)
+
+add_definitions(
+  -DPROJECT_NAME="${CMAKE_PROJECT_NAME}"
+  -DHELPERS_INTEGRATION_TEST_REGISTRY_PATH="${CMAKE_CURRENT_BINARY_DIR}/${HELPER_REGISTRY}"
+)
+
+#
 # helpers-test
 #
 

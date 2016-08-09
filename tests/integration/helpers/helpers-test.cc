@@ -159,6 +159,16 @@ protected:
 
         qDebug() << "XDG_DATA_HOME ON SETUP is: " << xdg_data_home_dir.path();
 
+        // make a copy of the test registry file relative to our tmp XDG_DATA_HOME
+        QDir data_home{xdg_data_home_dir.path()};
+        data_home.mkdir(PROJECT_NAME);
+        QDir keeper_data_home{data_home.absoluteFilePath(PROJECT_NAME)};
+        QFileInfo registry_file(QStringLiteral(HELPERS_INTEGRATION_TEST_REGISTRY_PATH));
+        EXPECT_TRUE(QFile::copy(
+            registry_file.absoluteFilePath(),
+            keeper_data_home.absoluteFilePath(registry_file.fileName()))
+        );
+
         service = dbus_test_service_new(NULL);
 
         keeper = dbus_test_process_new(KEEPER_SERVICE_BIN);
@@ -517,7 +527,7 @@ protected:
         for(auto iter = choices.begin(); iter != choices.end(); ++iter)
         {
             const auto& values = iter.value();
-            auto iter_values = values.find("path");
+            auto iter_values = values.find("subtype");
             if (iter_values != values.end())
             {
                 if (iter_values.value().toString() == path)
@@ -810,8 +820,6 @@ TEST_F(TestHelpers, StartStopHelperObserver)
 
 TEST_F(TestHelpers, StartFullTest)
 {
-    g_setenv("KEEPER_TEST_HELPER", TEST_SIMPLE_HELPER_SH, TRUE);
-
     XdgUserDirsSandbox tmp_dir;
 
     // starts the services, including keeper-service
