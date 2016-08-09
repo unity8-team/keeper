@@ -146,8 +146,8 @@ BackupChoices::get_backups()
         {
             const auto keystr = generate_new_uuid();
             Metadata m(keystr, name);
-            m.set_property(Metadata::PATH_KEY, locations.front());
             m.set_property(Metadata::TYPE_KEY, Metadata::FOLDER_VALUE);
+            m.set_property(Metadata::SUBTYPE_KEY, locations.front());
             ret.push_back(m);
         }
     }
