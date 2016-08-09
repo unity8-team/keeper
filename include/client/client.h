@@ -30,7 +30,7 @@ class Client final : public QObject
     Q_DISABLE_COPY(Client)
 
 public:
-    Client(QObject* parent = nullptr);
+    explicit Client(QObject* parent = nullptr);
     ~Client();
 
 Q_SIGNALS:

@@ -9,7 +9,7 @@ include_directories(
 
 set(
   CLIENT_LIB
-  client-lib
+  backup-client
 )
 
 add_library(

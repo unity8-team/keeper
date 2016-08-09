@@ -21,7 +21,7 @@
 
 class ClientPrivate final
 {
-    Q_DISABLE_COPY(Client)
+    Q_DISABLE_COPY(ClientPrivate)
 
 public:
     ClientPrivate() = default;
@@ -35,4 +35,3 @@ Client::Client(QObject* parent)
 }
 
 Client::~Client() = default;
-
