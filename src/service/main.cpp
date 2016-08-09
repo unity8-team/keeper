@@ -19,7 +19,7 @@
  */
 
 #include "dbus-types.h"
-#include "helper/static-registry.h"
+#include "helper/data-dir-registry.h"
 #include "service/backup-choices.h"
 #include "service/restore-choices.h"
 #include "service/keeper.h"
@@ -81,7 +81,7 @@ main(int argc, char **argv)
             return 1;
         }
 
-        QSharedPointer<HelperRegistry> registry (new StaticRegistry());
+        QSharedPointer<HelperRegistry> registry (new DataDirRegistry());
         QSharedPointer<MetadataProvider> possible (new BackupChoices());
         QSharedPointer<MetadataProvider> available (new RestoreChoices());
         auto service = new Keeper(registry, possible, available, &app);

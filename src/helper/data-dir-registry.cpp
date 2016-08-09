@@ -17,7 +17,7 @@
  *     Charles Kerr <charles.kerr@canonical.com>
  */
 
-#include "helper/helper-registry.h"
+#include "helper/data-dir-registry.h"
 
 #include <QtGlobal>
 #include <QDebug>
@@ -33,7 +33,7 @@
 #include <array>
 #include <utility> // pair
 
-class StaticRegistry::Impl
+class DataDirRegistry::Impl
 {
 public:
 
@@ -182,17 +182,17 @@ private:
 ****
 ***/
 
-StaticRegistry::StaticRegistry():
+DataDirRegistry::DataDirRegistry():
     impl_{new Impl{}}
 {
 }
 
-StaticRegistry::~StaticRegistry()
+DataDirRegistry::~DataDirRegistry()
 {
 }
 
 QStringList
-StaticRegistry::get_backup_helper_urls(Metadata const& task)
+DataDirRegistry::get_backup_helper_urls(Metadata const& task)
 {
     return impl_->get_backup_helper_urls(task);
 }

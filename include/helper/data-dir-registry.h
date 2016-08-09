@@ -31,13 +31,13 @@
  *
  * TODO: allow 3rd party apps to supply their own helpers
  */
-class StaticRegistry: public HelperRegistry
+class DataDirRegistry: public HelperRegistry
 {
 public:
-    StaticRegistry();
-    ~StaticRegistry();
+    DataDirRegistry();
+    ~DataDirRegistry();
 
-    Q_DISABLE_COPY(StaticRegistry)
+    Q_DISABLE_COPY(DataDirRegistry)
 
     QStringList get_backup_helper_urls(Metadata const& metadata) override;
 
