@@ -11,9 +11,20 @@ configure_file(
   ${CMAKE_CURRENT_BINARY_DIR}/${FOLDER_BACKUP}
 )
 
+set(
+  HELPER_REGISTRY
+  helper-registry.json
+)
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/${HELPER_REGISTRY}.in
+  ${CMAKE_CURRENT_BINARY_DIR}/${HELPER_REGISTRY}
+  @ONLY
+)
+
 install(
   FILES
     ${CMAKE_CURRENT_BINARY_DIR}/${FOLDER_BACKUP}
+    ${CMAKE_CURRENT_BINARY_DIR}/${HELPER_REGISTRY}
   RUNTIME DESTINATION
     ${CMAKE_INSTALL_FULL_PKGLIBEXECDIR}
 )
@@ -25,6 +36,8 @@ install(
 
 add_definitions(
   -DFOLDER_BACKUP_EXEC="${CMAKE_CURRENT_BINARY_DIR}/${FOLDER_BACKUP}"
+  -DPROJECT_NAME="${CMAKE_PROJECT_NAME}"
+  -DHELPER_REGISTRY="${HELPER_REGISTRY}"
 )
 
 include(FindPkgConfig)
@@ -48,13 +61,13 @@ add_library(
   STATIC
   backup-helper.cpp
   helper.cpp
+  helper-registry.cpp
   metadata.cpp
-  static-registry.cpp
   ${CMAKE_SOURCE_DIR}/include/helper/backup-helper.h
   ${CMAKE_SOURCE_DIR}/include/helper/helper.h
+  ${CMAKE_SOURCE_DIR}/include/helper/helper-registry.h
   ${CMAKE_SOURCE_DIR}/include/helper/registry.h
   ${CMAKE_SOURCE_DIR}/include/helper/metadata.h
-  ${CMAKE_SOURCE_DIR}/include/helper/static-registry.h
 )
 
 set_target_properties(

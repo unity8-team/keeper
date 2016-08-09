@@ -1,0 +1,8 @@
+{
+    "folder": {
+        "backup-urls": [
+            "@CMAKE_INSTALL_FULL_PKGLIBEXECDIR@/folder-backup.sh",
+            "${subtype}"
+        ]
+    }
+}
