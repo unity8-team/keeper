@@ -1,3 +1,7 @@
+# Version
+set(KEEPER_MAJOR "0")
+set(KEEPER_MINOR "0")
+set(KEEPER_MICRO "1")
 
 # Default install location. Must be set here, before setting the project.
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -6,7 +10,7 @@ if(NOT DEFINED CMAKE_INSTALL_PREFIX)
 endif()
 
 cmake_minimum_required(VERSION 3.0.2)
-project(keeper VERSION "0.1" LANGUAGES C CXX)
+project(keeper VERSION ${KEEPER_MAJOR}.${KEEPER_MINOR}.${KEEPER_MICRO} LANGUAGES C CXX)
 
 ##
 ##  Build Type
