@@ -258,13 +258,15 @@ void TestHelpersBase::TearDown()
 bool TestHelpersBase::init_helper_registry(QString const& registry)
 {
     // make a copy of the test registry file relative to our tmp XDG_DATA_HOME
+    // $ cp $testname-registry.json $XDG_DATA_HOME/keeper/helper-registry.json
+
     QDir data_home{xdg_data_home_dir.path()};
     data_home.mkdir(PROJECT_NAME);
     QDir keeper_data_home{data_home.absoluteFilePath(PROJECT_NAME)};
     QFileInfo registry_file(registry);
     bool copied = QFile::copy(
         registry_file.absoluteFilePath(),
-        keeper_data_home.absoluteFilePath(QStringLiteral("helper-registry.json"))
+        keeper_data_home.absoluteFilePath(QStringLiteral(HELPER_REGISTRY_FILENAME));
     );
 
     return copied;
