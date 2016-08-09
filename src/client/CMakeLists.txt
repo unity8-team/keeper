@@ -1,6 +1,6 @@
 set(
   CLIENT_LIB
-  keeper-client
+  keeper-client-${KEEPER_MAJOR}.${KEEPER_MINOR}
 )
 
 set(
