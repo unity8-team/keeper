@@ -73,8 +73,10 @@ target_link_libraries(
 )
 
 install(
-  FILES ${CMAKE_SOURCE_DIR}/src/helper/exec-tool
-  DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/ubuntu-app-launch/backup-helper
+  PROGRAMS
+    ${CMAKE_CURRENT_SOURCE_DIR}/exec-tool
+  DESTINATION
+    ${CMAKE_INSTALL_LIBEXECDIR}/ubuntu-app-launch/backup-helper
 )
 
 set(
