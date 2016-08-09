@@ -411,7 +411,7 @@ int TestHelpersBase::checkStorageFrameworkNbFiles()
     auto sf_dir = find_storage_framework_dir();
 
     return sf_dir.exists()
-        ? sf_dir.entryInfoList(QDir::Files).size();
+        ? sf_dir.entryInfoList(QDir::Files).size()
         : -1;
 }
 
