@@ -27,9 +27,7 @@
 #include <memory>
 
 /**
- * A simple hardcoded registry of Keeper 1.0's builtin helpers.
- *
- * TODO: allow 3rd party apps to supply their own helpers
+ * A HelpeRegistry that gets info from an XDG_DATA dir config file.
  */
 class DataDirRegistry: public HelperRegistry
 {
