@@ -1,3 +1,5 @@
+/usr/lib/*/keeper/folder-backup.sh
+/usr/lib/*/keeper/helper-registry.json
 /usr/lib/*/keeper/keeper-service
-/usr/lib/*/ubuntu-app-launch/backup-helper/exec-tool
 /usr/lib/*/keeper/keeper-tar-create
+/usr/lib/*/ubuntu-app-launch/backup-helper/exec-tool
