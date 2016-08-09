@@ -116,6 +116,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   LIST(APPEND C_WARNINGS
     -Weverything
     -Wno-padded
+    -Wno-weak-vtables
   )
   LIST(APPEND CXX_WARNINGS
     -Wno-c++98-compat

@@ -173,7 +173,7 @@ private:
                 }
 
                 qDebug() << "loaded" << type << "backup urls from" << path;
-                for(auto const url : info.urls)
+                for(auto const& url : info.urls)
                     qDebug() << "\turl:" << url;
             }
         }
