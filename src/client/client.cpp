@@ -19,19 +19,19 @@
 
 #include <client/client.h>
 
-class ClientPrivate final
+class KeeperClientPrivate final
 {
-    Q_DISABLE_COPY(ClientPrivate)
+    Q_DISABLE_COPY(KeeperClientPrivate)
 
 public:
-    ClientPrivate() = default;
-    ~ClientPrivate() = default;
+    KeeperClientPrivate() = default;
+    ~KeeperClientPrivate() = default;
 };
 
-Client::Client(QObject* parent)
+KeeperClient::KeeperClient(QObject* parent)
     : QObject{parent}
-    , d_ptr(new ClientPrivate())
+    , d_ptr(new KeeperClientPrivate())
 {
 }
 
-Client::~Client() = default;
+KeeperClient::~KeeperClient() = default;

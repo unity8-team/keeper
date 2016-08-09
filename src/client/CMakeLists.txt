@@ -1,21 +1,17 @@
-include(FindPkgConfig)
-pkg_check_modules(CLIENT_DEPENDENCIES REQUIRED
-)
-
-include_directories(
-  SYSTEM
-  ${CLIENT_DEPENDENCIES_INCLUDE_DIRS}
+set(
+  CLIENT_LIB
+  keeper-client
 )
 
 set(
-  CLIENT_LIB
-  backup-client
+  CLIENT_HEADERS
+  ${CMAKE_SOURCE_DIR}/include/client/client.h
 )
 
 add_library(
   ${CLIENT_LIB} SHARED
   client.cpp
-  ${CMAKE_SOURCE_DIR}/include/client/client.h
+  ${CLIENT_HEADERS}
 )
 
 set_target_properties(
@@ -26,7 +22,9 @@ set_target_properties(
 
 target_link_libraries(
   ${CLIENT_LIB}
-  ${CLIENT_DEPENDENCIES_LIBRARIES}
+  qdbus-stubs
+  Qt5::Core
+  Qt5::DBus
 )
 
 set(
@@ -34,4 +32,14 @@ set(
   ${COVERAGE_REPORT_TARGETS}
   ${CLIENT_LIB}
   PARENT_SCOPE
+)
+
+install(
+  FILES ${CLIENT_HEADERS}
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/keeper
+)
+
+install(
+  TARGETS ${CLIENT_LIB}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/keeper
 )

@@ -22,19 +22,19 @@
 #include <QObject>
 #include <QScopedPointer>
 
-class ClientPrivate;
+class KeeperClientPrivate;
 
-class Client final : public QObject
+class KeeperClient final : public QObject
 {
     Q_OBJECT
-    Q_DISABLE_COPY(Client)
+    Q_DISABLE_COPY(KeeperClient)
 
 public:
-    explicit Client(QObject* parent = nullptr);
-    ~Client();
+    explicit KeeperClient(QObject* parent = nullptr);
+    ~KeeperClient();
 
 Q_SIGNALS:
 
 private:
-    QScopedPointer<ClientPrivate> const d_ptr;
+    QScopedPointer<KeeperClientPrivate> const d_ptr;
 };
