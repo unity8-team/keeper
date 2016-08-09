@@ -5,8 +5,8 @@ if(NOT DEFINED CMAKE_INSTALL_PREFIX)
   set(LOCAL_INSTALL "ON")
 endif()
 
-project(keeper C CXX)
 cmake_minimum_required(VERSION 3.0.2)
+project(keeper VERSION "0.1" LANGUAGES C CXX)
 
 ##
 ##  Build Type
