@@ -19,12 +19,14 @@
 
 #pragma once
 
+#define KEEPER_EXPORT __attribute__((visibility("default")))
+
 #include <QObject>
 #include <QScopedPointer>
 
 class KeeperClientPrivate;
 
-class KeeperClient final : public QObject
+class KEEPER_EXPORT KeeperClient final : public QObject
 {
     Q_OBJECT
     Q_DISABLE_COPY(KeeperClient)
