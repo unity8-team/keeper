@@ -153,7 +153,6 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 
   LIST(APPEND CXX_WARNINGS
     -Wctor-dtor-privacy
-    -Weffc++
     -Wnon-virtual-dtor
     -Wold-style-cast
     -Woverloaded-virtual
