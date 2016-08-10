@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=com.canonical.keeper
+Exec=@CMAKE_INSTALL_FULL_PKGLIBEXECDIR@/keeper-service

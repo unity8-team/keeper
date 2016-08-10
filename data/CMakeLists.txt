@@ -17,3 +17,24 @@ install(
   DESTINATION
     ${CMAKE_INSTALL_DATADIR}/${CMAKE_PROJECT_NAME}
 )
+
+
+#
+# dbus activation
+#
+
+set(
+  DBUS_ACTIVATION_FILENAME
+  com.canonical.keeper.service
+)
+configure_file(
+  ${DBUS_ACTIVATION_FILENAME}.in
+  ${DBUS_ACTIVATION_FILENAME}
+)
+install(
+  FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/${DBUS_ACTIVATION_FILENAME}
+  DESTINATION
+    ${CMAKE_INSTALL_DATADIR}/dbus-1/services
+)
+
