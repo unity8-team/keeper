@@ -41,20 +41,6 @@ class KeeperPrivate
 {
 public:
 
-    Keeper * const q_ptr;
-    QSharedPointer<HelperRegistry> helper_registry_;
-    QSharedPointer<MetadataProvider> backup_choices_;
-    QSharedPointer<MetadataProvider> restore_choices_;
-    QScopedPointer<BackupHelper> backup_helper_;
-    QScopedPointer<StorageFrameworkClient> storage_;
-    mutable QVector<Metadata> cached_backup_choices_;
-    mutable QVector<Metadata> cached_restore_choices_;
-    enum class TaskType { BACKUP, RESTORE };
-    QStringList all_tasks_;
-    QStringList remaining_tasks_;
-    QString current_task_;
-    QVariantDictMap state_;
-
     KeeperPrivate(Keeper* keeper,
                   const QSharedPointer<HelperRegistry>& helper_registry,
                   const QSharedPointer<MetadataProvider>& backup_choices,
@@ -65,8 +51,6 @@ public:
         , restore_choices_(restore_choices)
         , backup_helper_(new BackupHelper(DEKKO_APP_ID))
         , storage_(new StorageFrameworkClient())
-        , cached_backup_choices_()
-        , cached_restore_choices_()
     {
         // listen for backup helper state changes
         QObject::connect(backup_helper_.data(), &Helper::state_changed,
@@ -82,25 +66,6 @@ public:
     ~KeeperPrivate() =default;
 
     Q_DISABLE_COPY(KeeperPrivate)
-
-    bool find_task_metadata(QString const& uuid, Metadata& setme_task, TaskType& setme_type) const
-    {
-        for (const auto& c : get_backup_choices()) {
-            if (c.uuid() == uuid) {
-                setme_task = c;
-                setme_type = TaskType::BACKUP;
-                return true;
-            }
-        }
-        for (const auto& c : get_restore_choices()) {
-            if (c.uuid() == uuid) {
-                setme_task = c;
-                setme_type = TaskType::RESTORE;
-                return true;
-            }
-        }
-        return false;
-    }
 
     void start_tasks(QStringList const& uuids)
     {
@@ -323,6 +288,47 @@ private:
         return true;
     }
 
+    /***
+    ****  Misc
+    ***/
+
+    bool find_task_metadata(QString const& uuid, Metadata& setme_task, TaskType& setme_type) const
+    {
+        for (const auto& c : get_backup_choices()) {
+            if (c.uuid() == uuid) {
+                setme_task = c;
+                setme_type = TaskType::BACKUP;
+                return true;
+            }
+        }
+        for (const auto& c : get_restore_choices()) {
+            if (c.uuid() == uuid) {
+                setme_task = c;
+                setme_type = TaskType::RESTORE;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /***
+    ****
+    ***/
+
+    Keeper * const q_ptr;
+    QSharedPointer<HelperRegistry> helper_registry_;
+    QSharedPointer<MetadataProvider> backup_choices_;
+    QSharedPointer<MetadataProvider> restore_choices_;
+    QScopedPointer<BackupHelper> backup_helper_;
+    QScopedPointer<StorageFrameworkClient> storage_;
+    mutable QVector<Metadata> cached_backup_choices_;
+    mutable QVector<Metadata> cached_restore_choices_;
+    QStringList all_tasks_;
+    QStringList remaining_tasks_;
+    QString current_task_;
+    QVariantDictMap state_;
+
+    enum class TaskType { BACKUP, RESTORE };
     struct TaskData
     {
         QString action;
@@ -331,7 +337,6 @@ private:
         Metadata metadata;
         float percent_done;
     };
-
     mutable QMap<QString,TaskData> task_data_;
 };
 
