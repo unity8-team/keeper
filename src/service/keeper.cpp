@@ -245,7 +245,10 @@ Keeper::get_backup_choices()
 {
     Q_D(Keeper);
 
-    d->cached_backup_choices_ = d->backup_choices_->get_backups();
+    if (!d->cached_backup_choices_.size())
+    {
+        d->cached_backup_choices_ = d->backup_choices_->get_backups();
+    }
     return d->cached_backup_choices_;
 }
 
@@ -254,6 +257,9 @@ Keeper::get_restore_choices()
 {
     Q_D(Keeper);
 
-    d->cached_restore_choices_ = d->restore_choices_->get_backups();
+    if (!d->cached_restore_choices_.size())
+    {
+        d->cached_restore_choices_ = d->restore_choices_->get_backups();
+    }
     return d->cached_restore_choices_;
 }
