@@ -35,8 +35,10 @@ public:
     explicit KeeperClient(QObject* parent = nullptr);
     ~KeeperClient();
 
-    QMap<QString, QVariantMap> GetBackupChoices();
-    void StartBackup(QStringList const& uuids);
+    QMap<QString, QVariantMap> GetBackupChoices() const;
+    void StartBackup(QStringList const& uuids) const;
+
+    QMap<QString, QVariantMap> GetState() const;
 
 Q_SIGNALS:
 

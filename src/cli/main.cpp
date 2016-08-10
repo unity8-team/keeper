@@ -52,7 +52,7 @@ main(int argc, char **argv)
         qDebug() << QDBusConnection::sessionBus().baseService();
     }
 
-    qDebug() << "Argc = " << argc;
+    qDebug() << "Argc =" << argc;
     if (argc == 2 && QString("--use-uuids") == argv[1])
     {
         QScopedPointer<DBusInterfaceKeeperUser> user_iface(new DBusInterfaceKeeperUser(
@@ -63,7 +63,7 @@ main(int argc, char **argv)
         QDBusReply<QVariantDictMap> choices = user_iface->call("GetBackupChoices");
         if (!choices.isValid())
         {
-            qWarning() << "Error getting backup choices: " << choices.error().message();
+            qWarning() << "Error getting backup choices:" << choices.error().message();
         }
 
         QStringList uuids;
@@ -77,7 +77,7 @@ main(int argc, char **argv)
                 if (iter_values.value().toString() == "folder")
                 {
                     // got it
-                    qDebug() << "Adding uuid " << iter.key() << " with type: " << "folder";
+                    qDebug() << "Adding uuid" << iter.key() << " with type:" << "folder";
                     uuids << iter.key();
                 }
             }
@@ -87,7 +87,7 @@ main(int argc, char **argv)
 
         if (!backup_reply.isValid())
         {
-            qWarning() << "Error starting backup: " << backup_reply.error().message();
+            qWarning() << "Error starting backup:" << backup_reply.error().message();
         }
     }
     else
@@ -100,7 +100,7 @@ main(int argc, char **argv)
 
         if (!userResp.isValid())
         {
-            qWarning() << "Error starting backup: " << userResp.error().message();
+            qWarning() << "Error starting backup:" << userResp.error().message();
         }
     }
 
