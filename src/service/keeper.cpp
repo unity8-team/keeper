@@ -68,6 +68,11 @@ public:
         QObject::connect(backup_helper_.data(), &Helper::state_changed,
             std::bind(&KeeperPrivate::on_backup_helper_state_changed, this, std::placeholders::_1)
         );
+
+        // listen for the storage framework to finish
+        QObject::connect(storage_.data(), &StorageFrameworkClient::finished,
+            std::bind(&KeeperPrivate::on_storage_framework_finished, this)
+        );
     }
 
     ~KeeperPrivate() =default;
@@ -129,17 +134,23 @@ private:
 
             case Helper::State::CANCELLED:
                 qDebug() << "Backup helper cancelled... closing the socket.";
-                storage_->closeUploader();
+                storage_->finish(false);
                 break;
             case Helper::State::FAILED:
                 qDebug() << "Backup helper failed... closing the socket.";
-                storage_->closeUploader();
+                storage_->finish(false);
                 break;
             case Helper::State::COMPLETE:
                 qDebug() << "Backup helper finished... closing the socket.";
-                storage_->closeUploader();
+                storage_->finish(true);
                 break;
         }
+    }
+
+    void on_storage_framework_finished()
+    {
+        qDebug() << "storage framework has finished for the current task";
+        start_remaining_tasks();
     }
 
     Metadata get_uuid_metadata(QVector<Metadata> const &metadata, QString const & uuid)
@@ -163,8 +174,6 @@ Keeper::Keeper(const QSharedPointer<HelperRegistry>& helper_registry,
     : QObject(parent)
     , d_ptr(new KeeperPrivate(this, helper_registry, backup_choices, restore_choices))
 {
-    Q_D(Keeper);
-    QObject::connect(d->storage_.data(), &StorageFrameworkClient::uploaderClosed, this, &Keeper::socketClosed);
 }
 
 Keeper::~Keeper() = default;
@@ -206,38 +215,6 @@ Keeper::StartBackup(QDBusConnection bus, const QDBusMessage& msg, quint64 n_byte
     // tell the caller that we'll be responding async
     msg.setDelayedReply(true);
     return QDBusUnixFileDescriptor(0);
-}
-
-// FOR TESTING PURPOSES ONLY
-// we should finish when the helper finishes
-void Keeper::finish()
-{
-    Q_D(Keeper);
-
-    qDebug() << "Closing the socket-------";
-
-    d->storage_->closeUploader();
-}
-
-void Keeper::socketClosed(std::shared_ptr<unity::storage::qt::client::File> const & file_created)
-{
-    Q_D(Keeper);
-
-    qDebug() << "The storage framework socket was closed";
-    if (d->backup_helper_->state() == Helper::State::COMPLETE)
-    {
-        if (d->storage_->removeTmpSuffix(file_created))
-        {
-            // the helper finished successfully, process more tasks
-            d->start_remaining_tasks();
-        }
-    }
-    else
-    {
-        d->storage_->deleteFile(file_created);
-        // error or cancel case... clear all remaining tasks
-        d->clear_remaining_taks();
-    }
 }
 
 QVector<Metadata>

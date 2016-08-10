@@ -21,11 +21,6 @@ add_compile_options(-w)
 # XML
 
 set(
-  keeper_xml
-  "com.canonical.keeper.xml"
-)
-
-set(
   helper_xml
   "com.canonical.keeper.Helper.xml"
 )
@@ -36,34 +31,11 @@ set(
 )
 
 set_source_files_properties(
-    "${keeper_xml}"
     "${helper_xml}"
     "${user_xml}"
     PROPERTIES
     NO_NAMESPACE YES
     INCLUDE "qdbus-stubs/dbus-types.h"
-)
-
-# Service Object
-
-set_source_files_properties(
-  ${keeper_xml}
-  PROPERTIES
-  CLASSNAME DBusInterfaceKeeper
-)
-
-qt5_add_dbus_interface(
-  interface_files
-  ${keeper_xml}
-  keeper_interface
-)
-
-qt5_add_dbus_adaptor(
-  adaptor_files
-  ${keeper_xml}
-  ${CMAKE_SOURCE_DIR}/src/service/keeper.h
-  Keeper
-  KeeperAdaptor
 )
 
 # Helper Object

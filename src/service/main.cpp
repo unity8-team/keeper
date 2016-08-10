@@ -27,7 +27,6 @@
 #include "util/logging.h"
 #include "util/unix-signal-handler.h"
 
-#include "KeeperAdaptor.h"
 #include "KeeperUserAdaptor.h"
 #include "KeeperHelperAdaptor.h"
 
@@ -85,12 +84,6 @@ main(int argc, char **argv)
         QSharedPointer<MetadataProvider> possible (new BackupChoices());
         QSharedPointer<MetadataProvider> available (new RestoreChoices());
         auto service = new Keeper(registry, possible, available, &app);
-        new KeeperAdaptor(service);
-        if (!connection.registerObject(DBusTypes::KEEPER_SERVICE_PATH, service))
-        {
-            qCritical("Could not register keeper dbus service object: [%s]", connection.lastError().message().toStdString().c_str());
-            return EXIT_FAILURE;
-        }
 
         // register the helper object
         auto helper  = new KeeperHelper(service);
