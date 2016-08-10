@@ -37,4 +37,3 @@ install(
   DESTINATION
     ${CMAKE_INSTALL_DATADIR}/dbus-1/services
 )
-
