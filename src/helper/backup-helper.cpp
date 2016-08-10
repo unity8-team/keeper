@@ -101,9 +101,9 @@ public:
 
     Q_DISABLE_COPY(BackupHelperPrivate)
 
-    void start()
+    void start(QStringList const& urls)
     {
-        ual_start();
+        ual_start(urls);
         reset_inactivity_timer();
     }
 
@@ -122,13 +122,9 @@ public:
                          std::bind(&BackupHelperPrivate::on_data_uploaded, this, std::placeholders::_1)
                          );
 
-        auto testHelper = qgetenv("KEEPER_TEST_HELPER");
-        if (!testHelper.isEmpty())
-        {
-            // In the testing environment we don't have upstart.
-            // TODO investigate if there's a better way to send the started signal in the tests
-            q_ptr->set_state(Helper::State::STARTED);
-        }
+        // TODO xavi is going to remove this line
+        q_ptr->set_state(Helper::State::STARTED);
+
         reset_inactivity_timer();
     }
 
@@ -265,16 +261,20 @@ private:
         ubuntu_app_launch_observer_delete_helper_stop(on_helper_stopped, HELPER_TYPE, this);
     }
 
-    void ual_start()
+    void ual_start(QStringList const& url_strings)
     {
         qDebug() << "Starting helper for app: " << appid_;
+
+        std::vector<ubuntu::app_launch::Helper::URL> urls;
+        for(const auto& url_string : url_strings) {
+            qDebug() << "url " << url_string;
+            urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(url_string.toStdString()));
+        }
 
         auto backupType = ubuntu::app_launch::Helper::Type::from_raw(HELPER_TYPE);
 
         auto appid = ubuntu::app_launch::AppID::parse(appid_.toStdString());
         auto helper = ubuntu::app_launch::Helper::create(backupType, appid, registry_);
-
-        std::vector<ubuntu::app_launch::Helper::URL> urls = get_helper_urls(appid_);
 
         helper->launch(urls);
     }
@@ -309,27 +309,6 @@ private:
         auto self = static_cast<BackupHelperPrivate*>(vself);
         self->check_for_done();
         self->stop_inactivity_timer();
-    }
-
-    std::vector<ubuntu::app_launch::Helper::URL> get_helper_urls(QString const & /*appId*/)
-    {
-        //TODO retrieve the helper path from the package information
-        std::vector<ubuntu::app_launch::Helper::URL> urls;
-        // This is added for testing purposes only
-        auto testHelper = qgetenv("KEEPER_TEST_HELPER");
-        if (!testHelper.isEmpty())
-        {
-            // check the directory and the path to the tar util binary
-            urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(testHelper.toStdString()));
-            qDebug() << "BackupHelperImpl::getHelperPath: returning the helper: " << testHelper;
-        }
-        else
-        {
-            urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(q_ptr->get_bin_path().toStdString()));
-        }
-        urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(q_ptr->get_main_dir_path().toStdString()));
-
-        return urls;
     }
 
     /***
@@ -370,11 +349,11 @@ BackupHelper::BackupHelper(
 BackupHelper::~BackupHelper() =default;
 
 void
-BackupHelper::start()
+BackupHelper::start(QStringList const& url)
 {
     Q_D(BackupHelper);
 
-    d->start();
+    d->start(url);
 }
 
 void

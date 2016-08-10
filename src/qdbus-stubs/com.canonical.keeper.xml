@@ -1,6 +1,6 @@
 <node>
   <interface name="com.canonical.keeper">
-    <method name="start"/>
+<!--    <method name="start"/> -->
 
     <method name="finish"/>
   </interface>

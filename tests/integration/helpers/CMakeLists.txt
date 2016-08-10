@@ -1,4 +1,10 @@
 
+add_definitions(
+  -DPROJECT_NAME="${CMAKE_PROJECT_NAME}"
+  -DHELPER_REGISTRY_FILENAME="${HELPER_REGISTRY_FILENAME}"
+)
+
+
 #
 # helpers-test
 #
@@ -23,12 +29,6 @@ set(
   HELPERS_TEST
   helpers-test
 )
-
-set(
-  HELPERS_TEST_FAILURES
-  helpers-test-failures
-)
-
 
 add_executable(
   ${HELPERS_TEST}
@@ -58,22 +58,60 @@ add_test(
   COMMAND ${HELPERS_TEST}
 )
 
+set(
+  FOLDER_BACKUP_EXEC
+  ${KEEPER_HELPER_TEST_LOCATION}
+)
+configure_file(
+  ${CMAKE_SOURCE_DIR}/data/${HELPER_REGISTRY_FILENAME}.in
+  ${HELPERS_TEST}-registry.json
+  @ONLY
+)
+set_property(
+  TARGET ${HELPERS_TEST}
+  APPEND PROPERTY COMPILE_DEFINITIONS HELPER_REGISTRY="${CMAKE_CURRENT_BINARY_DIR}/${HELPERS_TEST}-registry.json"
+)
+
+
+#
+#  helpers-test-failure
+#
+
+set(
+  HELPERS_TEST_FAILURE
+  helpers-test-failure
+)
+
 add_executable(
-  ${HELPERS_TEST_FAILURES}
+  ${HELPERS_TEST_FAILURE}
   helpers-test-failure.cpp
   test-helpers-base.cpp
   mir-mock.cpp
 )
 
 set_target_properties(
-  ${HELPERS_TEST_FAILURES}
+  ${HELPERS_TEST_FAILURE}
   PROPERTIES
   COMPILE_FLAGS -fPIC
   AUTOMOC TRUE
 )
 
+set(
+  FOLDER_BACKUP_EXEC
+  ${BACKUP_HELPER_FAILURE_LOCATION}
+)
+configure_file(
+  ${CMAKE_SOURCE_DIR}/data/${HELPER_REGISTRY_FILENAME}.in
+  ${HELPERS_TEST_FAILURE}-registry.json
+  @ONLY
+)
+set_property(
+  TARGET ${HELPERS_TEST_FAILURE}
+  APPEND PROPERTY COMPILE_DEFINITIONS HELPER_REGISTRY="${CMAKE_CURRENT_BINARY_DIR}/${HELPERS_TEST_FAILURE}-registry.json"
+)
+
 target_link_libraries(
-  ${HELPERS_TEST_FAILURES}
+  ${HELPERS_TEST_FAILURE}
   ${HELPERS_TEST_DEPS_LDFLAGS}
   ${INTEGRATION_TEST_LIBRARIES}
   Qt5::Core
@@ -82,14 +120,19 @@ target_link_libraries(
 )
 
 add_test(
-  NAME ${HELPERS_TEST_FAILURES}
-  COMMAND ${HELPERS_TEST_FAILURES}
+  NAME ${HELPERS_TEST_FAILURE}
+  COMMAND ${HELPERS_TEST_FAILURE}
 )
+
+
+#
+#
+#
 
 set(
   COVERAGE_TEST_TARGETS
   ${COVERAGE_TEST_TARGETS}
   ${HELPERS_TEST}
-  {HELPERS_TEST_FAILURES}
+  ${HELPERS_TEST_FAILURE}
   PARENT_SCOPE
 )

@@ -96,6 +96,8 @@ protected:
 
     virtual void TearDown() override;
 
+    bool init_helper_registry(QString const& registry);
+
     bool startKeeperClient();
 
     int checkStorageFrameworkNbFiles();

@@ -72,19 +72,23 @@ TEST_F(UserDirsProviderTest, UserDirs)
     const auto type_str = QStringLiteral("type");
     for(const auto& choice : choices)
     {
-        ASSERT_FALSE(choice.key().isEmpty());
+        ASSERT_FALSE(choice.uuid().isEmpty());
         ASSERT_FALSE(choice.display_name().isEmpty());
-        ASSERT_TRUE(choice.has_property(type_str));
+        QString value;
+        ASSERT_TRUE(choice.get_property(type_str, value));
     }
 
     // confirm that we have a system-data choice
     int i, n;
-    for(i=0, n=choices.size(); i<n; ++i)
-        if (choices[i].get_property(type_str) == QStringLiteral("system-data"))
+    for(i=0, n=choices.size(); i<n; ++i) {
+        QString value;
+        if (choices[i].get_property(type_str, value) && (value == QStringLiteral("system-data")))
             break;
+    }
     ASSERT_TRUE(i != n);
     auto system_data = choices[i];
-    EXPECT_TRUE(system_data.has_property(type_str));
+    QString value;
+    EXPECT_TRUE(system_data.get_property(type_str, value));
 
     // confirm that we have user-dir choices
     std::set<QString> expected_user_dir_display_names = {
@@ -94,8 +98,10 @@ TEST_F(UserDirsProviderTest, UserDirs)
         QStringLiteral("Pictures")
     };
     std::set<QString> user_dir_display_names;
-    for (const auto& choice : choices)
-        if (choice.get_property(type_str) == QStringLiteral("folder"))
+    for (const auto& choice : choices) {
+        QString value;
+        if (choice.get_property(type_str, value) && (value == QStringLiteral("folder")))
             user_dir_display_names.insert(choice.display_name());
+    }
     EXPECT_EQ(expected_user_dir_display_names, user_dir_display_names);
 }

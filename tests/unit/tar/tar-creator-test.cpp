@@ -70,7 +70,7 @@ TEST_F(TarCreatorFixture, Create)
             // create the tar creator
             EXPECT_TRUE(QDir::setCurrent(in.path()));
             QStringList files;
-            for (file : FileUtils::getFilesRecursively(in.path()))
+            for (auto file : FileUtils::getFilesRecursively(in.path()))
                 files += indir.relativeFilePath(file);
             TarCreator tar_creator(files, compression_enabled);
 

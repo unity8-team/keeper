@@ -255,6 +255,23 @@ void TestHelpersBase::TearDown()
     EXPECT_TRUE(removeHelperMarkBeforeStarting());
 }
 
+bool TestHelpersBase::init_helper_registry(QString const& registry)
+{
+    // make a copy of the test registry file relative to our tmp XDG_DATA_HOME
+    // $ cp $testname-registry.json $XDG_DATA_HOME/keeper/helper-registry.json
+
+    QDir data_home{xdg_data_home_dir.path()};
+    data_home.mkdir(PROJECT_NAME);
+    QDir keeper_data_home{data_home.absoluteFilePath(PROJECT_NAME)};
+    QFileInfo registry_file(registry);
+    bool copied = QFile::copy(
+        registry_file.absoluteFilePath(),
+        keeper_data_home.absoluteFilePath(QStringLiteral(HELPER_REGISTRY_FILENAME))
+    );
+
+    return copied;
+}
+
 bool TestHelpersBase::startKeeperClient()
 {
     qDebug("starting keeper client '%s'", KEEPER_CLIENT_BIN);
@@ -340,67 +357,62 @@ bool TestHelpersBase::extractTarContents(QString const & tarPath, QString const 
     return true;
 }
 
+namespace
+{
+    QDir find_storage_framework_dir()
+    {
+        QDir dir;
+
+        auto path = QStandardPaths::locate(QStandardPaths::GenericDataLocation,
+                                           "storage-framework",
+                                           QStandardPaths::LocateDirectory);
+
+        if (path.isEmpty())
+        {
+            qWarning() << "ERROR: unable to find storage-framework directory";
+        }
+        else
+        {
+            qDebug() << "storage framework directory is" << path;
+            dir = QDir(path);
+        }
+
+        return dir;
+    }
+}
+
 QString TestHelpersBase::getLastStorageFrameworkFile()
 {
-    // search the storage framework file that the helper created
-    auto data_home = qgetenv("XDG_DATA_HOME");
-    if (data_home == "")
+    QString last;
+
+    auto sf_dir = find_storage_framework_dir();
+    if (sf_dir.exists())
     {
-        qWarning() << "ERROR: XDG_DATA_HOME is not defined";
-        return QString();
-    }
-    qDebug() << "XDG_DATA_HOME is: " << data_home;
-    QString storage_framework_dir_path = QString("%1%2storage-framework").arg(QString(data_home)).arg(QDir::separator());
-    QDir storage_framework_dir(storage_framework_dir_path);
-    if (!storage_framework_dir.exists())
-    {
-        qWarning() << "ERROR: Storage framework directory: [" << storage_framework_dir_path << "] does not exist.";
-        return QString();
+        QStringList sortedFiles;
+        QFileInfoList files = sf_dir.entryInfoList();
+        for(auto& file : sf_dir.entryInfoList())
+            if (file.isFile())
+                sortedFiles << file.absoluteFilePath();
+
+        // we detect the last file by name.
+        // the file creation time had not enough precision
+        sortedFiles.sort();
+        if (sortedFiles.isEmpty())
+            qWarning() << "ERROR: no files in" << sf_dir.path();
+        else
+            last = sortedFiles.last();
     }
 
-    QStringList sortedFiles;
-    QFileInfoList files = storage_framework_dir.entryInfoList();
-    for (int i = 0; i < files.size(); ++i)
-    {
-        QFileInfo file = files[i];
-        if (file.isFile())
-        {
-            sortedFiles << files[i].absoluteFilePath();
-        }
-    }
-
-    // we detect the last file by name.
-    // the file creation time had not enough precision
-    sortedFiles.sort();
-    if (sortedFiles.isEmpty())
-    {
-        qWarning() << "ERROR: last file in the storage-framework directory was not found";
-        return QString();
-    }
-    return sortedFiles.last();
+    return last;
 }
 
 int TestHelpersBase::checkStorageFrameworkNbFiles()
 {
-    // search the storage framework file that the helper created
-    auto data_home = qgetenv("XDG_DATA_HOME");
-    if (data_home == "")
-    {
-        qWarning() << "ERROR: XDG_DATA_HOME is not defined";
-        return -1;
-    }
-    qDebug() << "XDG_DATA_HOME is: " << data_home;
-    QString storage_framework_dir_path = QString("%1%2storage-framework").arg(QString(data_home)).arg(QDir::separator());
-    QDir storage_framework_dir(storage_framework_dir_path);
-    if (!storage_framework_dir.exists())
-    {
-        qWarning() << "ERROR: Storage framework directory: [" << storage_framework_dir_path << "] does not exist.";
-        return -1;
-    }
+    auto sf_dir = find_storage_framework_dir();
 
-    QFileInfoList files = storage_framework_dir.entryInfoList(QDir::Files);
-
-    return files.size();
+    return sf_dir.exists()
+        ? sf_dir.entryInfoList(QDir::Files).size()
+        : -1;
 }
 
 bool TestHelpersBase::checkStorageFrameworkContent(QString const & content)
@@ -489,7 +501,7 @@ QString TestHelpersBase::getUUIDforXdgFolderPath(QString const &path, QVariantDi
     for(auto iter = choices.begin(); iter != choices.end(); ++iter)
     {
         const auto& values = iter.value();
-        auto iter_values = values.find("path");
+        auto iter_values = values.find("subtype");
         if (iter_values != values.end())
         {
             if (iter_values.value().toString() == path)
