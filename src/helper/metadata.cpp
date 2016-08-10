@@ -17,73 +17,65 @@
  *   Charles Kerr <charles.kerr@canoincal.com>
  */
 
-#include "service/metadata.h"
+#include "helper/metadata.h"
 
 ///
 ///
 
 // Metadata keys
 const QString Metadata::TYPE_KEY = QStringLiteral("type");
-const QString Metadata::PATH_KEY = QStringLiteral("path");
-const QString Metadata::ICON_KEY = QStringLiteral("icon");
+const QString Metadata::SUBTYPE_KEY = QStringLiteral("subtype");
 const QString Metadata::NAME_KEY = QStringLiteral("name");
 const QString Metadata::PACKAGE_KEY = QStringLiteral("package");
 const QString Metadata::TITLE_KEY = QStringLiteral("title");
 const QString Metadata::VERSION_KEY = QStringLiteral("version");
 
 // Metadata values
-const QString Metadata::USER_FOLDER_VALUE = QStringLiteral("folder");
+const QString Metadata::FOLDER_VALUE = QStringLiteral("folder");
 const QString Metadata::SYSTEM_DATA_VALUE = QStringLiteral("system-data");
-const QString Metadata::FOLDER_SYSTEM_VALUE = QStringLiteral("folder-system");
 const QString Metadata::APPLICATION_VALUE = QStringLiteral("application");
 
 ///
 ///
 
 Metadata::Metadata()
-    : key_()
+    : uuid_()
     , display_name_()
     , properties_()
 {
 }
 
-Metadata::Metadata(const QString& key, const QString& display_name)
-    : key_(key)
+Metadata::Metadata(QString const& uuid, QString const& display_name)
+    : uuid_(uuid)
     , display_name_(display_name)
     , properties_()
 {
 }
 
 bool
-Metadata::has_property(const QString& property_name) const
+Metadata::get_property(QString const& property_name, QString& setme) const
 {
-    return properties_.contains(property_name);
-}
-
-QVariant
-Metadata::get_property(const QString& property_name) const
-{
-    QVariant ret;
-
     auto it = properties_.constFind(property_name);
-    if (it != properties_.end())
-        ret = it.value();
+    const bool found = it != properties_.end();
 
-    return ret;
+    if (found)
+        setme = it.value();
+
+    return found;
 }
 
 void
-Metadata::set_property(const QString& property_name, const QVariant& value)
+Metadata::set_property(QString const& property_name, QString const& value)
 {
     properties_.insert(property_name, value);
 }
 
-QVariantMap
+QMap<QString,QString>
 Metadata::get_public_properties() const
 {
     // they're all public so far...
-    QVariantMap ret = properties_;
-    ret.insert(QStringLiteral("key"), key_);
+    auto ret = properties_;
+    ret.insert(QStringLiteral("uuid"), uuid_);
     ret.insert(QStringLiteral("display-name"), display_name_);
     return ret;
 }

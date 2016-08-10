@@ -18,11 +18,20 @@
  *     Xavi Garcia <xavi.garcia.mena@gmail.com>
  *     Charles Kerr <charles.kerr@canonical.com>
  */
+
 #include "test-helpers-base.h"
 
 class TestHelpers: public TestHelpersBase
 {
+    using super = TestHelpersBase;
+
+    void SetUp() override
+    {
+        super::SetUp();
+        init_helper_registry(HELPER_REGISTRY);
+    }
 };
+
 
 TEST_F(TestHelpers, StartHelper)
 {
@@ -33,12 +42,12 @@ TEST_F(TestHelpers, StartHelper)
         dbus_test_dbus_mock_get_object(mock, UNTRUSTED_HELPER_PATH, UPSTART_JOB, NULL);
 
     BackupHelper helper("com.test.multiple_first_1.2.3");
-    helper.set_bin_path(DEKKO_HELPER_BIN);
-    helper.set_main_dir_path(DEKKO_HELPER_DIR);
 
     QSignalSpy spy(&helper, &BackupHelper::state_changed);
 
-    helper.start();
+    QStringList urls;
+    urls << DEKKO_HELPER_BIN << DEKKO_HELPER_DIR;
+    helper.start(urls);
 
     guint len = 0;
     auto calls = dbus_test_dbus_mock_object_get_method_calls(mock, obj, "Start", &len, NULL);
@@ -209,8 +218,6 @@ TEST_F(TestHelpers, StartStopHelperObserver)
 
 TEST_F(TestHelpers, StartFullTest)
 {
-    g_setenv("KEEPER_TEST_HELPER", TEST_SIMPLE_HELPER_SH, TRUE);
-
     XdgUserDirsSandbox tmp_dir;
 
     // starts the services, including keeper-service
@@ -280,7 +287,9 @@ TEST_F(TestHelpers, Inactivity)
 
     BackupHelper helper("com.bar_foo_8432.13.1");
 
-    helper.start();
+    QStringList urls;
+    urls << DEKKO_HELPER_BIN << DEKKO_HELPER_DIR;
+    helper.start(urls);
 
     DbusTestDbusMockObject* objUpstart =
         dbus_test_dbus_mock_get_object(mock, UPSTART_PATH, UPSTART_INTERFACE, NULL);

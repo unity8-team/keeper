@@ -10,7 +10,6 @@ set(SERVICE_LIB_SOURCES
   keeper.cpp
   keeper-user.cpp
   keeper-helper.cpp
-  metadata.cpp
   restore-choices.cpp
 )
 add_library(

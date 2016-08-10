@@ -86,6 +86,15 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 
 
 ##
+##  Global names
+##
+
+set(
+  HELPER_REGISTRY_FILENAME
+  helper-registry.json
+)
+
+##
 ##  Global build options
 ##
 
@@ -111,6 +120,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   LIST(APPEND C_WARNINGS
     -Weverything
     -Wno-padded
+    -Wno-weak-vtables
   )
   LIST(APPEND CXX_WARNINGS
     -Wno-c++98-compat
@@ -157,7 +167,6 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 
   LIST(APPEND CXX_WARNINGS
     -Wctor-dtor-privacy
-    -Weffc++
     -Wnon-virtual-dtor
     -Wold-style-cast
     -Woverloaded-virtual

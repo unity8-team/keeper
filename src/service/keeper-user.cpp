@@ -17,7 +17,7 @@
  *   Charles Kerr <charles.kerr@canonical.com>
  */
 
-#include "service/metadata.h"
+#include "helper/metadata.h"
 #include "service/keeper.h"
 #include "service/keeper-user.h"
 
@@ -33,13 +33,33 @@ KeeperUser::KeeperUser(Keeper* keeper)
 
 KeeperUser::~KeeperUser() =default;
 
+namespace
+{
+    QVariantMap strings_to_variants(const QMap<QString,QString>& strings)
+    {
+        QVariantMap variants;
+
+        for (auto it=strings.begin(), end=strings.end(); it!=end; ++it)
+            variants.insert(it.key(), QVariant::fromValue(it.value()));
+
+        return variants;
+    }
+
+    QVariantDictMap choices_to_variant_dict_map(const QVector<Metadata>& choices)
+    {
+        QVariantDictMap ret;
+
+        for (auto const& metadata : choices)
+            ret.insert(metadata.uuid(), strings_to_variants(metadata.get_public_properties()));
+
+        return ret;
+    }
+}
+
 QVariantDictMap
 KeeperUser::GetBackupChoices()
 {
-    QVariantDictMap ret;
-    for (const auto& metadata : keeper_.get_backup_choices())
-        ret.insert(metadata.key(), metadata.get_public_properties());
-    return ret;
+    return choices_to_variant_dict_map(keeper_.get_backup_choices());
 }
 
 void
@@ -62,10 +82,7 @@ KeeperUser::Cancel()
 QVariantDictMap
 KeeperUser::GetRestoreChoices()
 {
-    QVariantDictMap ret;
-    for (const auto& metadata : keeper_.get_restore_choices())
-        ret.insert(metadata.key(), metadata.get_public_properties());
-    return ret;
+    return choices_to_variant_dict_map(keeper_.get_restore_choices());
 }
 
 void
@@ -83,6 +100,6 @@ KeeperUser::get_state() const
 
     QVariantDictMap ret;
     for (const auto& item : keeper_.get_backup_choices())
-        ret[item.key()];
+        ret[item.uuid()];
     return ret;
 }

@@ -22,12 +22,17 @@
 
 class TestHelpers: public TestHelpersBase
 {
+    using super = TestHelpersBase;
+
+    void SetUp() override
+    {
+        super::SetUp();
+        init_helper_registry(HELPER_REGISTRY);
+    }
 };
 
 TEST_F(TestHelpers, StartFullTest)
 {
-    g_setenv("KEEPER_TEST_HELPER", TEST_SIMPLE_HELPER_FAILURE, TRUE);
-
     XdgUserDirsSandbox tmp_dir;
 
     // starts the services, including keeper-service
@@ -46,7 +51,7 @@ TEST_F(TestHelpers, StartFullTest)
     QDBusReply<QVariantDictMap> choices = user_iface->call("GetBackupChoices");
     EXPECT_TRUE(choices.isValid()) << qPrintable(choices.error().message());
 
-    QString user_option = "XDG_MUSIC_DIR";
+    auto user_option = QStringLiteral("XDG_MUSIC_DIR");
 
     auto user_dir = qgetenv(user_option.toLatin1().data());
     ASSERT_FALSE(user_dir.isEmpty());
@@ -68,7 +73,7 @@ TEST_F(TestHelpers, StartFullTest)
     EXPECT_TRUE(waitUntilHelperFinishes(DEKKO_APP_ID, 15000, 1));
 
     // check that the content of the file is the expected
-    EXPECT_EQ(checkStorageFrameworkNbFiles(), 0);
+    EXPECT_EQ(0, checkStorageFrameworkNbFiles());
     // let's leave things clean
     EXPECT_TRUE(removeHelperMarkBeforeStarting());
 }

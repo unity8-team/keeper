@@ -1,0 +1,8 @@
+{
+    "folder": {
+        "backup-urls": [
+            "@FOLDER_BACKUP_EXEC@",
+            "${subtype}"
+        ]
+    }
+}

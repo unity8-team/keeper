@@ -140,7 +140,7 @@ bool StorageFrameworkClient::removeTmpSuffix(std::shared_ptr<unity::storage::qt:
         newName.remove((file->name().length() - suffix.length()), suffix.length());
         // rename the file for all its parents
         // Storage framework states that we should not assume that a single parent is returned.
-        for (const auto parent : parents)
+        for (const auto& parent : parents)
         {
             auto item = file->move(parent, newName).result();
             qDebug() << "File name changed to" << item->name();
