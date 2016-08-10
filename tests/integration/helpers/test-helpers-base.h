@@ -98,8 +98,6 @@ protected:
 
     bool init_helper_registry(QString const& registry);
 
-    bool startKeeperClient();
-
     int checkStorageFrameworkNbFiles();
 
     bool checkStorageFrameworkFiles(QStringList const & sourceDirs, bool compression=false);

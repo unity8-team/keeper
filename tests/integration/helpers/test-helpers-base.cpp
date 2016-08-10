@@ -273,17 +273,6 @@ bool TestHelpersBase::init_helper_registry(QString const& registry)
     return copied;
 }
 
-bool TestHelpersBase::startKeeperClient()
-{
-    qDebug("starting keeper client '%s'", KEEPER_CLIENT_BIN);
-    keeper_client.start(KEEPER_CLIENT_BIN, QStringList());
-
-    if (!keeper_client.waitForStarted())
-        return false;
-
-    return true;
-}
-
 bool TestHelpersBase::checkStorageFrameworkFiles(QStringList const & sourceDirs, bool compression)
 {
     QStringList dirs = sourceDirs;
