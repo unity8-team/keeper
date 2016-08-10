@@ -76,12 +76,6 @@ void TestHelpersBase::SetUp()
 {
     Helper::registerMetaTypes();
 
-    // storage framework uses XDG_DATA_HOME to create the
-    // folder where all its uploaded files will be placed.
-    // we remove the temporary directory ourselves to be able to check the
-    // contents in case of error
-    xdg_data_home_dir.setAutoRemove(false);
-
     /* Click DB test mode */
     g_setenv("TEST_CLICK_DB", "click-db-dir", TRUE);
     g_setenv("TEST_CLICK_USER", "test-user", TRUE);
@@ -251,6 +245,9 @@ void TestHelpersBase::TearDown()
         qDebug("test failed; leaving '%s'", data_home_dir.path().toUtf8().constData());
 
     ASSERT_EQ(nullptr, bus);
+
+    // if the test passed, clean up the xdg_data_home_dir temp too
+    xdg_data_home_dir.setAutoRemove(passed);
 
     // let's leave things clean
     EXPECT_TRUE(removeHelperMarkBeforeStarting());
