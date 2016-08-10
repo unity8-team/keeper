@@ -76,7 +76,6 @@ protected:
     std::string last_resume_appid;
     guint resume_timeout = 0;
     std::shared_ptr<ubuntu::app_launch::Registry> registry;
-    DbusTestProcess * keeper = nullptr;
     QProcess keeper_client;
     QTemporaryDir xdg_data_home_dir;
 
