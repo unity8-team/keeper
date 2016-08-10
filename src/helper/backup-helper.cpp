@@ -195,7 +195,7 @@ private:
             else {
                 if (n < 0) {
                     write_error_ = true;
-                    qWarning() << "Write error: " << storage_framework_socket_->errorString();
+                    qWarning() << "Write error:" << storage_framework_socket_->errorString();
                     stop();
                 }
                 break;
@@ -263,11 +263,11 @@ private:
 
     void ual_start(QStringList const& url_strings)
     {
-        qDebug() << "Starting helper for app: " << appid_;
+        qDebug() << "Starting helper for app:" << appid_;
 
         std::vector<ubuntu::app_launch::Helper::URL> urls;
         for(const auto& url_string : url_strings) {
-            qDebug() << "url " << url_string;
+            qDebug() << "url" << url_string;
             urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(url_string.toStdString()));
         }
 
@@ -281,7 +281,7 @@ private:
 
     void ual_stop()
     {
-        qDebug() << "Stopping helper for app: " << appid_;
+        qDebug() << "Stopping helper for app:" << appid_;
         auto backupType = ubuntu::app_launch::Helper::Type::from_raw(HELPER_TYPE);
 
         auto appid = ubuntu::app_launch::AppID::parse(appid_.toStdString());
@@ -298,14 +298,14 @@ private:
 
     static void on_helper_started(const char* appid, const char* /*instance*/, const char* /*type*/, void* vself)
     {
-        qDebug() << "HELPER STARTED +++++++++++++++++++++++++++++++++++++ " << appid;
+        qDebug() << "HELPER STARTED +++++++++++++++++++++++++++++++++++++" << appid;
         auto self = static_cast<BackupHelperPrivate*>(vself);
         self->q_ptr->set_state(Helper::State::STARTED);
     }
 
     static void on_helper_stopped(const char* appid, const char* /*instance*/, const char* /*type*/, void* vself)
     {
-        qDebug() << "HELPER STOPPED +++++++++++++++++++++++++++++++++++++ " << appid;
+        qDebug() << "HELPER STOPPED +++++++++++++++++++++++++++++++++++++" << appid;
         auto self = static_cast<BackupHelperPrivate*>(vself);
         self->check_for_done();
         self->stop_inactivity_timer();

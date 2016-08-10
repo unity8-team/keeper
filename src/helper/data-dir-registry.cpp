@@ -101,9 +101,9 @@ private:
         }
 
         for (auto const& url : urls_in)
-            qDebug() << "in: " << url;
+            qDebug() << "in:" << url;
         for (auto const& url : urls)
-            qDebug() << "out: " << url;
+            qDebug() << "out:" << url;
 
         return urls;
     }
