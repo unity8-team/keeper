@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include "qdbus-stubs/dbus-types.h"
+
 #include <unity/storage/qt/client/client-api.h>
 
 #include <QDBusContext>
@@ -56,6 +58,7 @@ public:
     QDBusUnixFileDescriptor StartBackup(QDBusConnection, const QDBusMessage& message, quint64 nbytes);
 
     void start_tasks(QStringList const & keys);
+    QVariantDictMap get_state() const;
 
 private:
     QScopedPointer<KeeperPrivate> const d_ptr;

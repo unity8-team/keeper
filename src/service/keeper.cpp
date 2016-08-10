@@ -46,8 +46,8 @@ public:
     QSharedPointer<MetadataProvider> restore_choices_;
     QScopedPointer<BackupHelper> backup_helper_;
     QScopedPointer<StorageFrameworkClient> storage_;
-    QVector<Metadata> cached_backup_choices_;
-    QVector<Metadata> cached_restore_choices_;
+    mutable QVector<Metadata> cached_backup_choices_;
+    mutable QVector<Metadata> cached_restore_choices_;
     QStringList remaining_tasks_;
 
     KeeperPrivate(Keeper* keeper,
@@ -117,6 +117,33 @@ public:
     void clear_remaining_taks()
     {
         remaining_tasks_.clear();
+    }
+
+    QVector<Metadata> get_backup_choices() const
+    {
+        if (cached_backup_choices_.isEmpty())
+            cached_backup_choices_ = backup_choices_->get_backups();
+
+        return cached_backup_choices_;
+    }
+
+    QVector<Metadata> get_restore_choices() const
+    {
+        if (cached_restore_choices_.isEmpty())
+            cached_restore_choices_ = restore_choices_->get_backups();
+
+        return cached_restore_choices_;
+    }
+
+    QVariantDictMap get_state() const
+    {
+        QVariantDictMap ret; 
+
+        // FIXME: this is dummy data for testing with d-feet
+        for (const auto& item : get_backup_choices()) 
+            ret[item.uuid()]; 
+
+        return ret;
     }
 
 private:
@@ -222,11 +249,7 @@ Keeper::get_backup_choices()
 {
     Q_D(Keeper);
 
-    if (!d->cached_backup_choices_.size())
-    {
-        d->cached_backup_choices_ = d->backup_choices_->get_backups();
-    }
-    return d->cached_backup_choices_;
+    return d->get_backup_choices();
 }
 
 QVector<Metadata>
@@ -234,9 +257,13 @@ Keeper::get_restore_choices()
 {
     Q_D(Keeper);
 
-    if (!d->cached_restore_choices_.size())
-    {
-        d->cached_restore_choices_ = d->restore_choices_->get_backups();
-    }
-    return d->cached_restore_choices_;
+    return d->get_restore_choices();
+}
+
+QVariantDictMap
+Keeper::get_state() const
+{
+    Q_D(const Keeper);
+
+    return d->get_state();
 }
