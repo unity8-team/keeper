@@ -18,7 +18,6 @@ install(
     ${CMAKE_INSTALL_DATADIR}/${CMAKE_PROJECT_NAME}
 )
 
-
 #
 # dbus activation
 #
