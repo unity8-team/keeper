@@ -92,9 +92,10 @@ void TestHelpersBase::SetUp()
 
     service = dbus_test_service_new(NULL);
 
-    keeper = dbus_test_process_new(KEEPER_SERVICE_BIN);
-    dbus_test_task_set_name(DBUS_TEST_TASK(keeper), "Keeper");
-    dbus_test_service_add_task(service, DBUS_TEST_TASK(keeper));
+    auto keeper_process = dbus_test_process_new(KEEPER_SERVICE_BIN);
+    dbus_test_task_set_name(DBUS_TEST_TASK(keeper_process), "Keeper");
+    dbus_test_service_add_task(service, DBUS_TEST_TASK(keeper_process));
+    g_clear_object(&keeper_process);
 
     debugConnection();
 
@@ -222,7 +223,6 @@ void TestHelpersBase::TearDown()
     ubuntu_app_launch_observer_delete_app_focus(focus_cb, this);
     ubuntu_app_launch_observer_delete_app_resume(resume_cb, this);
 
-    g_clear_object(&keeper);
     g_clear_object(&mock);
     g_clear_object(&cgmock);
     g_clear_object(&service);
