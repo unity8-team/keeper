@@ -19,6 +19,8 @@
 
 #include <client/client.h>
 
+#include <qdbus-stubs/keeper_user_interface.h>
+
 class KeeperClientPrivate final
 {
     Q_DISABLE_COPY(KeeperClientPrivate)
@@ -35,3 +37,37 @@ KeeperClient::KeeperClient(QObject* parent)
 }
 
 KeeperClient::~KeeperClient() = default;
+
+QMap<QString, QVariantMap> KeeperClient::GetBackupChoices()
+{
+    QScopedPointer<DBusInterfaceKeeperUser> user_iface(new DBusInterfaceKeeperUser(
+                                                            DBusTypes::KEEPER_SERVICE,
+                                                            DBusTypes::KEEPER_USER_PATH,
+                                                            QDBusConnection::sessionBus()
+                                                        ) );
+    QDBusReply<QVariantDictMap> choices = user_iface->call("GetBackupChoices");
+
+    if (!choices.isValid())
+    {
+        qWarning() << "Error getting backup choices: " << choices.error().message();
+        return QMap<QString, QVariantMap>();
+    }
+
+    return choices.value();
+}
+
+void KeeperClient::StartBackup(const QStringList& uuids)
+{
+    QScopedPointer<DBusInterfaceKeeperUser> user_iface(new DBusInterfaceKeeperUser(
+                                                            DBusTypes::KEEPER_SERVICE,
+                                                            DBusTypes::KEEPER_USER_PATH,
+                                                            QDBusConnection::sessionBus()
+                                                        ) );
+
+    QDBusReply<void> backup_reply = user_iface->call("StartBackup", uuids);
+
+    if (!backup_reply.isValid())
+    {
+        qWarning() << "Error starting backup: " << backup_reply.error().message();
+    }
+}
