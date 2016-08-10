@@ -39,18 +39,23 @@
 
 class KeeperPrivate
 {
+    enum class TaskType { BACKUP, RESTORE };
+
 public:
+
+    QScopedPointer<BackupHelper> backup_helper_;
+    QScopedPointer<StorageFrameworkClient> storage_;
 
     KeeperPrivate(Keeper* keeper,
                   const QSharedPointer<HelperRegistry>& helper_registry,
                   const QSharedPointer<MetadataProvider>& backup_choices,
                   const QSharedPointer<MetadataProvider>& restore_choices)
-        : q_ptr(keeper)
+        : backup_helper_(new BackupHelper(DEKKO_APP_ID))
+        , storage_(new StorageFrameworkClient())
+        , q_ptr(keeper)
         , helper_registry_(helper_registry)
         , backup_choices_(backup_choices)
         , restore_choices_(restore_choices)
-        , backup_helper_(new BackupHelper(DEKKO_APP_ID))
-        , storage_(new StorageFrameworkClient())
     {
         // listen for backup helper state changes
         QObject::connect(backup_helper_.data(), &Helper::state_changed,
@@ -208,14 +213,10 @@ private:
         }
         else // RESTORE
         {
-#if 1
-            qWarning() << "restore not implemented yet";
-            return false;
-#else
             current_task_ = uuid;
             set_current_task_action(QStringLiteral("restoring"));
-            return true;
-#endif
+            qWarning() << "restore not implemented yet";
+            return false;
         }
     }
 
@@ -319,8 +320,6 @@ private:
     QSharedPointer<HelperRegistry> helper_registry_;
     QSharedPointer<MetadataProvider> backup_choices_;
     QSharedPointer<MetadataProvider> restore_choices_;
-    QScopedPointer<BackupHelper> backup_helper_;
-    QScopedPointer<StorageFrameworkClient> storage_;
     mutable QVector<Metadata> cached_backup_choices_;
     mutable QVector<Metadata> cached_restore_choices_;
     QStringList all_tasks_;
@@ -328,7 +327,6 @@ private:
     QString current_task_;
     QVariantDictMap state_;
 
-    enum class TaskType { BACKUP, RESTORE };
     struct TaskData
     {
         QString action;
