@@ -36,20 +36,20 @@ public:
     // coming from a QFutureWatcher
     void getNewFileForBackup(quint64 n_bytes);
 
-    void closeUploader();
+    void finish(bool do_commit);
 
     int getUploaderSocketDescriptor();
 
     bool removeTmpSuffix(std::shared_ptr<unity::storage::qt::client::File> const &file);
     bool deleteFile(std::shared_ptr<unity::storage::qt::client::File> const &file);
 
-public Q_SLOTS:
-    void uploaderReady();
-    void onUploaderClosed();
-
 Q_SIGNALS:
     void socketReady(std::shared_ptr<QLocalSocket> const& sf_socket);
-    void uploaderClosed(std::shared_ptr<unity::storage::qt::client::File> const &);
+    void finished();
+
+private Q_SLOTS:
+    void uploaderReady();
+    void onUploaderClosed();
 
 private:
     unity::storage::qt::client::Runtime::SPtr runtime_;

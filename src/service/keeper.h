@@ -57,10 +57,6 @@ public:
 
     void start_tasks(QStringList const & keys);
 
-public Q_SLOTS:
-
-    void socketClosed(std::shared_ptr<unity::storage::qt::client::File> const & file_created);
-
 private:
     QScopedPointer<KeeperPrivate> const d_ptr;
 };
