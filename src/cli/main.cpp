@@ -21,7 +21,6 @@
 #include <dbus-types.h>
 #include <util/logging.h>
 
-#include "keeper_interface.h"
 #include "keeper_user_interface.h"
 
 #include <QCoreApplication>
@@ -92,16 +91,7 @@ main(int argc, char **argv)
     }
     else
     {
-        QScopedPointer<DBusInterfaceKeeper> keeperInterface(new DBusInterfaceKeeper(DBusTypes::KEEPER_SERVICE,
-                                                                DBusTypes::KEEPER_SERVICE_PATH,
-                                                                QDBusConnection::sessionBus(), 0));
-
-        QDBusReply<void> userResp = keeperInterface->call(QLatin1String("start"));
-
-        if (!userResp.isValid())
-        {
-            qWarning() << "Error starting backup:" << userResp.error().message();
-        }
+        qWarning() << "FIXME";
     }
 
 

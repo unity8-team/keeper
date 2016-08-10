@@ -76,12 +76,6 @@ void TestHelpersBase::SetUp()
 {
     Helper::registerMetaTypes();
 
-    // storage framework uses XDG_DATA_HOME to create the
-    // folder where all its uploaded files will be placed.
-    // we remove the temporary directory ourselves to be able to check the
-    // contents in case of error
-    xdg_data_home_dir.setAutoRemove(false);
-
     /* Click DB test mode */
     g_setenv("TEST_CLICK_DB", "click-db-dir", TRUE);
     g_setenv("TEST_CLICK_USER", "test-user", TRUE);
@@ -228,6 +222,7 @@ void TestHelpersBase::TearDown()
     ubuntu_app_launch_observer_delete_app_focus(focus_cb, this);
     ubuntu_app_launch_observer_delete_app_resume(resume_cb, this);
 
+    g_clear_object(&keeper);
     g_clear_object(&mock);
     g_clear_object(&cgmock);
     g_clear_object(&service);
@@ -251,6 +246,9 @@ void TestHelpersBase::TearDown()
 
     ASSERT_EQ(nullptr, bus);
 
+    // if the test passed, clean up the xdg_data_home_dir temp too
+    xdg_data_home_dir.setAutoRemove(passed);
+
     // let's leave things clean
     EXPECT_TRUE(removeHelperMarkBeforeStarting());
 }
@@ -270,17 +268,6 @@ bool TestHelpersBase::init_helper_registry(QString const& registry)
     );
 
     return copied;
-}
-
-bool TestHelpersBase::startKeeperClient()
-{
-    qDebug("starting keeper client '%s'", KEEPER_CLIENT_BIN);
-    keeper_client.start(KEEPER_CLIENT_BIN, QStringList());
-
-    if (!keeper_client.waitForStarted())
-        return false;
-
-    return true;
 }
 
 bool TestHelpersBase::checkStorageFrameworkFiles(QStringList const & sourceDirs, bool compression)

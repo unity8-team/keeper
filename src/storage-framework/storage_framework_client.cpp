@@ -87,11 +87,18 @@ int StorageFrameworkClient::getUploaderSocketDescriptor()
     return int(socket->socketDescriptor());
 }
 
-void StorageFrameworkClient::closeUploader()
+void StorageFrameworkClient::finish(bool do_commit)
 {
-    try
+
+    if (!uploader_ || !do_commit)
     {
-        uploader_->socket()->disconnectFromServer();
+        qDebug() << "StorageFrameworkClient::finish() is throwing away the file";
+        uploader_.reset();
+        Q_EMIT(finished());
+    }
+    else try
+    {
+        qDebug() << "StorageFrameworkClient::finish() is committing";
         uploader_closed_watcher_.setFuture(uploader_->finish_upload());
     }
     catch (std::exception & e)
@@ -100,19 +107,21 @@ void StorageFrameworkClient::closeUploader()
     }
 }
 
-void StorageFrameworkClient::uploaderReady()
-{
-    uploader_ = uploader_ready_watcher_.result();
-
-    Q_EMIT (socketReady(uploader_->socket()));
-}
-
 void StorageFrameworkClient::onUploaderClosed()
 {
     auto file = uploader_closed_watcher_.result();
     qDebug() << "Uploader for file" << file->name() << "was closed";
     qDebug() << "Uploader was closed";
-    Q_EMIT(uploaderClosed(file));
+    uploader_->socket()->disconnectFromServer();
+    uploader_.reset();
+    Q_EMIT(finished());
+}
+
+void StorageFrameworkClient::uploaderReady()
+{
+    uploader_ = uploader_ready_watcher_.result();
+
+    Q_EMIT (socketReady(uploader_->socket()));
 }
 
 bool StorageFrameworkClient::removeTmpSuffix(std::shared_ptr<unity::storage::qt::client::File> const &file)
