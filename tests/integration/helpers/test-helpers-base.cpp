@@ -228,6 +228,7 @@ void TestHelpersBase::TearDown()
     ubuntu_app_launch_observer_delete_app_focus(focus_cb, this);
     ubuntu_app_launch_observer_delete_app_resume(resume_cb, this);
 
+    g_clear_object(&keeper);
     g_clear_object(&mock);
     g_clear_object(&cgmock);
     g_clear_object(&service);
