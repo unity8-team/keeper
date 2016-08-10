@@ -94,7 +94,7 @@ void TestHelpersBase::SetUp()
     g_setenv("XDG_CACHE_HOME", CMAKE_SOURCE_DIR "/libertine-data", TRUE);
     g_setenv("XDG_DATA_HOME", xdg_data_home_dir.path().toLatin1().data(), TRUE);
 
-    qDebug() << "XDG_DATA_HOME ON SETUP is: " << xdg_data_home_dir.path();
+    qDebug() << "XDG_DATA_HOME ON SETUP is:" << xdg_data_home_dir.path();
 
     service = dbus_test_service_new(NULL);
 
@@ -304,22 +304,22 @@ bool TestHelpersBase::compareTarContent (QString const & tarPath, QString const 
 {
     QTemporaryDir tempDir;
 
-    qDebug() << "Comparing tar content for dir: " << sourceDir << " with tar: " << tarPath;
+    qDebug() << "Comparing tar content for dir:" << sourceDir << "with tar:" << tarPath;
 
     QFileInfo checkFile(tarPath);
     if (!checkFile.exists())
     {
-        qWarning() << "File: " << tarPath << " does not exist";
+        qWarning() << "File:" << tarPath << "does not exist";
         return false;
     }
     if (!checkFile.isFile())
     {
-        qWarning() << "Item: " << tarPath << " is not a file";
+        qWarning() << "Item:" << tarPath << "is not a file";
         return false;
     }
     if (!tempDir.isValid())
     {
-        qWarning() << "Temporary directory: " << tempDir.path() << " is not valid";
+        qWarning() << "Temporary directory:" << tempDir.path() << "is not valid";
         return false;
     }
 
@@ -349,7 +349,7 @@ QString TestHelpersBase::getLastStorageFrameworkFile()
         qWarning() << "ERROR: XDG_DATA_HOME is not defined";
         return QString();
     }
-    qDebug() << "XDG_DATA_HOME is: " << data_home;
+    qDebug() << "XDG_DATA_HOME is:" << data_home;
     QString storage_framework_dir_path = QString("%1%2storage-framework").arg(QString(data_home)).arg(QDir::separator());
     QDir storage_framework_dir(storage_framework_dir_path);
     if (!storage_framework_dir.exists())
@@ -389,7 +389,7 @@ int TestHelpersBase::checkStorageFrameworkNbFiles()
         qWarning() << "ERROR: XDG_DATA_HOME is not defined";
         return -1;
     }
-    qDebug() << "XDG_DATA_HOME is: " << data_home;
+    qDebug() << "XDG_DATA_HOME is:" << data_home;
     QString storage_framework_dir_path = QString("%1%2storage-framework").arg(QString(data_home)).arg(QDir::separator());
     QDir storage_framework_dir(storage_framework_dir_path);
     if (!storage_framework_dir.exists())
@@ -414,7 +414,7 @@ bool TestHelpersBase::checkStorageFrameworkContent(QString const & content)
     QFile storage_framework_file(lastFile);
     if(!storage_framework_file.open(QFile::ReadOnly))
     {
-        qWarning() << "ERROR: opening file: " << lastFile;
+        qWarning() << "ERROR: opening file:" << lastFile;
         return false;
     }
 
@@ -452,7 +452,7 @@ bool TestHelpersBase::waitUntilHelperFinishes(QString const & app_id, int maxTim
             {
                 helper_mark.remove();
                 timer.restart();
-                qDebug() << "HELPER FINISHED, WAITING FOR " << times_to_wait << " MORE";
+                qDebug() << "HELPER FINISHED, WAITING FOR" << times_to_wait << "MORE";
             }
             else
             {

@@ -51,7 +51,7 @@ main(int argc, char **argv)
     const auto object_path = QString::fromUtf8(DBusTypes::KEEPER_HELPER_PATH);
     DBusInterfaceKeeperHelper helper_iface (DBusTypes::KEEPER_SERVICE, object_path, conn);
 
-    qDebug() << "Is valid: " << helper_iface.isValid();
+    qDebug() << "Is valid:" << helper_iface.isValid();
 
     auto blob_size = blob.size();
 #ifdef COMPILE_WITH_FAILURE

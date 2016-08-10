@@ -199,7 +199,7 @@ private:
             else {
                 if (n < 0) {
                     write_error_ = true;
-                    qWarning() << "Write error: " << storage_framework_socket_->errorString();
+                    qWarning() << "Write error:" << storage_framework_socket_->errorString();
                     stop();
                 }
                 break;
@@ -267,7 +267,7 @@ private:
 
     void ual_start()
     {
-        qDebug() << "Starting helper for app: " << appid_;
+        qDebug() << "Starting helper for app:" << appid_;
 
         auto backupType = ubuntu::app_launch::Helper::Type::from_raw(HELPER_TYPE);
 
@@ -281,7 +281,7 @@ private:
 
     void ual_stop()
     {
-        qDebug() << "Stopping helper for app: " << appid_;
+        qDebug() << "Stopping helper for app:" << appid_;
         auto backupType = ubuntu::app_launch::Helper::Type::from_raw(HELPER_TYPE);
 
         auto appid = ubuntu::app_launch::AppID::parse(appid_.toStdString());
@@ -298,14 +298,14 @@ private:
 
     static void on_helper_started(const char* appid, const char* /*instance*/, const char* /*type*/, void* vself)
     {
-        qDebug() << "HELPER STARTED +++++++++++++++++++++++++++++++++++++ " << appid;
+        qDebug() << "HELPER STARTED +++++++++++++++++++++++++++++++++++++" << appid;
         auto self = static_cast<BackupHelperPrivate*>(vself);
         self->q_ptr->set_state(Helper::State::STARTED);
     }
 
     static void on_helper_stopped(const char* appid, const char* /*instance*/, const char* /*type*/, void* vself)
     {
-        qDebug() << "HELPER STOPPED +++++++++++++++++++++++++++++++++++++ " << appid;
+        qDebug() << "HELPER STOPPED +++++++++++++++++++++++++++++++++++++" << appid;
         auto self = static_cast<BackupHelperPrivate*>(vself);
         self->check_for_done();
         self->stop_inactivity_timer();
@@ -321,7 +321,7 @@ private:
         {
             // check the directory and the path to the tar util binary
             urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(testHelper.toStdString()));
-            qDebug() << "BackupHelperImpl::getHelperPath: returning the helper: " << testHelper;
+            qDebug() << "BackupHelperImpl::getHelperPath: returning the helper:" << testHelper;
         }
         else
         {

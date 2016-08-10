@@ -55,7 +55,7 @@ QMap<QString, QVariantMap> KeeperClient::GetBackupChoices() const
 
     if (!choices.isValid())
     {
-        qWarning() << "Error getting backup choices: " << choices.error().message();
+        qWarning() << "Error getting backup choices:" << choices.error().message();
         return QMap<QString, QVariantMap>();
     }
 
@@ -68,7 +68,7 @@ void KeeperClient::StartBackup(const QStringList& uuids) const
 
     if (!backup_reply.isValid())
     {
-        qWarning() << "Error starting backup: " << backup_reply.error().message();
+        qWarning() << "Error starting backup:" << backup_reply.error().message();
     }
 }
 

@@ -73,7 +73,7 @@ public:
 
     void start_task(QString const &uuid)
     {
-        qDebug() << "Starting task: " << uuid;
+        qDebug() << "Starting task:" << uuid;
         auto metadata = get_uuid_metadata(cached_backup_choices_, uuid);
         if (metadata.key() == uuid)
         {
@@ -81,7 +81,7 @@ public:
             if (!metadata.has_property(Metadata::TYPE_KEY))
             {
                 // TODO Report error to user
-                qWarning() << "ERROR: uuid: " << uuid << " has no property [" << Metadata::TYPE_KEY << "]";
+                qWarning() << "ERROR: uuid:" << uuid << "has no property [" << Metadata::TYPE_KEY << "]";
                 return;
             }
             if (metadata.get_property(Metadata::TYPE_KEY).toString() == Metadata::USER_FOLDER_VALUE)
@@ -169,7 +169,7 @@ private:
         if (!metadata.has_property(key))
         {
             // TODO Report error to user
-            qWarning() << "ERROR: uuid: " << uuid << " has no property [" << key << "]";
+            qWarning() << "ERROR: uuid:" << uuid << "has no property [" << key << "]";
             return false;
         }
         return true;

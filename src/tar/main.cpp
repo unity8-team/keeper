@@ -107,14 +107,14 @@ parse_args(QCoreApplication& app)
 
     // gotta have the bus path
     if (bus_path.isEmpty()) {
-        std::cerr << "Missing required argument: --bus-path " << std::endl;
+        std::cerr << "Missing required argument: --bus-path" << std::endl;
         parser.showHelp(EXIT_FAILURE);
     }
 
     // gotta have files
     const auto filenames = get_filenames_from_file(stdin);
     for (const auto& filename : filenames)
-        qDebug() << "filename: " << filename;
+        qDebug() << "filename:" << filename;
     if (filenames.empty()) {
         std::cerr << "no files listed" << std::endl;
         parser.showHelp(EXIT_FAILURE);

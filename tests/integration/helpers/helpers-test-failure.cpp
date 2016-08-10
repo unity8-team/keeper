@@ -50,7 +50,7 @@ TEST_F(TestHelpers, StartFullTest)
 
     auto user_dir = qgetenv(user_option.toLatin1().data());
     ASSERT_FALSE(user_dir.isEmpty());
-    qDebug() << "USER DIR: " << user_dir;
+    qDebug() << "USER DIR:" << user_dir;
 
     // fill something in the music dir
     ASSERT_TRUE(FileUtils::fillTemporaryDirectory(user_dir, qrand() % 1000));
@@ -58,7 +58,7 @@ TEST_F(TestHelpers, StartFullTest)
     // search for the user folder uuid
     auto user_folder_uuid = getUUIDforXdgFolderPath(user_dir, choices.value());
     ASSERT_FALSE(user_folder_uuid.isEmpty());
-    qDebug() << "User folder UUID is: " << user_folder_uuid;
+    qDebug() << "User folder UUID is:" << user_folder_uuid;
 
     // Now we know the music folder uuid, let's start the backup for it.
     QDBusReply<void> backup_reply = user_iface->call("StartBackup", QStringList{user_folder_uuid});

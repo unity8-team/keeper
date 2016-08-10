@@ -77,7 +77,7 @@ main(int argc, char **argv)
                 if (iter_values.value().toString() == "folder")
                 {
                     // got it
-                    qDebug() << "Adding uuid" << iter.key() << " with type:" << "folder";
+                    qDebug() << "Adding uuid" << iter.key() << "with type:" << "folder";
                     uuids << iter.key();
                 }
             }
