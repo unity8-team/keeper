@@ -24,6 +24,7 @@
 #include "service/metadata-provider.h"
 #include "service/keeper.h"
 #include "storage-framework/storage_framework_client.h"
+#include "util/dbus-utils.h"
 
 #include <QDebug>
 #include <QDBusMessage>
@@ -48,7 +49,11 @@ public:
     QScopedPointer<StorageFrameworkClient> storage_;
     mutable QVector<Metadata> cached_backup_choices_;
     mutable QVector<Metadata> cached_restore_choices_;
+    enum class TaskType { BACKUP, RESTORE };
+    QStringList all_tasks_;
     QStringList remaining_tasks_;
+    QString current_task_;
+    QVariantDictMap state_;
 
     KeeperPrivate(Keeper* keeper,
                   const QSharedPointer<HelperRegistry>& helper_registry,
@@ -62,7 +67,6 @@ public:
         , storage_(new StorageFrameworkClient())
         , cached_backup_choices_()
         , cached_restore_choices_()
-        , remaining_tasks_()
     {
         // listen for backup helper state changes
         QObject::connect(backup_helper_.data(), &Helper::state_changed,
@@ -79,44 +83,57 @@ public:
 
     Q_DISABLE_COPY(KeeperPrivate)
 
-    void start_task(QString const &uuid)
+    bool find_task_metadata(QString const& uuid, Metadata& setme_task, TaskType& setme_type) const
     {
-        qDebug() << "Starting task: " << uuid;
-        auto metadata = get_uuid_metadata(cached_backup_choices_, uuid);
-        if (metadata.uuid() == uuid)
-        {
-            qDebug() << "Task is a backup task";
+        for (const auto& c : get_backup_choices()) {
+            if (c.uuid() == uuid) {
+                setme_task = c;
+                setme_type = TaskType::BACKUP;
+                return true;
+            }
+        }
+        for (const auto& c : get_restore_choices()) {
+            if (c.uuid() == uuid) {
+                setme_task = c;
+                setme_type = TaskType::RESTORE;
+                return true;
+            }
+        }
+        return false;
+    }
 
-            const auto urls = helper_registry_->get_backup_helper_urls(metadata);
-            if (urls.isEmpty())
+    void start_tasks(QStringList const& uuids)
+    {
+        if (!remaining_tasks_.isEmpty())
+        {
+            // FIXME: return a dbus error here
+            qWarning() << "keeper is already active";
+            return;
+        }
+
+        all_tasks_.clear();
+        task_data_.clear();
+
+        for(auto const& uuid : uuids)
+        {
+            Metadata m;
+            TaskType type;
+            if (!find_task_metadata(uuid, m, type))
             {
-                // TODO Report error to user
-                qWarning() << "ERROR: uuid: " << uuid << " has no url";
-                return;
+                qCritical() << "uuid" << uuid << "not found; skipping";
+                continue;
             }
 
-            backup_helper_->start(urls);
+            all_tasks_ << uuid;
+            remaining_tasks_ << uuid;
+
+            auto& td = task_data_[uuid];
+            td.metadata = m;
+            td.type = type;
+            td.action = QStringLiteral("queued");
         }
-    }
 
-    void start_tasks(QStringList const& tasks)
-    {
-        remaining_tasks_ = tasks;
-        start_remaining_tasks();
-    }
-
-    void start_remaining_tasks()
-    {
-        if (remaining_tasks_.size())
-        {
-            auto task = remaining_tasks_.takeFirst();
-            start_task(task);
-        }
-    }
-
-    void clear_remaining_taks()
-    {
-        remaining_tasks_.clear();
+        start_next_task();
     }
 
     QVector<Metadata> get_backup_choices() const
@@ -137,13 +154,7 @@ public:
 
     QVariantDictMap get_state() const
     {
-        QVariantDictMap ret; 
-
-        // FIXME: this is dummy data for testing with d-feet
-        for (const auto& item : get_backup_choices()) 
-            ret[item.uuid()]; 
-
-        return ret;
+        return state_;
     }
 
 private:
@@ -160,14 +171,20 @@ private:
                 break;
 
             case Helper::State::CANCELLED:
+                set_current_task_action(QStringLiteral("cancelled"));
                 qDebug() << "Backup helper cancelled... closing the socket.";
                 storage_->finish(false);
                 break;
+
             case Helper::State::FAILED:
+                set_current_task_action(QStringLiteral("failed"));
                 qDebug() << "Backup helper failed... closing the socket.";
                 storage_->finish(false);
                 break;
+
             case Helper::State::COMPLETE:
+                set_current_task_action(QStringLiteral("complete"));
+                task_data_[current_task_].percent_done = 1;
                 qDebug() << "Backup helper finished... closing the socket.";
                 storage_->finish(true);
                 break;
@@ -177,20 +194,145 @@ private:
     void on_storage_framework_finished()
     {
         qDebug() << "storage framework has finished for the current task";
-        start_remaining_tasks();
+        start_next_task();
     }
 
-    Metadata get_uuid_metadata(QVector<Metadata> const &metadata, QString const & uuid)
+    /***
+    ****  Task Queueing
+    ***/
+
+    void start_next_task()
     {
-        for (auto item : metadata)
+        current_task_.clear();
+
+        while (!remaining_tasks_.isEmpty())
         {
-            if (item.uuid() == uuid)
-            {
-                return item;
-            }
+            auto uuid = remaining_tasks_.takeFirst();
+
+            if (start_task(uuid))
+                break;
         }
-        return Metadata();
     }
+
+    bool start_task(QString const& uuid)
+    {
+        if (!task_data_.contains(uuid))
+        {
+            qCritical() << "no task data found for" << uuid;
+            return false;
+        }
+
+        auto& td = task_data_[uuid];
+        if (td.type == TaskType::BACKUP)
+        {
+            qDebug() << "Task is a backup task";
+
+            const auto urls = helper_registry_->get_backup_helper_urls(td.metadata);
+            if (urls.isEmpty())
+            {
+                td.action = "failed";
+                td.error = "no helper information in registry";
+                qWarning() << "ERROR: uuid: " << uuid << " has no url";
+                return false;
+            }
+
+            current_task_ = uuid;
+            set_current_task_action(QStringLiteral("saving"));
+            backup_helper_->start(urls);
+            return true;
+        }
+        else // RESTORE
+        {
+#if 1
+            qWarning() << "restore not implemented yet";
+            return false;
+#else
+            current_task_ = uuid;
+            set_current_task_action(QStringLiteral("restoring"));
+            return true;
+#endif
+        }
+    }
+
+    /***
+    ****  State
+    ***/
+
+    void set_current_task_action(QString const& action)
+    {
+        task_data_[current_task_].action = action;
+
+        update_state();
+    }
+
+    void update_state()
+    {
+        QVariantDictMap candidate = calculate_state();
+
+        if (state_differences_are_interesting(state_, candidate))
+        {
+            state_.swap(candidate);
+
+            DBusUtils::notifyPropertyChanged(
+                QDBusConnection::sessionBus(),
+                *q_ptr,
+                DBusTypes::KEEPER_USER_PATH,
+                DBusTypes::KEEPER_USER_INTERFACE,
+                QStringList(QStringLiteral("State"))
+            );
+        }
+    }
+
+    QVariantDictMap calculate_state() const
+    {
+        QVariantDictMap ret;
+
+        for (auto& td : task_data_)
+        {
+            auto const uuid = td.metadata.uuid();
+
+            auto& task_state = ret[uuid];
+
+            task_state.insert(QStringLiteral("action"), td.action);
+
+            task_state.insert(QStringLiteral("display-name"), td.metadata.display_name());
+
+            // FIXME: assuming backup_helper_ for now...
+            int32_t speed {};
+            if (uuid == current_task_)
+                speed = backup_helper_->speed();
+            task_state.insert(QStringLiteral("speed"), speed);
+
+            if (uuid == current_task_)
+                td.percent_done = backup_helper_->percent_done();
+            task_state.insert(QStringLiteral("percent-done"), td.percent_done);
+
+            if (td.action == "failed")
+                task_state.insert(QStringLiteral("error"), td.error);
+
+            task_state.insert(QStringLiteral("uuid"), uuid);
+        }
+
+        return ret;
+    }
+
+    /* FIXME: changes to things like 'action' are interesting,
+       but minor speed changes are not unless the old action is pretty stale */
+    bool state_differences_are_interesting(QVariantDictMap const& /*a*/, QVariantDictMap const& /*b*/)
+    {
+        return true;
+    }
+
+    struct TaskData
+    {
+        QString action;
+        QString error;
+        TaskType type;
+        Metadata metadata;
+        float percent_done;
+    };
+
+    mutable QMap<QString,TaskData> task_data_;
 };
 
 
