@@ -58,9 +58,6 @@ public:
     void start_tasks(QStringList const & keys);
 
 public Q_SLOTS:
-    // FOR TESTING PURPOSES ONLY
-    // we should finish when the helper finishes
-    void finish();
 
     void socketClosed(std::shared_ptr<unity::storage::qt::client::File> const & file_created);
 

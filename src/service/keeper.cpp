@@ -208,17 +208,6 @@ Keeper::StartBackup(QDBusConnection bus, const QDBusMessage& msg, quint64 n_byte
     return QDBusUnixFileDescriptor(0);
 }
 
-// FOR TESTING PURPOSES ONLY
-// we should finish when the helper finishes
-void Keeper::finish()
-{
-    Q_D(Keeper);
-
-    qDebug() << "Closing the socket-------";
-
-    d->storage_->closeUploader();
-}
-
 void Keeper::socketClosed(std::shared_ptr<unity::storage::qt::client::File> const & file_created)
 {
     Q_D(Keeper);
