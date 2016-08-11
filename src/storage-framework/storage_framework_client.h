@@ -38,8 +38,6 @@ public:
 
     void finish(bool do_commit);
 
-    int getUploaderSocketDescriptor();
-
     bool deleteFile(std::shared_ptr<unity::storage::qt::client::File> const &file);
 
 Q_SIGNALS:

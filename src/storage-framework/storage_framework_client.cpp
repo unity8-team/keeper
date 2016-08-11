@@ -71,16 +71,6 @@ void StorageFrameworkClient::getNewFileForBackup(quint64 n_bytes)
     }
 }
 
-int StorageFrameworkClient::getUploaderSocketDescriptor()
-{
-    if (!uploader_)
-    {
-        return -1;
-    }
-    auto socket = uploader_->socket();
-    return int(socket->socketDescriptor());
-}
-
 void StorageFrameworkClient::finish(bool do_commit)
 {
 
