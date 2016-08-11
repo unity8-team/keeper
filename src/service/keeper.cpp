@@ -68,7 +68,12 @@ public:
     {
         // listen for backup helper state changes
         QObject::connect(backup_helper_.data(), &Helper::state_changed,
-            std::bind(&KeeperPrivate::on_backup_helper_state_changed, this, std::placeholders::_1)
+            std::bind(&KeeperPrivate::on_helper_state_changed, this, std::placeholders::_1)
+        );
+
+        // listen for backup helper process changes
+        QObject::connect(backup_helper_.data(), &Helper::percent_done_changed,
+            std::bind(&KeeperPrivate::on_helper_percent_done_changed, this, std::placeholders::_1)
         );
 
         // listen for the storage framework to finish
@@ -144,7 +149,7 @@ public:
 
 private:
 
-    void on_backup_helper_state_changed(Helper::State state)
+    void on_helper_state_changed(Helper::State state)
     {
         switch (state)
         {
@@ -174,6 +179,11 @@ private:
                 storage_->finish(true);
                 break;
         }
+    }
+
+    void on_helper_percent_done_changed(float /*percent_done*/)
+    {
+        update_task_state(current_task_);
     }
 
     void on_storage_framework_finished()
