@@ -159,6 +159,10 @@ public:
     void set_expected_size(qint64 expected_size)
     {
         expected_size_ = expected_size;
+
+        size_ = 0;
+        sized_ = 0.0;
+        update_percent_done();
     }
 
     qint64 expected_size() const
