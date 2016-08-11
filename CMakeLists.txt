@@ -78,19 +78,10 @@ pkg_check_modules(SERVICE_DEPS REQUIRED
     gobject-2.0
     json-glib-1.0
     libarchive>=3.1.2
+    storage-framework-qt-local-client-1
     uuid>=2.25
 )
-
-pkg_check_modules(SERVICE_PRODUCTION_SF_DEPS REQUIRED
-    storage-framework-qt-client-1
-)
-
-pkg_check_modules(SERVICE_DEVEL_SF_DEPS REQUIRED
-    storage-framework-qt-local-client-1
-)
-
 include_directories(SYSTEM ${SERVICE_DEPS_INCLUDE_DIRS})
-include_directories(SYSTEM ${SERVICE_PRODUCTION_SF_DEPS_INCLUDE_DIRS})
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
 
