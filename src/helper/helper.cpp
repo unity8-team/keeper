@@ -198,6 +198,7 @@ private:
 
         if (is_noteworthy)
         {
+            qDebug() << "emitting percent-done-changed" << percent_done_;
             Q_EMIT(q_ptr->percent_done_changed(percent_done_));
             last_notified_percent_done_ = percent_done_;
         }
