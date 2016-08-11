@@ -188,15 +188,13 @@ private:
 
     void start_next_task()
     {
-        current_task_.clear();
+        bool started {false};
 
-        while (!remaining_tasks_.isEmpty())
-        {
-            auto uuid = remaining_tasks_.takeFirst();
+        while (!started && !remaining_tasks_.isEmpty())
+            started = start_task(remaining_tasks_.takeFirst());
 
-            if (start_task(uuid))
-                break;
-        }
+        if (!started)
+            clear_current_task();
     }
 
     bool start_task(QString const& uuid)
@@ -221,14 +219,14 @@ private:
                 return false;
             }
 
-            current_task_ = uuid;
+            set_current_task(uuid);
             set_current_task_action(QStringLiteral("saving"));
             backup_helper_->start(urls);
             return true;
         }
         else // RESTORE
         {
-            current_task_ = uuid;
+            set_current_task(uuid);
             set_current_task_action(QStringLiteral("restoring"));
             qWarning() << "restore not implemented yet";
             return false;
@@ -304,7 +302,6 @@ private:
         return ret;
     }
 
-
     void set_current_task(QString const& uuid)
     {
         auto const prev = current_task_;
@@ -316,6 +313,11 @@ private:
 
         if (!uuid.isEmpty())
             update_task_state(uuid);
+    }
+
+    void clear_current_task()
+    {
+        set_current_task(QString());
     }
 
     void set_current_task_action(QString const& action)
