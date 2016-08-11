@@ -96,10 +96,5 @@ KeeperUser::StartRestore (const QStringList& keys)
 QVariantDictMap
 KeeperUser::get_state() const
 {
-    // FIXME: writeme (the code below is junk 'hello world' data for testing in d-feet)
-
-    QVariantDictMap ret;
-    for (const auto& item : keeper_.get_backup_choices())
-        ret[item.uuid()];
-    return ret;
+    return keeper_.get_state();
 }
