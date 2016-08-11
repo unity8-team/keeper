@@ -292,7 +292,7 @@ private:
 
         if (current)
             td.percent_done = backup_helper_->percent_done();
-        ret.insert(QStringLiteral("percent-done"), td.percent_done);
+        ret.insert(QStringLiteral("percent-done"), double(td.percent_done));
 
         if (td.action == "failed")
             ret.insert(QStringLiteral("error"), td.error);
