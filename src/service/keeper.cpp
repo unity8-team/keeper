@@ -41,6 +41,15 @@ class KeeperPrivate
 {
     enum class TaskType { BACKUP, RESTORE };
 
+    struct TaskData
+    {
+        QString action;
+        QString error;
+        TaskType type;
+        Metadata metadata;
+        float percent_done;
+    };
+
 public:
 
     QScopedPointer<BackupHelper> backup_helper_;
@@ -83,6 +92,7 @@ public:
 
         all_tasks_.clear();
         task_data_.clear();
+        state_.clear();
 
         for(auto const& uuid : uuids)
         {
@@ -101,6 +111,8 @@ public:
             td.metadata = m;
             td.type = type;
             td.action = QStringLiteral("queued");
+
+            update_task_state(td);
         }
 
         start_next_task();
@@ -224,69 +236,90 @@ private:
     ****  State
     ***/
 
-    void set_current_task_action(QString const& action)
+    void update_task_state(QString const& uuid)
     {
-        task_data_[current_task_].action = action;
+        auto it = task_data_.find(uuid);
+        if (it == task_data_.end())
+        {
+            qCritical() << "no task data for" << uuid;
+            return;
+        }
 
-        update_state();
+        update_task_state(it.value());
     }
 
-    void update_state()
+    void update_task_state(TaskData& td)
     {
-        QVariantDictMap candidate = calculate_state();
+        state_[td.metadata.uuid()] = calculate_task_state(td);
 
-        if (state_differences_are_interesting(state_, candidate))
-        {
-            state_.swap(candidate);
+#if 0
+        // FIXME: we don't need this to work correctly for the sprint because Marcus is polling in a loop
+        // but we will need this in order for him to stop doing that
 
-            DBusUtils::notifyPropertyChanged(
-                QDBusConnection::sessionBus(),
-                *q_ptr,
-                DBusTypes::KEEPER_USER_PATH,
-                DBusTypes::KEEPER_USER_INTERFACE,
-                QStringList(QStringLiteral("State"))
-            );
-        }
+        // TODO: compare old and new and decide if it's worth emitting a PropertyChanged signal;
+        // eg don't contribute to dbus noise for minor speed fluctuations
+
+        // TODO: this function is called inside a loop when initializing the state
+        // after start_tasks(), so also ensure we don't have a notify flood here
+
+        DBusUtils::notifyPropertyChanged(
+            QDBusConnection::sessionBus(),
+            *q_ptr,
+            DBusTypes::KEEPER_USER_PATH,
+            DBusTypes::KEEPER_USER_INTERFACE,
+            QStringList(QStringLiteral("State"))
+        );
+#endif
     }
 
-    QVariantDictMap calculate_state() const
+    QVariantMap calculate_task_state(TaskData& td) const
     {
-        QVariantDictMap ret;
+        QVariantMap ret;
 
-        for (auto& td : task_data_)
-        {
-            auto const uuid = td.metadata.uuid();
+        auto const uuid = td.metadata.uuid();
+        bool const current = uuid == current_task_;
 
-            auto& task_state = ret[uuid];
+        ret.insert(QStringLiteral("action"), td.action);
 
-            task_state.insert(QStringLiteral("action"), td.action);
+        ret.insert(QStringLiteral("display-name"), td.metadata.display_name());
 
-            task_state.insert(QStringLiteral("display-name"), td.metadata.display_name());
+        // FIXME: assuming backup_helper_ for now...
+        int32_t speed {};
+        if (current)
+            speed = backup_helper_->speed();
+        ret.insert(QStringLiteral("speed"), speed);
 
-            // FIXME: assuming backup_helper_ for now...
-            int32_t speed {};
-            if (uuid == current_task_)
-                speed = backup_helper_->speed();
-            task_state.insert(QStringLiteral("speed"), speed);
+        if (current)
+            td.percent_done = backup_helper_->percent_done();
+        ret.insert(QStringLiteral("percent-done"), td.percent_done);
 
-            if (uuid == current_task_)
-                td.percent_done = backup_helper_->percent_done();
-            task_state.insert(QStringLiteral("percent-done"), td.percent_done);
+        if (td.action == "failed")
+            ret.insert(QStringLiteral("error"), td.error);
 
-            if (td.action == "failed")
-                task_state.insert(QStringLiteral("error"), td.error);
-
-            task_state.insert(QStringLiteral("uuid"), uuid);
-        }
+        ret.insert(QStringLiteral("uuid"), uuid);
 
         return ret;
     }
 
-    /* FIXME: changes to things like 'action' are interesting,
-       but minor speed changes are not unless the old action is pretty stale */
-    bool state_differences_are_interesting(QVariantDictMap const& /*a*/, QVariantDictMap const& /*b*/)
+
+    void set_current_task(QString const& uuid)
     {
-        return true;
+        auto const prev = current_task_;
+
+        current_task_ = uuid;
+
+        if (!prev.isEmpty())
+            update_task_state(prev);
+
+        if (!uuid.isEmpty())
+            update_task_state(uuid);
+    }
+
+    void set_current_task_action(QString const& action)
+    {
+        auto& td = task_data_[current_task_];
+        td.action = action;
+        update_task_state(td);
     }
 
     /***
@@ -327,14 +360,6 @@ private:
     QString current_task_;
     QVariantDictMap state_;
 
-    struct TaskData
-    {
-        QString action;
-        QString error;
-        TaskType type;
-        Metadata metadata;
-        float percent_done;
-    };
     mutable QMap<QString,TaskData> task_data_;
 };
 
