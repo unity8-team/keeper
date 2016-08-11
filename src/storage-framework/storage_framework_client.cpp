@@ -107,18 +107,3 @@ void StorageFrameworkClient::uploaderReady()
 
     Q_EMIT (socketReady(uploader_->socket()));
 }
-
-bool StorageFrameworkClient::deleteFile(std::shared_ptr<unity::storage::qt::client::File> const &file)
-{
-    try
-    {
-        auto res = file->delete_item();
-        res.waitForFinished();
-    }
-    catch (std::exception & e)
-    {
-        qDebug() << "ERROR: StorageFrameworkClient::deleteFile():" << e.what();
-        return false;
-    }
-    return true;
-}

@@ -38,8 +38,6 @@ public:
 
     void finish(bool do_commit);
 
-    bool deleteFile(std::shared_ptr<unity::storage::qt::client::File> const &file);
-
 Q_SIGNALS:
     void socketReady(std::shared_ptr<QLocalSocket> const& sf_socket);
     void finished();
