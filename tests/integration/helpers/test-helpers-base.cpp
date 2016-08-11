@@ -298,17 +298,6 @@ bool TestHelpersBase::checkStorageFrameworkFiles(QStringList const & sourceDirs,
     return true;
 }
 
-bool TestHelpersBase::checkLastStorageFrameworkFile (QString const & sourceDir, bool compression)
-{
-    QString lastFile = getLastStorageFrameworkFile();
-    if (lastFile.isEmpty())
-    {
-        qWarning() << "Last file from storage framework is empty";
-        return false;
-    }
-    return compareTarContent (lastFile, sourceDir, compression);
-}
-
 bool TestHelpersBase::compareTarContent (QString const & tarPath, QString const & sourceDir, bool compression)
 {
     QTemporaryDir tempDir;

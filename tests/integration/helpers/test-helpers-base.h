@@ -102,8 +102,6 @@ protected:
 
     bool checkStorageFrameworkFiles(QStringList const & sourceDirs, bool compression=false);
 
-    bool checkLastStorageFrameworkFile (QString const & sourceDir, bool compression=false);
-
     bool compareTarContent (QString const & tarPath, QString const & sourceDir, bool compression);
 
     bool extractTarContents(QString const & tarPath, QString const & destination, bool compression=false);
