@@ -190,6 +190,7 @@ private:
                 upload_buffer_.remove(0, int(n));
                 qDebug("upload_buffer_.size() is %zu after writing %zu to cloud", size_t(upload_buffer_.size()), size_t(n));
                 n_uploaded_ += n;
+                q_ptr->record_data_transferred(n);
                 continue;
             }
             else {
