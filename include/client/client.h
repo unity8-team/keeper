@@ -23,6 +23,7 @@
 
 #include <QObject>
 #include <QScopedPointer>
+#include <QVariant>
 
 class KeeperClientPrivate;
 
