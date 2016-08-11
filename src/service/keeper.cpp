@@ -165,8 +165,8 @@ private:
                 break;
 
             case Helper::State::COMPLETE:
-                set_current_task_action(QStringLiteral("complete"));
                 task_data_[current_task_].percent_done = 1;
+                set_current_task_action(QStringLiteral("complete"));
                 qDebug() << "Backup helper finished... closing the socket.";
                 storage_->finish(true);
                 break;
