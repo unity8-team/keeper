@@ -346,10 +346,8 @@ bool TestHelpersBase::extractTarContents(QString const & tarPath, QString const 
 
 namespace
 {
-    QDir find_storage_framework_dir()
+    bool find_storage_framework_dir(QDir & dir)
     {
-        QDir dir;
-
         auto path = QStandardPaths::locate(QStandardPaths::GenericDataLocation,
                                            "storage-framework",
                                            QStandardPaths::LocateDirectory);
@@ -357,14 +355,12 @@ namespace
         if (path.isEmpty())
         {
             qWarning() << "ERROR: unable to find storage-framework directory";
+            return false;
         }
-        else
-        {
-            qDebug() << "storage framework directory is" << path;
-            dir = QDir(path);
-        }
+        qDebug() << "storage framework directory is" << path;
+        dir = QDir(path);
 
-        return dir;
+        return true;
     }
 }
 
@@ -372,8 +368,8 @@ QString TestHelpersBase::getLastStorageFrameworkFile()
 {
     QString last;
 
-    auto sf_dir = find_storage_framework_dir();
-    if (sf_dir.exists())
+    QDir sf_dir;
+    if(find_storage_framework_dir(sf_dir))
     {
         QStringList sortedFiles;
         QFileInfoList files = sf_dir.entryInfoList();
@@ -395,9 +391,10 @@ QString TestHelpersBase::getLastStorageFrameworkFile()
 
 int TestHelpersBase::checkStorageFrameworkNbFiles()
 {
-    auto sf_dir = find_storage_framework_dir();
+    QDir sf_dir;
+    auto exists = find_storage_framework_dir(sf_dir);
 
-    return sf_dir.exists()
+    return exists
         ? sf_dir.entryInfoList(QDir::Files).size()
         : -1;
 }
