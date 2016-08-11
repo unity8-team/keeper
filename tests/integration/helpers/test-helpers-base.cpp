@@ -404,26 +404,6 @@ int TestHelpersBase::checkStorageFrameworkNbFiles()
         : -1;
 }
 
-bool TestHelpersBase::checkStorageFrameworkContent(QString const & content)
-{
-    QString lastFile = getLastStorageFrameworkFile();
-    if (lastFile.isEmpty())
-    {
-        qWarning() << "Last file from the storage framework was not found";
-        return false;
-    }
-    QFile storage_framework_file(lastFile);
-    if(!storage_framework_file.open(QFile::ReadOnly))
-    {
-        qWarning() << "ERROR: opening file:" << lastFile;
-        return false;
-    }
-
-    QString file_content = storage_framework_file.readAll();
-
-    return file_content == content;
-}
-
 bool TestHelpersBase::removeHelperMarkBeforeStarting()
 {
     QFile helper_mark(SIMPLE_HELPER_MARK_FILE_PATH);

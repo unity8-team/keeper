@@ -110,8 +110,6 @@ protected:
 
     QString getLastStorageFrameworkFile();
 
-    bool checkStorageFrameworkContent(QString const & content);
-
     bool removeHelperMarkBeforeStarting();
 
     bool waitUntilHelperFinishes(QString const & app_id, int maxTimeout = 15000, int times = 1);
