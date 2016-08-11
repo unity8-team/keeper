@@ -24,6 +24,7 @@
 #include "service/metadata-provider.h"
 #include "service/keeper.h"
 #include "storage-framework/storage_framework_client.h"
+#include "util/dbus-utils.h"
 
 #include <QDebug>
 #include <QDBusMessage>
@@ -38,31 +39,32 @@
 
 class KeeperPrivate
 {
+    enum class TaskType { BACKUP, RESTORE };
+
+    struct TaskData
+    {
+        QString action;
+        QString error;
+        TaskType type;
+        Metadata metadata;
+        float percent_done;
+    };
+
 public:
 
-    Keeper * const q_ptr;
-    QSharedPointer<HelperRegistry> helper_registry_;
-    QSharedPointer<MetadataProvider> backup_choices_;
-    QSharedPointer<MetadataProvider> restore_choices_;
     QScopedPointer<BackupHelper> backup_helper_;
     QScopedPointer<StorageFrameworkClient> storage_;
-    QVector<Metadata> cached_backup_choices_;
-    QVector<Metadata> cached_restore_choices_;
-    QStringList remaining_tasks_;
 
     KeeperPrivate(Keeper* keeper,
                   const QSharedPointer<HelperRegistry>& helper_registry,
                   const QSharedPointer<MetadataProvider>& backup_choices,
                   const QSharedPointer<MetadataProvider>& restore_choices)
-        : q_ptr(keeper)
+        : backup_helper_(new BackupHelper(DEKKO_APP_ID))
+        , storage_(new StorageFrameworkClient())
+        , q_ptr(keeper)
         , helper_registry_(helper_registry)
         , backup_choices_(backup_choices)
         , restore_choices_(restore_choices)
-        , backup_helper_(new BackupHelper(DEKKO_APP_ID))
-        , storage_(new StorageFrameworkClient())
-        , cached_backup_choices_()
-        , cached_restore_choices_()
-        , remaining_tasks_()
     {
         // listen for backup helper state changes
         QObject::connect(backup_helper_.data(), &Helper::state_changed,
@@ -79,44 +81,62 @@ public:
 
     Q_DISABLE_COPY(KeeperPrivate)
 
-    void start_task(QString const &uuid)
+    void start_tasks(QStringList const& uuids)
     {
-        qDebug() << "Starting task: " << uuid;
-        auto metadata = get_uuid_metadata(cached_backup_choices_, uuid);
-        if (metadata.uuid() == uuid)
+        if (!remaining_tasks_.isEmpty())
         {
-            qDebug() << "Task is a backup task";
+            // FIXME: return a dbus error here
+            qWarning() << "keeper is already active";
+            return;
+        }
 
-            const auto urls = helper_registry_->get_backup_helper_urls(metadata);
-            if (urls.isEmpty())
+        all_tasks_.clear();
+        task_data_.clear();
+        state_.clear();
+
+        for(auto const& uuid : uuids)
+        {
+            Metadata m;
+            TaskType type;
+            if (!find_task_metadata(uuid, m, type))
             {
-                // TODO Report error to user
-                qWarning() << "ERROR: uuid: " << uuid << " has no url";
-                return;
+                qCritical() << "uuid" << uuid << "not found; skipping";
+                continue;
             }
 
-            backup_helper_->start(urls);
+            all_tasks_ << uuid;
+            remaining_tasks_ << uuid;
+
+            auto& td = task_data_[uuid];
+            td.metadata = m;
+            td.type = type;
+            td.action = QStringLiteral("queued");
+
+            update_task_state(td);
         }
+
+        start_next_task();
     }
 
-    void start_tasks(QStringList const& tasks)
+    QVector<Metadata> get_backup_choices() const
     {
-        remaining_tasks_ = tasks;
-        start_remaining_tasks();
+        if (cached_backup_choices_.isEmpty())
+            cached_backup_choices_ = backup_choices_->get_backups();
+
+        return cached_backup_choices_;
     }
 
-    void start_remaining_tasks()
+    QVector<Metadata> get_restore_choices() const
     {
-        if (remaining_tasks_.size())
-        {
-            auto task = remaining_tasks_.takeFirst();
-            start_task(task);
-        }
+        if (cached_restore_choices_.isEmpty())
+            cached_restore_choices_ = restore_choices_->get_backups();
+
+        return cached_restore_choices_;
     }
 
-    void clear_remaining_taks()
+    QVariantDictMap get_state() const
     {
-        remaining_tasks_.clear();
+        return state_;
     }
 
 private:
@@ -133,14 +153,20 @@ private:
                 break;
 
             case Helper::State::CANCELLED:
+                set_current_task_action(QStringLiteral("cancelled"));
                 qDebug() << "Backup helper cancelled... closing the socket.";
                 storage_->finish(false);
                 break;
+
             case Helper::State::FAILED:
+                set_current_task_action(QStringLiteral("failed"));
                 qDebug() << "Backup helper failed... closing the socket.";
                 storage_->finish(false);
                 break;
+
             case Helper::State::COMPLETE:
+                task_data_[current_task_].percent_done = 1;
+                set_current_task_action(QStringLiteral("complete"));
                 qDebug() << "Backup helper finished... closing the socket.";
                 storage_->finish(true);
                 break;
@@ -150,20 +176,191 @@ private:
     void on_storage_framework_finished()
     {
         qDebug() << "storage framework has finished for the current task";
-        start_remaining_tasks();
+        start_next_task();
     }
 
-    Metadata get_uuid_metadata(QVector<Metadata> const &metadata, QString const & uuid)
+    /***
+    ****  Task Queueing
+    ***/
+
+    void start_next_task()
     {
-        for (auto item : metadata)
+        current_task_.clear();
+
+        while (!remaining_tasks_.isEmpty())
         {
-            if (item.uuid() == uuid)
+            auto uuid = remaining_tasks_.takeFirst();
+
+            if (start_task(uuid))
+                break;
+        }
+    }
+
+    bool start_task(QString const& uuid)
+    {
+        if (!task_data_.contains(uuid))
+        {
+            qCritical() << "no task data found for" << uuid;
+            return false;
+        }
+
+        auto& td = task_data_[uuid];
+        if (td.type == TaskType::BACKUP)
+        {
+            qDebug() << "Task is a backup task";
+
+            const auto urls = helper_registry_->get_backup_helper_urls(td.metadata);
+            if (urls.isEmpty())
             {
-                return item;
+                td.action = "failed";
+                td.error = "no helper information in registry";
+                qWarning() << "ERROR: uuid: " << uuid << " has no url";
+                return false;
+            }
+
+            current_task_ = uuid;
+            set_current_task_action(QStringLiteral("saving"));
+            backup_helper_->start(urls);
+            return true;
+        }
+        else // RESTORE
+        {
+            current_task_ = uuid;
+            set_current_task_action(QStringLiteral("restoring"));
+            qWarning() << "restore not implemented yet";
+            return false;
+        }
+    }
+
+    /***
+    ****  State
+    ***/
+
+    void update_task_state(QString const& uuid)
+    {
+        auto it = task_data_.find(uuid);
+        if (it == task_data_.end())
+        {
+            qCritical() << "no task data for" << uuid;
+            return;
+        }
+
+        update_task_state(it.value());
+    }
+
+    void update_task_state(TaskData& td)
+    {
+        state_[td.metadata.uuid()] = calculate_task_state(td);
+
+#if 0
+        // FIXME: we don't need this to work correctly for the sprint because Marcus is polling in a loop
+        // but we will need this in order for him to stop doing that
+
+        // TODO: compare old and new and decide if it's worth emitting a PropertyChanged signal;
+        // eg don't contribute to dbus noise for minor speed fluctuations
+
+        // TODO: this function is called inside a loop when initializing the state
+        // after start_tasks(), so also ensure we don't have a notify flood here
+
+        DBusUtils::notifyPropertyChanged(
+            QDBusConnection::sessionBus(),
+            *q_ptr,
+            DBusTypes::KEEPER_USER_PATH,
+            DBusTypes::KEEPER_USER_INTERFACE,
+            QStringList(QStringLiteral("State"))
+        );
+#endif
+    }
+
+    QVariantMap calculate_task_state(TaskData& td) const
+    {
+        QVariantMap ret;
+
+        auto const uuid = td.metadata.uuid();
+        bool const current = uuid == current_task_;
+
+        ret.insert(QStringLiteral("action"), td.action);
+
+        ret.insert(QStringLiteral("display-name"), td.metadata.display_name());
+
+        // FIXME: assuming backup_helper_ for now...
+        int32_t speed {};
+        if (current)
+            speed = backup_helper_->speed();
+        ret.insert(QStringLiteral("speed"), speed);
+
+        if (current)
+            td.percent_done = backup_helper_->percent_done();
+        ret.insert(QStringLiteral("percent-done"), td.percent_done);
+
+        if (td.action == "failed")
+            ret.insert(QStringLiteral("error"), td.error);
+
+        ret.insert(QStringLiteral("uuid"), uuid);
+
+        return ret;
+    }
+
+
+    void set_current_task(QString const& uuid)
+    {
+        auto const prev = current_task_;
+
+        current_task_ = uuid;
+
+        if (!prev.isEmpty())
+            update_task_state(prev);
+
+        if (!uuid.isEmpty())
+            update_task_state(uuid);
+    }
+
+    void set_current_task_action(QString const& action)
+    {
+        auto& td = task_data_[current_task_];
+        td.action = action;
+        update_task_state(td);
+    }
+
+    /***
+    ****  Misc
+    ***/
+
+    bool find_task_metadata(QString const& uuid, Metadata& setme_task, TaskType& setme_type) const
+    {
+        for (const auto& c : get_backup_choices()) {
+            if (c.uuid() == uuid) {
+                setme_task = c;
+                setme_type = TaskType::BACKUP;
+                return true;
             }
         }
-        return Metadata();
+        for (const auto& c : get_restore_choices()) {
+            if (c.uuid() == uuid) {
+                setme_task = c;
+                setme_type = TaskType::RESTORE;
+                return true;
+            }
+        }
+        return false;
     }
+
+    /***
+    ****
+    ***/
+
+    Keeper * const q_ptr;
+    QSharedPointer<HelperRegistry> helper_registry_;
+    QSharedPointer<MetadataProvider> backup_choices_;
+    QSharedPointer<MetadataProvider> restore_choices_;
+    mutable QVector<Metadata> cached_backup_choices_;
+    mutable QVector<Metadata> cached_restore_choices_;
+    QStringList all_tasks_;
+    QStringList remaining_tasks_;
+    QString current_task_;
+    QVariantDictMap state_;
+
+    mutable QMap<QString,TaskData> task_data_;
 };
 
 
@@ -222,11 +419,7 @@ Keeper::get_backup_choices()
 {
     Q_D(Keeper);
 
-    if (!d->cached_backup_choices_.size())
-    {
-        d->cached_backup_choices_ = d->backup_choices_->get_backups();
-    }
-    return d->cached_backup_choices_;
+    return d->get_backup_choices();
 }
 
 QVector<Metadata>
@@ -234,9 +427,13 @@ Keeper::get_restore_choices()
 {
     Q_D(Keeper);
 
-    if (!d->cached_restore_choices_.size())
-    {
-        d->cached_restore_choices_ = d->restore_choices_->get_backups();
-    }
-    return d->cached_restore_choices_;
+    return d->get_restore_choices();
+}
+
+QVariantDictMap
+Keeper::get_state() const
+{
+    Q_D(const Keeper);
+
+    return d->get_state();
 }
