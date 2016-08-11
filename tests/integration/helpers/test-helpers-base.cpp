@@ -20,6 +20,9 @@
  */
 #include "test-helpers-base.h"
 
+#include <sys/types.h>
+#include <signal.h>
+
 void TestHelpersBase::focus_cb(const gchar* appid, gpointer user_data)
 {
     g_debug("Focus Callback: %s", appid);
@@ -92,10 +95,10 @@ void TestHelpersBase::SetUp()
 
     service = dbus_test_service_new(NULL);
 
-    auto keeper_process = dbus_test_process_new(KEEPER_SERVICE_BIN);
+    keeper_process = dbus_test_process_new(KEEPER_SERVICE_BIN);
     dbus_test_task_set_name(DBUS_TEST_TASK(keeper_process), "Keeper");
     dbus_test_service_add_task(service, DBUS_TEST_TASK(keeper_process));
-    g_clear_object(&keeper_process);
+    g_object_unref(keeper_process);
 
     debugConnection();
 
@@ -218,6 +221,8 @@ void TestHelpersBase::SetUp()
 
 void TestHelpersBase::TearDown()
 {
+    kill(dbus_test_process_get_pid(keeper_process), SIGTERM);
+
     registry.reset();
 
     ubuntu_app_launch_observer_delete_app_focus(focus_cb, this);

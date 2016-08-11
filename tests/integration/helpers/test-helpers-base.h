@@ -78,6 +78,7 @@ protected:
     std::shared_ptr<ubuntu::app_launch::Registry> registry;
     QProcess keeper_client;
     QTemporaryDir xdg_data_home_dir;
+    DbusTestProcess * keeper_process = nullptr;
 
 private:
     static void focus_cb(const gchar* appid, gpointer user_data);
