@@ -150,12 +150,12 @@ TEST_F(KeeperTarCreateFixture, BadArgNoFiles)
     ASSERT_TRUE(reply.isValid()) << qPrintable(reply.error().message());
     EXPECT_TRUE(wait_for_tasks_to_finish());
 
-    // confirm that the backup ended in error
+    // confirm that the backup successfully backed up nothing
     const auto state = user_iface_->state();
     const auto& properties = state[uuid];
-    EXPECT_EQ(QString::fromUtf8("failed"), properties.value(KEY_ACTION))
+    EXPECT_EQ(QString::fromUtf8("complete"), properties.value(KEY_ACTION))
         << qPrintable(properties.value(KEY_ACTION).toString());
-    EXPECT_FALSE(properties.value(KEY_ERROR).toString().isEmpty());
+    EXPECT_TRUE(properties.value(KEY_ERROR).toString().isEmpty());
 }
 
 /***
