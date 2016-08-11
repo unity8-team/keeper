@@ -190,16 +190,17 @@ private:
 
     void update_percent_done()
     {
-        auto const oldval = percent_done_;
-        auto const newval = float(expected_size_ != 0 ? sized_ / double(expected_size_) : 0);
-        bool const noteworthy = (int(newval*100)==0)
-                             || (int(newval*100)==100)
-                             || (int(newval*100) != int(oldval*100));
+        percent_done_ = float(expected_size_ != 0 ? sized_ / double(expected_size_) : 0);
 
-        percent_done_ = newval;
+        const auto iold = int(last_notified_percent_done_*100);
+        const auto inew = int(percent_done_*100);
+        const auto is_noteworthy = inew != iold;
 
-        if (noteworthy)
+        if (is_noteworthy)
+        {
             Q_EMIT(q_ptr->percent_done_changed(percent_done_));
+            last_notified_percent_done_ = percent_done_;
+        }
     }
 
     QString toString(Helper::State state)
@@ -226,6 +227,7 @@ private:
     qint64 expected_size_ {};
     RateHistory history_;
     float percent_done_ {};
+    float last_notified_percent_done_ {};
 };
 
 /***
