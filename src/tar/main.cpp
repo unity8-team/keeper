@@ -115,10 +115,6 @@ parse_args(QCoreApplication& app)
     const auto filenames = get_filenames_from_file(stdin);
     for (const auto& filename : filenames)
         qDebug() << "filename:" << filename;
-    if (filenames.empty()) {
-        std::cerr << "no files listed" << std::endl;
-        parser.showHelp(EXIT_FAILURE);
-    }
 
     return std::make_tuple(compress, bus_path, filenames);
 }
