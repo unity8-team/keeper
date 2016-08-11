@@ -21,6 +21,7 @@
 
 #include <QDebug>
 
+#include <cmath> // std::fabs()
 #include <sys/time.h> // gettimeofday()
 
 namespace
@@ -171,6 +172,8 @@ public:
         sized_ += double(n_bytes);
 
         history_.add(clock_(), n_bytes);
+
+        update_percent_done();
     }
 
     int speed() const
@@ -180,10 +183,24 @@ public:
 
     float percent_done() const
     {
-        return float(expected_size_ != 0 ? sized_ / double(expected_size_) : 0);
+        return percent_done_;
     }
 
 private:
+
+    void update_percent_done()
+    {
+        auto const oldval = percent_done_;
+        auto const newval = float(expected_size_ != 0 ? sized_ / double(expected_size_) : 0);
+        bool const noteworthy = (int(newval*100)==0)
+                             || (int(newval*100)==100)
+                             || (int(newval*100) != int(oldval*100));
+
+        percent_done_ = newval;
+
+        if (noteworthy)
+            Q_EMIT(q_ptr->percent_done_changed(percent_done_));
+    }
 
     QString toString(Helper::State state)
     {
@@ -208,6 +225,7 @@ private:
     double sized_ {};
     qint64 expected_size_ {};
     RateHistory history_;
+    float percent_done_ {};
 };
 
 /***

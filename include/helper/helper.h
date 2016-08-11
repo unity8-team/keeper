@@ -41,6 +41,7 @@ public:
     State state() const;
 
     // NB: range is [0.0 .. 1.0]
+    Q_PROPERTY(float percent_done READ percent_done NOTIFY percent_done_changed)
     float percent_done() const;
 
     // NB: units is bytes_per_second
@@ -57,11 +58,13 @@ public:
 
 Q_SIGNALS:
     void state_changed(Helper::State);
+    void percent_done_changed(float);
 
 protected:
     Helper(const clock_func& clock=default_clock, QObject *parent=nullptr);
     void set_state(State);
     void record_data_transferred(qint64 n_bytes);
+
 private:
     QScopedPointer<HelperPrivate> const d_ptr;
 };
