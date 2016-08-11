@@ -218,9 +218,9 @@ add_definitions(
 ##
 ##
 
-file(GLOB_RECURSE MY_SOURCES src/*.cpp src/*.h tests/*cpp tests/*.h)
+file(GLOB_RECURSE PROJECT_SOURCES src/*.cpp src/*.h tests/*.cpp tests/*.h)
 include(FormatCode)
-add_formatcode_target(${MY_SOURCES} STYLE_NAME unity-api)
+add_formatcode_target(${PROJECT_SOURCES} STYLE_NAME unity-api)
 
 # Flags for address and undefined behavior sanitizer
 set(SANITIZER "" CACHE STRING "Build with -fsanitize=<value> (legal values: address, ub)")
