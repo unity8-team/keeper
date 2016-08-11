@@ -79,7 +79,7 @@ BackupChoices::get_backups()
     }
     if (error != nullptr)
     {
-        qCritical() << "Error getting click manifests: " << error->message;
+        qCritical() << "Error getting click manifests:" << error->message;
         g_clear_error(&error);
     }
 

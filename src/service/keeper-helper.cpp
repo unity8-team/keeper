@@ -50,5 +50,5 @@ QDBusUnixFileDescriptor KeeperHelper::StartRestore()
 
 void KeeperHelper::UpdateStatus(const QString &app_id, const QString &status, double percentage)
 {
-    qDebug() << "KeeperHelper::UpdateStatus( " << app_id << ", " << status << ", " << percentage << ")";
+    qDebug() << "KeeperHelper::UpdateStatus(" << app_id << "," << status << "," << percentage << ")";
 }

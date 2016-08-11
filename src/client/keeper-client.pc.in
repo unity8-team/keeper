@@ -1,0 +1,6 @@
+Name: keeper-client
+Description: A Qt client library for Keeper
+Version: @PROJECT_VERSION@
+Requires.private: Qt5Core Qt5DBus
+Cflags: -I@CMAKE_INSTALL_FULL_INCLUDEDIR@/keeper
+Libs: @CMAKE_INSTALL_FULL_LIBDIR@/libkeeper-client-@KEEPER_MAJOR@.@KEEPER_MINOR@.so

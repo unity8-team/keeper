@@ -179,5 +179,5 @@ TEST_F(TarCreatorFixture, ArchiveWriteHeaderErrorInStep)
 
     EXPECT_TRUE(error_string.contains(QString::fromUtf8(FATAL_ERROR_MESSAGE)))
         << "expected: '" << FATAL_ERROR_MESSAGE << "'" << std::endl
-        << " got: '" << qPrintable(error_string) << "'" << std::endl;
+        << "got: '" << qPrintable(error_string) << "'" << std::endl;
 }

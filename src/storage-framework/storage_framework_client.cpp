@@ -73,7 +73,7 @@ void StorageFrameworkClient::getNewFileForBackup(quint64 n_bytes)
     }
     catch (std::exception & e)
     {
-        qDebug() << "ERROR: StorageFrameworkClient::getNewFileForBackup(): " << e.what();
+        qDebug() << "ERROR: StorageFrameworkClient::getNewFileForBackup():" << e.what();
     }
 }
 
@@ -103,14 +103,14 @@ void StorageFrameworkClient::finish(bool do_commit)
     }
     catch (std::exception & e)
     {
-        qDebug() << "ERROR: StorageFrameworkClient::closeUploader(): " << e.what();
+        qDebug() << "ERROR: StorageFrameworkClient::closeUploader():" << e.what();
     }
 }
 
 void StorageFrameworkClient::onUploaderClosed()
 {
     auto file = uploader_closed_watcher_.result();
-    qDebug() << "Uploader for file " << file->name() << " was closed";
+    qDebug() << "Uploader for file" << file->name() << "was closed";
     qDebug() << "Uploader was closed";
     uploader_->socket()->disconnectFromServer();
     uploader_.reset();
@@ -133,7 +133,7 @@ bool StorageFrameworkClient::removeTmpSuffix(std::shared_ptr<unity::storage::qt:
     }
     try
     {
-        qDebug() << "Retrieving parents of file " << file->name();
+        qDebug() << "Retrieving parents of file" << file->name();
 
         // block here until we get a response
         QVector<std::shared_ptr<Folder>> parents = file->parents().result();
@@ -143,7 +143,7 @@ bool StorageFrameworkClient::removeTmpSuffix(std::shared_ptr<unity::storage::qt:
 
         if (file->name().length() < suffix.length() + 1)
         {
-            qWarning() << "The file " << file->name() << " has an invalid name, and could not remove the suffix " << TMP_SUFFIX << " from it";
+            qWarning() << "The file" << file->name() << "has an invalid name, and could not remove the suffix" << TMP_SUFFIX << "from it";
             return false;
         }
         newName.remove((file->name().length() - suffix.length()), suffix.length());
@@ -152,12 +152,12 @@ bool StorageFrameworkClient::removeTmpSuffix(std::shared_ptr<unity::storage::qt:
         for (const auto& parent : parents)
         {
             auto item = file->move(parent, newName).result();
-            qDebug() << "File name changed to " << item->name();
+            qDebug() << "File name changed to" << item->name();
         }
     }
     catch (std::exception & e)
     {
-        qDebug() << "ERROR: StorageFrameworkClient::removeTmpSuffix(): " << e.what();
+        qDebug() << "ERROR: StorageFrameworkClient::removeTmpSuffix():" << e.what();
         return false;
     }
     return true;
@@ -172,7 +172,7 @@ bool StorageFrameworkClient::deleteFile(std::shared_ptr<unity::storage::qt::clie
     }
     catch (std::exception & e)
     {
-        qDebug() << "ERROR: StorageFrameworkClient::deleteFile(): " << e.what();
+        qDebug() << "ERROR: StorageFrameworkClient::deleteFile():" << e.what();
         return false;
     }
     return true;

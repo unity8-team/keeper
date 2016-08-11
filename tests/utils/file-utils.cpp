@@ -49,7 +49,7 @@ FileUtils::createDummyFile(const QDir& dir, qint64 filesize)
     f.setAutoRemove(false);
     if(!f.open())
     {
-        qWarning() << "Error opening temporary file: " << f.errorString();
+        qWarning() << "Error opening temporary file:" << f.errorString();
         return info;
     }
     static constexpr qint64 max_step = 1024;
@@ -62,7 +62,7 @@ FileUtils::createDummyFile(const QDir& dir, qint64 filesize)
             buf[i] = 'a' + char(qrand() % ('z'-'a'));
         if (f.write(buf, this_step) < this_step)
         {
-            qWarning() << "Error writing to temporary file: " << f.errorString();
+            qWarning() << "Error writing to temporary file:" << f.errorString();
         }
         left -= this_step;
     }
@@ -71,7 +71,7 @@ FileUtils::createDummyFile(const QDir& dir, qint64 filesize)
     // get a checksum
     if(!f.open())
     {
-        qWarning() << "Error opening temporary file: " << f.errorString();
+        qWarning() << "Error opening temporary file:" << f.errorString();
         return info;
     }
     QCryptographicHash hash(QCryptographicHash::Sha1);
@@ -104,7 +104,7 @@ bool recursiveFillDirectory(QString const & dirPath, int max_filesize, int & j, 
             auto newDirName = QString("Directory_%1").arg(j);
             if (!dir.mkdir(newDirName))
             {
-                qWarning() << "Error creating temporary directory " << newDirName << " under " << dirPath;
+                qWarning() << "Error creating temporary directory" << newDirName << "under" << dirPath;
                 return false;
             }
 
@@ -191,19 +191,19 @@ FileUtils::compareFiles(QString const & filePath1, QString const & filePath2)
     QFileInfo info2(filePath2);
     if (!info1.isFile())
     {
-        qWarning() << "Origin file: " << info1.absoluteFilePath() << " does not exist";
+        qWarning() << "Origin file:" << info1.absoluteFilePath() << "does not exist";
         return false;
     }
     if (!info2.isFile())
     {
-        qWarning() << "File to compare: " << info2.absoluteFilePath() << " does not exist";
+        qWarning() << "File to compare:" << info2.absoluteFilePath() << "does not exist";
         return false;
     }
     auto checksum1 = fileChecksum(filePath1, QCryptographicHash::Md5);
     auto checksum2 = fileChecksum(filePath1, QCryptographicHash::Md5);
     if (checksum1 != checksum2)
     {
-        qWarning() << "Checksum for file: " << filePath1 << " differ";
+        qWarning() << "Checksum for file:" << filePath1 << "differ";
     }
     return checksum1 == checksum2;
 }

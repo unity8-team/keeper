@@ -55,3 +55,23 @@ Depends: ${shlibs:Depends},
          systemd | systemd-shim,
 Description: Backup Tool
  A backup/restore utility for Ubuntu (client application)
+
+Package: libkeeper-client
+Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends},
+Depends: ${misc:Depends},
+         ${shlibs:Depends},
+Description: Client library for Keeper
+ Runtime support for Keeper clients.
+
+Package: keeper-client-dev
+Section: libdevel
+Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends},
+Depends: libkeeper-client (= ${binary:Version}),
+         ${misc:Depends},
+Description: Header files for the Keeper client libraries
+ Development headers for Keeper clients.
+

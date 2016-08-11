@@ -81,7 +81,7 @@ public:
 
     void start_task(QString const &uuid)
     {
-        qDebug() << "Starting task: " << uuid;
+        qDebug() << "Starting task:" << uuid;
         auto metadata = get_uuid_metadata(cached_backup_choices_, uuid);
         if (metadata.uuid() == uuid)
         {
@@ -91,7 +91,7 @@ public:
             if (urls.isEmpty())
             {
                 // TODO Report error to user
-                qWarning() << "ERROR: uuid: " << uuid << " has no url";
+                qWarning() << "ERROR: uuid:" << uuid << "has no url";
                 return;
             }
 
