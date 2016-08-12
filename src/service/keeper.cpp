@@ -176,7 +176,15 @@ private:
                 task_data_[current_task_].percent_done = 1;
                 set_current_task_action(QStringLiteral("complete"));
                 qDebug() << "Backup helper finished... closing the socket.";
-                storage_->finish(true);
+                try
+                {
+                    storage_->finish(true);
+                }
+                catch (std::exception & e)
+                {
+                    qDebug() << "Failed finishing sf... seting the state to failed";
+                    set_current_task_action(QStringLiteral("failed"));
+                }
                 break;
         }
     }

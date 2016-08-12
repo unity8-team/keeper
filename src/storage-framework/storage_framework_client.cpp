@@ -41,7 +41,6 @@ StorageFrameworkClient::StorageFrameworkClient(QObject *parent)
 {
     QObject::connect(&uploader_ready_watcher_,&QFutureWatcher<std::shared_ptr<Uploader>>::finished, this, &StorageFrameworkClient::uploaderReady);
     QObject::connect(&uploader_closed_watcher_,&QFutureWatcher<std::shared_ptr<unity::storage::qt::client::File>>::finished, this, &StorageFrameworkClient::onUploaderClosed);
-
 }
 
 
@@ -68,17 +67,8 @@ void StorageFrameworkClient::getNewFileForBackup(quint64 n_bytes)
     catch (std::exception & e)
     {
         qDebug() << "ERROR: StorageFrameworkClient::getNewFileForBackup():" << e.what();
+        throw;
     }
-}
-
-int StorageFrameworkClient::getUploaderSocketDescriptor()
-{
-    if (!uploader_)
-    {
-        return -1;
-    }
-    auto socket = uploader_->socket();
-    return int(socket->socketDescriptor());
 }
 
 void StorageFrameworkClient::finish(bool do_commit)
@@ -98,6 +88,7 @@ void StorageFrameworkClient::finish(bool do_commit)
     catch (std::exception & e)
     {
         qDebug() << "ERROR: StorageFrameworkClient::closeUploader():" << e.what();
+        throw;
     }
 }
 
@@ -116,19 +107,4 @@ void StorageFrameworkClient::uploaderReady()
     uploader_ = uploader_ready_watcher_.result();
 
     Q_EMIT (socketReady(uploader_->socket()));
-}
-
-bool StorageFrameworkClient::deleteFile(std::shared_ptr<unity::storage::qt::client::File> const &file)
-{
-    try
-    {
-        auto res = file->delete_item();
-        res.waitForFinished();
-    }
-    catch (std::exception & e)
-    {
-        qDebug() << "ERROR: StorageFrameworkClient::deleteFile():" << e.what();
-        return false;
-    }
-    return true;
 }
