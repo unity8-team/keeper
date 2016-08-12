@@ -298,17 +298,6 @@ bool TestHelpersBase::checkStorageFrameworkFiles(QStringList const & sourceDirs,
     return true;
 }
 
-bool TestHelpersBase::checkLastStorageFrameworkFile (QString const & sourceDir, bool compression)
-{
-    QString lastFile = getLastStorageFrameworkFile();
-    if (lastFile.isEmpty())
-    {
-        qWarning() << "Last file from storage framework is empty";
-        return false;
-    }
-    return compareTarContent (lastFile, sourceDir, compression);
-}
-
 bool TestHelpersBase::compareTarContent (QString const & tarPath, QString const & sourceDir, bool compression)
 {
     QTemporaryDir tempDir;
@@ -402,26 +391,6 @@ int TestHelpersBase::checkStorageFrameworkNbFiles()
     return exists
         ? sf_dir.entryInfoList(QDir::Files).size()
         : -1;
-}
-
-bool TestHelpersBase::checkStorageFrameworkContent(QString const & content)
-{
-    QString lastFile = getLastStorageFrameworkFile();
-    if (lastFile.isEmpty())
-    {
-        qWarning() << "Last file from the storage framework was not found";
-        return false;
-    }
-    QFile storage_framework_file(lastFile);
-    if(!storage_framework_file.open(QFile::ReadOnly))
-    {
-        qWarning() << "ERROR: opening file:" << lastFile;
-        return false;
-    }
-
-    QString file_content = storage_framework_file.readAll();
-
-    return file_content == content;
 }
 
 bool TestHelpersBase::removeHelperMarkBeforeStarting()
