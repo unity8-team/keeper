@@ -39,7 +39,7 @@ TEST(HelperClass, PercentDone)
     {
         helper.record_data_transferred(1);
         --n_left;
-qDebug() << "n_bytes" << n_bytes << "n_left" << n_left << "lhs" << (n_bytes-n_left)/n_bytes << "rhs" << helper.percent_done();
+qDebug() << "n_bytes" << n_bytes << "n_left" << n_left << "lhs" << (n_bytes-n_left)/double(n_bytes) << "rhs" << helper.percent_done();
         EXPECT_EQ(int((10*(n_bytes-n_left)/n_bytes)), int(10*helper.percent_done()));
     }
 }
