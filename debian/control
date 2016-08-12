@@ -60,7 +60,8 @@ Package: libkeeper-client
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends},
-Depends: ${misc:Depends},
+Depends: keeper (= ${binary:Version}),
+         ${misc:Depends},
          ${shlibs:Depends},
 Description: Client library for Keeper
  Runtime support for Keeper clients.
