@@ -74,6 +74,20 @@ TEST_F(TestHelpers, StartFullTest)
 
     // check that the content of the file is the expected
     EXPECT_EQ(0, checkStorageFrameworkNbFiles());
+
+    // check that the state is failed
+    QVariantDictMap state = user_iface->state();
+
+    // check that the state has the uuid
+    QVariantDictMap::const_iterator iter = state.find(user_folder_uuid);
+    EXPECT_TRUE(iter != state.end());
+    auto state_values = state[user_folder_uuid];
+
+    EXPECT_EQ(state_values["action"].toString(), QStringLiteral("failed"));
+    EXPECT_EQ(state_values["display-name"].toString(), QStringLiteral("Music"));
+    // sent 1 byte more than the expected, so percentage has to be greater than 1.0
+    EXPECT_TRUE(state_values["percent-done"].toFloat() > 1.0);
+
     // let's leave things clean
     EXPECT_TRUE(removeHelperMarkBeforeStarting());
 }
