@@ -48,7 +48,7 @@ TEST(HelperClass, Speed)
     now_msec *= 100;
     auto my_clock = [&now_msec](){return now_msec;};
 
-    TestHelper helper(my_clock);
+    TestHelper helper("", my_clock);
     static constexpr qint64 n_bytes {100000};
     helper.set_expected_size(n_bytes);
 

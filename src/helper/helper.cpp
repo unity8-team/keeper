@@ -24,6 +24,12 @@
 #include <cmath> // std::fabs()
 #include <sys/time.h> // gettimeofday()
 
+#include <ubuntu-app-launch/registry.h>
+#include <service/app-const.h>
+extern "C" {
+    #include <ubuntu-app-launch.h>
+}
+
 namespace
 {
 
@@ -131,20 +137,27 @@ public:
     using State = Helper::State;
 
     HelperPrivate(
+        QString const & appid,
         Helper * helper,
         clock_func const & clock
     )
         : q_ptr{helper}
+        , appid_{appid}
         , clock_{clock}
         , state_{State::NOT_STARTED}
         , size_{}
         , sized_{}
         , expected_size_{}
         , history_{}
+        , registry_(new ubuntu::app_launch::Registry())
     {
+        ual_init();
     }
 
-    ~HelperPrivate() =default;
+    ~HelperPrivate()
+    {
+        ual_uninit();
+    }
 
     Q_DISABLE_COPY(HelperPrivate)
 
@@ -197,7 +210,80 @@ public:
         return percent_done_;
     }
 
+    /***
+    ****  UAL
+    ***/
+
+    void ual_start(QStringList const& url_strings)
+    {
+        qDebug() << "Starting helper for app:" << appid_;
+
+        std::vector<ubuntu::app_launch::Helper::URL> urls;
+        for(const auto& url_string : url_strings) {
+            qDebug() << "url" << url_string;
+            urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(url_string.toStdString()));
+        }
+
+        auto backupType = ubuntu::app_launch::Helper::Type::from_raw(HELPER_TYPE);
+
+        auto appid = ubuntu::app_launch::AppID::parse(appid_.toStdString());
+        auto helper = ubuntu::app_launch::Helper::create(backupType, appid, registry_);
+
+        helper->launch(urls);
+    }
+
+    void ual_stop()
+    {
+        qDebug() << "Stopping helper for app:" << appid_;
+        auto backupType = ubuntu::app_launch::Helper::Type::from_raw(HELPER_TYPE);
+
+        auto appid = ubuntu::app_launch::AppID::parse(appid_.toStdString());
+        auto helper = ubuntu::app_launch::Helper::create(backupType, appid, registry_);
+
+        auto instances = helper->instances();
+
+        if (instances.size() > 0 )
+        {
+            qDebug() << "We have instances";
+            instances[0]->stop();
+        }
+    }
+
+    void on_ual_stop()
+    {
+        q_ptr->set_state(Helper::State::COMPLETE);
+    }
+
 private:
+
+    void ual_init()
+    {
+        ubuntu_app_launch_observer_add_helper_started(on_helper_started, HELPER_TYPE, this);
+        ubuntu_app_launch_observer_add_helper_stop(on_helper_stopped, HELPER_TYPE, this);
+    }
+
+    void ual_uninit()
+    {
+        if (q_ptr->state() == Helper::State::STARTED)
+            ual_stop();
+
+        ubuntu_app_launch_observer_delete_helper_started(on_helper_started, HELPER_TYPE, this);
+        ubuntu_app_launch_observer_delete_helper_stop(on_helper_stopped, HELPER_TYPE, this);
+    }
+
+    static void on_helper_started(const char* appid, const char* /*instance*/, const char* /*type*/, void* vself)
+    {
+        qDebug() << "HELPER STARTED +++++++++++++++++++++++++++++++++++++" << appid;
+        auto self = static_cast<HelperPrivate*>(vself);
+        self->q_ptr->set_state(Helper::State::STARTED);
+    }
+
+    static void on_helper_stopped(const char* appid, const char* /*instance*/, const char* /*type*/, void* vself)
+    {
+        qDebug() << "HELPER STOPPED +++++++++++++++++++++++++++++++++++++" << appid;
+        auto self = static_cast<HelperPrivate*>(vself);
+        self->q_ptr->on_ual_stop();
+    }
 
     void update_percent_done()
     {
@@ -232,6 +318,7 @@ private:
     }
 
     Helper * const q_ptr;
+    QString appid_;
     clock_func clock_;
     State state_ {};
     qint64 size_ {};
@@ -240,15 +327,16 @@ private:
     RateHistory history_;
     float percent_done_ {};
     float last_notified_percent_done_ {};
+    std::shared_ptr<ubuntu::app_launch::Registry> registry_;
 };
 
 /***
 ****
 ***/
 
-Helper::Helper(clock_func const& clock, QObject *parent)
+Helper::Helper(QString const & appid, clock_func const& clock, QObject *parent)
     : QObject{parent}
-    , d_ptr{new HelperPrivate{this, clock}}
+    , d_ptr{new HelperPrivate{appid, this, clock}}
 {
 }
 
@@ -324,3 +412,39 @@ Helper::default_clock = []()
     gettimeofday (&tv, nullptr);
     return uint64_t(tv.tv_sec*1000 + (tv.tv_usec/1000));
 };
+
+void
+Helper::start(QStringList const& urls)
+{
+    ual_start(urls);
+}
+
+void
+Helper::stop()
+{
+    ual_stop();
+}
+
+void
+Helper::on_ual_stop()
+{
+    Q_D(Helper);
+
+    d->on_ual_stop();
+}
+
+void
+Helper::ual_start(QStringList const& url_strings)
+{
+    Q_D(Helper);
+
+    d->ual_start(url_strings);
+}
+
+void
+Helper::ual_stop()
+{
+    Q_D(Helper);
+
+    d->ual_stop();
+}
