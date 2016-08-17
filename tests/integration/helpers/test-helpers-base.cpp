@@ -77,6 +77,9 @@ void TestHelpersBase::startTasks()
 
 void TestHelpersBase::SetUp()
 {
+    // let's leave things clean
+    EXPECT_TRUE(removeHelperMarkBeforeStarting());
+
     Helper::registerMetaTypes();
 
     /* Click DB test mode */
