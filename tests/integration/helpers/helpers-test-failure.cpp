@@ -33,6 +33,9 @@ class TestHelpers: public TestHelpersBase
 
 TEST_F(TestHelpers, StartFullTest)
 {
+    QFile helper_mark(SIMPLE_HELPER_MARK_FILE_PATH);
+    qDebug() << "Helper mark exists at the beginning of test..." << helper_mark.exists();
+
     XdgUserDirsSandbox tmp_dir;
 
     // starts the services, including keeper-service
