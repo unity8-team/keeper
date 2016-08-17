@@ -33,9 +33,6 @@ class TestHelpers: public TestHelpersBase
 
 TEST_F(TestHelpers, StartFullTest)
 {
-    QFile helper_mark(SIMPLE_HELPER_MARK_FILE_PATH);
-    qDebug() << "Helper mark exists at the beginning of test..." << helper_mark.exists();
-
     XdgUserDirsSandbox tmp_dir;
 
     // starts the services, including keeper-service
@@ -67,6 +64,9 @@ TEST_F(TestHelpers, StartFullTest)
     auto user_folder_uuid = getUUIDforXdgFolderPath(user_dir, choices.value());
     ASSERT_FALSE(user_folder_uuid.isEmpty());
     qDebug() << "User folder UUID is:" << user_folder_uuid;
+
+    QFile helper_mark(SIMPLE_HELPER_MARK_FILE_PATH);
+    qDebug() << "Helper mark exists before calling StartBackup..." << helper_mark.exists();
 
     // Now we know the music folder uuid, let's start the backup for it.
     QDBusReply<void> backup_reply = user_iface->call("StartBackup", QStringList{user_folder_uuid});
