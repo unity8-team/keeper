@@ -89,7 +89,7 @@ RestoreChoices::RestoreChoices()
 RestoreChoices::~RestoreChoices() =default;
 
 QVector<Metadata>
-RestoreChoices::get_backups()
+RestoreChoices::get_backups() const
 {
     QVector<Metadata> ret;
 
