@@ -161,11 +161,10 @@ private:
 
     void on_data_uploaded(qint64 n)
     {
-        // TODO review this after checking if there's a bug in storage framework.
-        // TODO The issue is that bytesWritten is called for every backup helper that was
-        // TODO executed before.
-//        n_uploaded_ += n;
+        n_uploaded_ += n;
+        q_ptr->record_data_transferred(n);
         qDebug("n_read %zu n_uploaded %zu (newly uploaded %zu)", size_t(n_read_), size_t(n_uploaded_), size_t(n));
+        check_for_done();
         process_more();
     }
 
@@ -195,8 +194,6 @@ private:
             if (n > 0) {
                 upload_buffer_.remove(0, int(n));
                 qDebug("upload_buffer_.size() is %zu after writing %zu to cloud", size_t(upload_buffer_.size()), size_t(n));
-                n_uploaded_ += n;
-                q_ptr->record_data_transferred(n);
                 continue;
             }
             else {
@@ -223,23 +220,13 @@ private:
         timer_->stop();
     }
 
-    void wait_backup_socket_is_clear()
-    {
-        while (read_socket_->bytesAvailable())
-        {
-            process_more();
-        }
-    }
-
     void check_for_done()
     {
-        wait_backup_socket_is_clear();
-
         if (n_uploaded_ == q_ptr->expected_size())
         {
             q_ptr->set_state(Helper::State::COMPLETE);
         }
-        else if (read_error_ || write_error_ || n_uploaded_ != q_ptr->expected_size())
+        else if (read_error_ || write_error_ || (n_uploaded_ > q_ptr->expected_size()))
         {
             q_ptr->set_state(Helper::State::FAILED);
         }
