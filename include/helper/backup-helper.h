@@ -50,7 +50,7 @@ public:
     void set_storage_framework_socket(std::shared_ptr<QLocalSocket> const& sf_socket);
     void start(QStringList const& urls) override;
     void stop() override;
-    void on_ual_stop() override;
+    void on_helper_process_stopped() override;
     int get_helper_socket() const;
 
 private:

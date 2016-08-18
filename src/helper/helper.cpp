@@ -19,16 +19,17 @@
 
 #include <helper/helper.h>
 
-#include <QDebug>
-
-#include <cmath> // std::fabs()
-#include <sys/time.h> // gettimeofday()
-
 #include <ubuntu-app-launch/registry.h>
 #include <service/app-const.h>
 extern "C" {
     #include <ubuntu-app-launch.h>
 }
+
+#include <QDebug>
+
+#include <cmath> // std::fabs()
+#include <sys/time.h> // gettimeofday()
+
 
 namespace
 {
@@ -210,9 +211,40 @@ public:
         return percent_done_;
     }
 
+    void start(QStringList const& urls)
+    {
+        ual_start(urls);
+    }
+
+    void stop()
+    {
+        ual_stop();
+    }
+
+    void on_helper_process_stopped()
+    {
+        q_ptr->set_state(Helper::State::COMPLETE);
+    }
+
+private:
     /***
     ****  UAL
     ***/
+
+    void ual_init()
+    {
+        ubuntu_app_launch_observer_add_helper_started(on_helper_started, HELPER_TYPE, this);
+        ubuntu_app_launch_observer_add_helper_stop(on_helper_stopped, HELPER_TYPE, this);
+    }
+
+    void ual_uninit()
+    {
+        if (q_ptr->state() == Helper::State::STARTED)
+            ual_stop();
+
+        ubuntu_app_launch_observer_delete_helper_started(on_helper_started, HELPER_TYPE, this);
+        ubuntu_app_launch_observer_delete_helper_stop(on_helper_stopped, HELPER_TYPE, this);
+    }
 
     void ual_start(QStringList const& url_strings)
     {
@@ -249,28 +281,6 @@ public:
         }
     }
 
-    void on_ual_stop()
-    {
-        q_ptr->set_state(Helper::State::COMPLETE);
-    }
-
-private:
-
-    void ual_init()
-    {
-        ubuntu_app_launch_observer_add_helper_started(on_helper_started, HELPER_TYPE, this);
-        ubuntu_app_launch_observer_add_helper_stop(on_helper_stopped, HELPER_TYPE, this);
-    }
-
-    void ual_uninit()
-    {
-        if (q_ptr->state() == Helper::State::STARTED)
-            ual_stop();
-
-        ubuntu_app_launch_observer_delete_helper_started(on_helper_started, HELPER_TYPE, this);
-        ubuntu_app_launch_observer_delete_helper_stop(on_helper_stopped, HELPER_TYPE, this);
-    }
-
     static void on_helper_started(const char* appid, const char* /*instance*/, const char* /*type*/, void* vself)
     {
         qDebug() << "HELPER STARTED +++++++++++++++++++++++++++++++++++++" << appid;
@@ -282,7 +292,7 @@ private:
     {
         qDebug() << "HELPER STOPPED +++++++++++++++++++++++++++++++++++++" << appid;
         auto self = static_cast<HelperPrivate*>(vself);
-        self->q_ptr->on_ual_stop();
+        self->q_ptr->on_helper_process_stopped();
     }
 
     void update_percent_done()
@@ -416,35 +426,23 @@ Helper::default_clock = []()
 void
 Helper::start(QStringList const& urls)
 {
-    ual_start(urls);
+    Q_D(Helper);
+
+    d->start(urls);
 }
 
 void
 Helper::stop()
 {
-    ual_stop();
+    Q_D(Helper);
+
+    d->stop();
 }
 
 void
-Helper::on_ual_stop()
+Helper::on_helper_process_stopped()
 {
     Q_D(Helper);
 
-    d->on_ual_stop();
-}
-
-void
-Helper::ual_start(QStringList const& url_strings)
-{
-    Q_D(Helper);
-
-    d->ual_start(url_strings);
-}
-
-void
-Helper::ual_stop()
-{
-    Q_D(Helper);
-
-    d->ual_stop();
+    d->on_helper_process_stopped();
 }

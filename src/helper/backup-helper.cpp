@@ -89,7 +89,7 @@ public:
 
     void start(QStringList const& urls)
     {
-        q_ptr->ual_start(urls);
+        q_ptr->Helper::start(urls);
         reset_inactivity_timer();
     }
 
@@ -117,12 +117,11 @@ public:
     void stop()
     {
         cancelled_ = true;
-        q_ptr->ual_stop();
+        q_ptr->Helper::stop();
     }
 
-    void on_ual_stop()
+    void on_helper_process_stopped()
     {
-        qDebug() << "on_ual_stop";
         check_for_done();
         stop_inactivity_timer();
     }
@@ -288,11 +287,11 @@ BackupHelper::stop()
 }
 
 void
-BackupHelper::on_ual_stop()
+BackupHelper::on_helper_process_stopped()
 {
     Q_D(BackupHelper);
 
-    d->on_ual_stop();
+    d->on_helper_process_stopped();
 }
 
 void
