@@ -31,7 +31,7 @@ class TestHelpers: public TestHelpersBase
     }
 };
 
-TEST_F(TestHelpers, StartFullTest)
+TEST_F(TestHelpers, BackupHelperWritesTooMuch)
 {
     XdgUserDirsSandbox tmp_dir;
 
