@@ -83,10 +83,10 @@ TEST_F(TestHelpers, BackupHelperWritesTooMuch)
     EXPECT_TRUE(iter != state.end());
     auto state_values = state[user_folder_uuid];
 
-    EXPECT_EQ(state_values["action"].toString(), QStringLiteral("failed"));
-    EXPECT_EQ(state_values["display-name"].toString(), QStringLiteral("Music"));
+    EXPECT_EQ(std::string{"failed"}, state_values["action"].toString().toStdString());
+    EXPECT_EQ(std::string{"Music"}, state_values["display-name"].toString().toStdString());
     // sent 1 byte more than the expected, so percentage has to be greater than 1.0
-    EXPECT_TRUE(state_values["percent-done"].toFloat() > 1.0);
+    EXPECT_GT(state_values["percent-done"].toFloat(), 1.0f);
 
     // let's leave things clean
     EXPECT_TRUE(removeHelperMarkBeforeStarting());
