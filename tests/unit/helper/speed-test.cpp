@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cmath> // std::pow()
 #include <iostream>
 
 
