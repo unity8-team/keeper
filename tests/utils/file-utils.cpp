@@ -28,6 +28,9 @@
 #include <QString>
 #include <QTemporaryFile>
 
+#include <cstring> // std::strerror
+
+
 FileUtils::Info
 FileUtils::createDummyFile(const QDir& dir, qint64 filesize)
 {
@@ -104,7 +107,7 @@ bool recursiveFillDirectory(QString const & dirPath, int max_filesize, int & j, 
             auto newDirName = QString("Directory_%1").arg(j);
             if (!dir.mkdir(newDirName))
             {
-                qWarning() << "Error creating temporary directory" << newDirName << "under" << dirPath;
+                qWarning() << "Error creating temporary directory" << newDirName << "under" << dirPath << std::strerror(errno);
                 return false;
             }
 
