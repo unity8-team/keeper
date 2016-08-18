@@ -23,6 +23,9 @@
 
 #include <gtest/gtest.h>
 
+#include <cmath> // std::pow()
+#include <iostream>
+
 
 TEST(HelperClass, PercentDone)
 {
@@ -33,11 +36,15 @@ TEST(HelperClass, PercentDone)
     EXPECT_EQ(n_bytes, helper.expected_size());
 
     auto n_left = n_bytes;
+    static constexpr int checked_decimal_places {4};
+    static const double test_multiplier = std::pow(10, checked_decimal_places);
     while (n_left > 0)
     {
         helper.record_data_transferred(1);
         --n_left;
-        EXPECT_EQ(int((10*(n_bytes-n_left)/double(n_bytes))), int(10*double(helper.percent_done())));
+        auto expect = std::round(test_multiplier * (n_bytes-n_left) / double(n_bytes));
+        auto actual = std::round(test_multiplier * helper.percent_done());
+        EXPECT_EQ(expect, actual);
     }
 }
 
