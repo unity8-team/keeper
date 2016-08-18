@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <util/attributes.h>
+
 #include <QObject>
 #include <QScopedPointer>
 
@@ -38,16 +40,16 @@ public:
     enum class State {NOT_STARTED, STARTED, CANCELLED, FAILED, COMPLETE};
 
     Q_PROPERTY(Helper::State state READ state NOTIFY state_changed)
-    State state() const;
+    State state() const __pure;
 
     // NB: range is [0.0 .. 1.0]
     Q_PROPERTY(float percent_done READ percent_done NOTIFY percent_done_changed)
-    float percent_done() const;
+    float percent_done() const __pure;
 
     // NB: units is bytes_per_second
-    int speed() const;
+    int speed() const __pure;
 
-    qint64 expected_size() const;
+    qint64 expected_size() const __pure;
     void set_expected_size(qint64 n_bytes);
 
     static void registerMetaTypes();
