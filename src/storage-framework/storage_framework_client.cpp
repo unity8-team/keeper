@@ -85,14 +85,27 @@ void StorageFrameworkClient::accountsReady()
 {
     // Get the acccounts. (There is only one account for the client implementation.)
     try {
-        auto accounts = accounts_watcher_.result();
+//        auto accounts = accounts_watcher_.result();
 
-        if (accounts.empty())
+//        if (accounts.empty())
+//        {
+//            throw std::runtime_error("No accounts returned from Storage Framework");
+//        }
+
+//        Root::SPtr root = accounts[0]->roots().result()[0];
+        Account::SPtr test_acc;
+        int acc_id = 0;
+        while (!test_acc)
         {
-            throw std::runtime_error("No accounts returned from Storage Framework");
+            try
+            {
+                test_acc = runtime_->make_test_account("com.canonical.StorageFramework.Provider.McloudProvider", "/provider/" + acc_id++);
+            }
+            catch (...) {}
         }
 
-        Root::SPtr root = accounts[0]->roots().result()[0];
+        Root::SPtr root = test_acc->roots().result()[0];
+
         qDebug() << "id:" << root->native_identity();
         qDebug() << "time:" << root->last_modified_time();
 
