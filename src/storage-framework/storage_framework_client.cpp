@@ -42,6 +42,7 @@ StorageFrameworkClient::StorageFrameworkClient(QObject *parent)
     QObject::connect(&uploader_ready_watcher_,&QFutureWatcher<std::shared_ptr<Uploader>>::finished, this, &StorageFrameworkClient::uploaderReady);
     QObject::connect(&uploader_closed_watcher_,&QFutureWatcher<std::shared_ptr<File>>::finished, this, &StorageFrameworkClient::onUploaderClosed);
     QObject::connect(&accounts_watcher_,&QFutureWatcher<QVector<std::shared_ptr<Account>>>::finished, this, &StorageFrameworkClient::accountsReady);
+    QObject::connect(&roots_watcher_,&QFutureWatcher<QVector<std::shared_ptr<Root>>>::finished, this, &StorageFrameworkClient::rootsReady);
 }
 
 void StorageFrameworkClient::getNewFileForBackup(quint64 n_bytes)
@@ -85,26 +86,26 @@ void StorageFrameworkClient::accountsReady()
 {
     // Get the acccounts. (There is only one account for the client implementation.)
     try {
-//        auto accounts = accounts_watcher_.result();
+        auto accounts = accounts_watcher_.result();
 
-//        if (accounts.empty())
-//        {
-//            throw std::runtime_error("No accounts returned from Storage Framework");
-//        }
-
-//        Root::SPtr root = accounts[0]->roots().result()[0];
-        Account::SPtr test_acc;
-        int acc_id = 0;
-        while (!test_acc)
+        if (accounts.empty())
         {
-            try
-            {
-                test_acc = runtime_->make_test_account("com.canonical.StorageFramework.Provider.McloudProvider", "/provider/" + acc_id++);
-            }
-            catch (...) {}
+            throw std::runtime_error("No accounts returned from Storage Framework");
         }
 
-        Root::SPtr root = test_acc->roots().result()[0];
+        roots_watcher_.setFuture(accounts[0]->roots());
+    }
+    catch (std::exception & e)
+    {
+        qDebug() << "ERROR: StorageFrameworkClient::accountsReady():" << e.what();
+        throw;
+    }
+}
+
+void StorageFrameworkClient::rootsReady()
+{
+    try {
+        Root::SPtr root = roots_watcher_.result()[0];
 
         qDebug() << "id:" << root->native_identity();
         qDebug() << "time:" << root->last_modified_time();
@@ -120,7 +121,7 @@ void StorageFrameworkClient::accountsReady()
     }
     catch (std::exception & e)
     {
-        qDebug() << "ERROR: StorageFrameworkClient::getNewFileForBackup():" << e.what();
+        qDebug() << "ERROR: StorageFrameworkClient::rootsReady():" << e.what();
         throw;
     }
 }

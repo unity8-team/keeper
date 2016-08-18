@@ -46,6 +46,7 @@ private Q_SLOTS:
     void uploaderReady();
     void onUploaderClosed();
     void accountsReady();
+    void rootsReady();
 
 private:
     unity::storage::qt::client::Runtime::SPtr runtime_;
@@ -54,5 +55,6 @@ private:
     QFutureWatcher<std::shared_ptr<unity::storage::qt::client::Uploader>> uploader_ready_watcher_;
     QFutureWatcher<std::shared_ptr<unity::storage::qt::client::File>> uploader_closed_watcher_;
     QFutureWatcher<QVector<std::shared_ptr<unity::storage::qt::client::Account>>> accounts_watcher_;
+    QFutureWatcher<QVector<std::shared_ptr<unity::storage::qt::client::Root>>> roots_watcher_;
     std::shared_ptr<unity::storage::qt::client::Uploader> uploader_;
 };
