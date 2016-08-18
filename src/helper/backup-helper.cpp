@@ -118,9 +118,15 @@ public:
         storage_framework_socket_ = sf_socket;
 
         // listen for data uploaded
-        QObject::connect(storage_framework_socket_.get(), &QLocalSocket::bytesWritten,
-                         std::bind(&BackupHelperPrivate::on_data_uploaded, this, std::placeholders::_1)
-                         );
+        storage_framework_socket_connection_.reset(
+            new QMetaObject::Connection(QObject::connect(
+                    storage_framework_socket_.get(), &QLocalSocket::bytesWritten,
+                    std::bind(&BackupHelperPrivate::on_data_uploaded, this, std::placeholders::_1)
+            )),
+            [](QMetaObject::Connection* c){
+                QObject::disconnect(*c);
+            }
+        );
 
         // TODO xavi is going to remove this line
         q_ptr->set_state(Helper::State::STARTED);
@@ -323,6 +329,7 @@ private:
     QScopedPointer<QTimer> timer_;
     std::shared_ptr<ubuntu::app_launch::Registry> registry_;
     std::shared_ptr<QLocalSocket> storage_framework_socket_;
+    std::shared_ptr<QMetaObject::Connection> storage_framework_socket_connection_;
     QScopedPointer<QLocalSocket> helper_socket_;
     QScopedPointer<QLocalSocket> read_socket_;
     QByteArray upload_buffer_;
