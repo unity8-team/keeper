@@ -119,10 +119,12 @@ public:
 
         // listen for data uploaded
         storage_framework_socket_connection_.reset(
-            new QMetaObject::Connection(QObject::connect(
+            new QMetaObject::Connection(
+                QObject::connect(
                     storage_framework_socket_.get(), &QLocalSocket::bytesWritten,
                     std::bind(&BackupHelperPrivate::on_data_uploaded, this, std::placeholders::_1)
-            )),
+                )
+            ),
             [](QMetaObject::Connection* c){
                 QObject::disconnect(*c);
             }
