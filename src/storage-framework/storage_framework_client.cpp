@@ -87,21 +87,23 @@ void StorageFrameworkClient::accountsReady()
     try {
         auto accounts = accounts_watcher_.result();
 
-        if (!accounts.empty())
+        if (accounts.empty())
         {
-            Root::SPtr root = accounts[0]->roots().result()[0];
-            qDebug() << "id:" << root->native_identity();
-            qDebug() << "time:" << root->last_modified_time();
-
-            // XGM ADD A new file to the root
-            QFutureWatcher<std::shared_ptr<Uploader>> new_file_watcher;
-
-            // get the current date and time to create the new file
-            QDateTime now = QDateTime::currentDateTime();
-            QString new_file_name = QString("Backup_%1").arg(now.toString("dd.MM.yyyy-hh:mm:ss.zzz"));
-
-            uploader_ready_watcher_.setFuture(root->create_file(new_file_name, accounts_watcher_.property("n_bytes").toUInt()));
+            throw std::runtime_error("No accounts returned from Storage Framework");
         }
+
+        Root::SPtr root = accounts[0]->roots().result()[0];
+        qDebug() << "id:" << root->native_identity();
+        qDebug() << "time:" << root->last_modified_time();
+
+        // XGM ADD A new file to the root
+        QFutureWatcher<std::shared_ptr<Uploader>> new_file_watcher;
+
+        // get the current date and time to create the new file
+        QDateTime now = QDateTime::currentDateTime();
+        QString new_file_name = QString("Backup_%1").arg(now.toString("dd.MM.yyyy-hh:mm:ss.zzz"));
+
+        uploader_ready_watcher_.setFuture(root->create_file(new_file_name, accounts_watcher_.property("n_bytes").toUInt()));
     }
     catch (std::exception & e)
     {
