@@ -85,7 +85,7 @@ calculate_checksum(QString const & filePath, QCryptographicHash::Algorithm hashA
     return QByteArray();
 }
 
-bool
+void
 fill_directory_recusively(QDir const & dir,
                           int max_filesize,
                           int & n_files_left,
@@ -107,7 +107,7 @@ fill_directory_recusively(QDir const & dir,
             if (!dir.mkdir(newDirName))
             {
                 qWarning() << "Error creating temporary directory" << newDirName << "under" << dir.absolutePath() << std::strerror(errno);
-                return false;
+                return;
             }
 
             // fill it
@@ -121,15 +121,11 @@ fill_directory_recusively(QDir const & dir,
             const auto filesize = qrand() % max_filesize;
             const auto fileinfo = create_dummy_file(dir, filesize);
             if (!fileinfo.isFile())
-            {
-                return false;
-            }
+                return;
 
             --n_files_left;
         }
     }
-
-    return true;
 }
 
 } // namespace
