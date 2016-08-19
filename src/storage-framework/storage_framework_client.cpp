@@ -65,7 +65,6 @@ void StorageFrameworkClient::getNewFileForBackup(quint64 n_bytes)
 
 void StorageFrameworkClient::finish(bool do_commit)
 {
-
     if (!uploader_ || !do_commit)
     {
         qDebug() << "StorageFrameworkClient::finish() is throwing away the file";
@@ -88,7 +87,6 @@ void StorageFrameworkClient::onUploaderClosed()
 {
     auto file = uploader_closed_watcher_.result();
     qDebug() << "Uploader for file" << file->name() << "was closed";
-    qDebug() << "Uploader was closed";
     uploader_->socket()->disconnectFromServer();
     uploader_.reset();
     Q_EMIT(finished());
