@@ -56,16 +56,22 @@ public:
     using clock_func = std::function<uint64_t()>;
     static clock_func default_clock;
 
+    // life cycle control.
+    virtual void start(QStringList const& urls);
+    virtual void stop();
+
 Q_SIGNALS:
     void state_changed(Helper::State);
     void percent_done_changed(float);
 
 protected:
-    Helper(const clock_func& clock=default_clock, QObject *parent=nullptr);
+    Helper(QString const & appid, const clock_func& clock=default_clock, QObject *parent=nullptr);
     void set_state(State);
     void record_data_transferred(qint64 n_bytes);
+    virtual void on_helper_process_stopped();
 
 private:
+
     QScopedPointer<HelperPrivate> const d_ptr;
 };
 

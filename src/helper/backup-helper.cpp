@@ -31,12 +31,6 @@
 #include <QTimer>
 #include <QVector>
 
-#include <ubuntu-app-launch/registry.h>
-#include <service/app-const.h>
-extern "C" {
-    #include <ubuntu-app-launch.h>
-}
-
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -48,14 +42,11 @@ class BackupHelperPrivate
 {
 public:
 
-    BackupHelperPrivate(
-        BackupHelper* backup_helper,
-        const QString& appid
+    explicit BackupHelperPrivate(
+        BackupHelper* backup_helper
     )
         : q_ptr(backup_helper)
-        , appid_(appid)
         , timer_(new QTimer())
-        , registry_(new ubuntu::app_launch::Registry())
         , storage_framework_socket_(new QLocalSocket())
         , helper_socket_(new QLocalSocket())
         , read_socket_(new QLocalSocket())
@@ -66,8 +57,6 @@ public:
         , write_error_{}
         , cancelled_{}
     {
-        ual_init();
-
         // listen for inactivity
         QObject::connect(timer_.data(), &QTimer::timeout,
             std::bind(&BackupHelperPrivate::on_inactivity_detected, this)
@@ -94,16 +83,13 @@ public:
         read_socket_->setSocketDescriptor(fds[0], QLocalSocket::ConnectedState, QIODevice::ReadOnly);
     }
 
-    ~BackupHelperPrivate()
-    {
-        ual_uninit();
-    }
+    ~BackupHelperPrivate() = default;
 
     Q_DISABLE_COPY(BackupHelperPrivate)
 
     void start(QStringList const& urls)
     {
-        ual_start(urls);
+        q_ptr->Helper::start(urls);
         reset_inactivity_timer();
     }
 
@@ -139,7 +125,13 @@ public:
     void stop()
     {
         cancelled_ = true;
-        ual_stop();
+        q_ptr->Helper::stop();
+    }
+
+    void on_helper_process_stopped()
+    {
+        check_for_done();
+        stop_inactivity_timer();
     }
 
     int get_helper_socket() const
@@ -239,84 +231,13 @@ private:
     }
 
     /***
-    ****  UAL
-    ***/
-
-    void ual_init()
-    {
-        ubuntu_app_launch_observer_add_helper_started(on_helper_started, HELPER_TYPE, this);
-        ubuntu_app_launch_observer_add_helper_stop(on_helper_stopped, HELPER_TYPE, this);
-    }
-
-    void ual_uninit()
-    {
-        if (q_ptr->state() == Helper::State::STARTED)
-            ual_stop();
-
-        ubuntu_app_launch_observer_delete_helper_started(on_helper_started, HELPER_TYPE, this);
-        ubuntu_app_launch_observer_delete_helper_stop(on_helper_stopped, HELPER_TYPE, this);
-    }
-
-    void ual_start(QStringList const& url_strings)
-    {
-        qDebug() << "Starting helper for app:" << appid_;
-
-        std::vector<ubuntu::app_launch::Helper::URL> urls;
-        for(const auto& url_string : url_strings) {
-            qDebug() << "url" << url_string;
-            urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(url_string.toStdString()));
-        }
-
-        auto backupType = ubuntu::app_launch::Helper::Type::from_raw(HELPER_TYPE);
-
-        auto appid = ubuntu::app_launch::AppID::parse(appid_.toStdString());
-        auto helper = ubuntu::app_launch::Helper::create(backupType, appid, registry_);
-
-        helper->launch(urls);
-    }
-
-    void ual_stop()
-    {
-        qDebug() << "Stopping helper for app:" << appid_;
-        auto backupType = ubuntu::app_launch::Helper::Type::from_raw(HELPER_TYPE);
-
-        auto appid = ubuntu::app_launch::AppID::parse(appid_.toStdString());
-        auto helper = ubuntu::app_launch::Helper::create(backupType, appid, registry_);
-
-        auto instances = helper->instances();
-
-        if (instances.size() > 0 )
-        {
-            qDebug() << "We have instances";
-            instances[0]->stop();
-        }
-    }
-
-    static void on_helper_started(const char* appid, const char* /*instance*/, const char* /*type*/, void* vself)
-    {
-        qDebug() << "HELPER STARTED +++++++++++++++++++++++++++++++++++++" << appid;
-        auto self = static_cast<BackupHelperPrivate*>(vself);
-        self->q_ptr->set_state(Helper::State::STARTED);
-    }
-
-    static void on_helper_stopped(const char* appid, const char* /*instance*/, const char* /*type*/, void* vself)
-    {
-        qDebug() << "HELPER STOPPED +++++++++++++++++++++++++++++++++++++" << appid;
-        auto self = static_cast<BackupHelperPrivate*>(vself);
-        self->check_for_done();
-        self->stop_inactivity_timer();
-    }
-
-    /***
     ****
     ***/
 
     static constexpr int UPLOAD_BUFFER_MAX_ {1024*16};
 
     BackupHelper * const q_ptr;
-    const QString appid_;
     QScopedPointer<QTimer> timer_;
-    std::shared_ptr<ubuntu::app_launch::Registry> registry_;
     std::shared_ptr<QLocalSocket> storage_framework_socket_;
     std::shared_ptr<QMetaObject::Connection> storage_framework_socket_connection_;
     QScopedPointer<QLocalSocket> helper_socket_;
@@ -338,8 +259,8 @@ BackupHelper::BackupHelper(
     clock_func const & clock,
     QObject * parent
 )
-    : Helper(clock, parent)
-    , d_ptr(new BackupHelperPrivate(this, appid))
+    : Helper(appid, clock, parent)
+    , d_ptr(new BackupHelperPrivate(this))
 {
 }
 
@@ -359,6 +280,14 @@ BackupHelper::stop()
     Q_D(BackupHelper);
 
     d->stop();
+}
+
+void
+BackupHelper::on_helper_process_stopped()
+{
+    Q_D(BackupHelper);
+
+    d->on_helper_process_stopped();
 }
 
 void
