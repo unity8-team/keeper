@@ -144,15 +144,6 @@ fill_directory_recusively(QDir const & dir,
 ****
 ***/
 
-FileUtils::Info
-FileUtils::createDummyFile(const QDir& dir, qint64 filesize)
-{
-    FileUtils::Info ret;
-    ret.info = create_dummy_file(dir, filesize);
-    ret.checksum = calculate_checksum(ret.info.absoluteFilePath());
-    return ret;
-}
-
 bool
 FileUtils::fillTemporaryDirectory(QString const & dir_path, int min_files, int max_files, int max_filesize, int max_dirs)
 {
