@@ -73,7 +73,7 @@ create_dummy_file(QDir const& dir, qint64 filesize)
 }
 
 QByteArray
-calculate_checksum(QString const & filePath, QCryptographicHash::Algorithm hashAlgorithm)
+calculate_checksum(QString const & filePath, QCryptographicHash::Algorithm hashAlgorithm=QCryptographicHash::Sha1)
 {
     QFile f(filePath);
     if (f.open(QFile::ReadOnly)) {
@@ -83,12 +83,6 @@ calculate_checksum(QString const & filePath, QCryptographicHash::Algorithm hashA
         }
     }
     return QByteArray();
-}
-
-QByteArray
-calculate_checksum(QString const & filePath)
-{
-    return calculate_checksum(filePath, QCryptographicHash::Sha1);
 }
 
 bool
