@@ -37,6 +37,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdio>
+#include <string>
 
 
 namespace
@@ -142,15 +143,16 @@ TEST_F(TarCreatorFixture, ArchiveWriteHeaderErrorInCalculateSize)
 
     // confirm that archive_write_header() returning ARCHIVE_FAILURE
     // throws an exception that we can catch
-    QString error_string;
+    std::string error_string;
     try {
         tar_creator.calculate_size();
     } catch (std::exception const& e) {
-        error_string = QString::fromUtf8(e.what());
+        error_string = e.what();
     }
 
-    EXPECT_TRUE(error_string.contains(QString::fromUtf8(FATAL_ERROR_MESSAGE)))
-        << qPrintable(error_string);
+    EXPECT_NE(std::string::npos, error_string.find(FATAL_ERROR_MESSAGE))
+        << "expected: '" << FATAL_ERROR_MESSAGE << "'" << std::endl
+        << "got: '" << error_string << "'" << std::endl;
 }
 
 TEST_F(TarCreatorFixture, ArchiveWriteHeaderErrorInStep)
@@ -168,16 +170,16 @@ TEST_F(TarCreatorFixture, ArchiveWriteHeaderErrorInStep)
     TarCreator tar_creator(files, false);
 
     // build the tar blob
-    QString error_string;
+    std::string error_string;
     std::vector<char> blob, step;
     try {
         while (tar_creator.step(step))
             blob.insert(blob.end(), step.begin(), step.end());
     } catch(std::exception& e) {
-        error_string = QString::fromUtf8(e.what());
+        error_string = e.what();
     }
 
-    EXPECT_TRUE(error_string.contains(QString::fromUtf8(FATAL_ERROR_MESSAGE)))
+    EXPECT_NE(std::string::npos, error_string.find(FATAL_ERROR_MESSAGE))
         << "expected: '" << FATAL_ERROR_MESSAGE << "'" << std::endl
-        << "got: '" << qPrintable(error_string) << "'" << std::endl;
+        << "got: '" << error_string << "'" << std::endl;
 }
