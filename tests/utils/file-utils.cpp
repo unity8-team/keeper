@@ -249,7 +249,7 @@ FileUtils::compareDirectories(QString const & dir1Path, QString const & dir2Path
                    << dir2Path
                    << "\" has [" << filesDir2.size() << "]";
 
-        for (int i=0; i<filesDir1.size() && i<filesDir2.size(); ++i)
+        for (int i=0; i<filesDir1.size() || i<filesDir2.size(); ++i)
         {
             if (i<filesDir1.size())
                 qWarning() << "A" << filesDir1[i];
