@@ -132,7 +132,7 @@ TEST_F(TarCreatorFixture, ArchiveWriteHeaderErrorInCalculateSize)
     // build a directory full of random files
     QTemporaryDir in;
     QDir indir(in.path());
-    ASSERT_TRUE(FileUtils::fillTemporaryDirectory(in.path(), 2));
+    FileUtils::fillTemporaryDirectory(in.path(), 2);
 
     // create the tar creator
     EXPECT_TRUE(QDir::setCurrent(in.path()));
@@ -160,7 +160,7 @@ TEST_F(TarCreatorFixture, ArchiveWriteHeaderErrorInStep)
     // build a directory full of random files
     QTemporaryDir in;
     QDir indir(in.path());
-    ASSERT_TRUE(FileUtils::fillTemporaryDirectory(in.path(), 2));
+    FileUtils::fillTemporaryDirectory(in.path(), 2);
 
     // create the tar creator
     EXPECT_TRUE(QDir::setCurrent(in.path()));

@@ -144,7 +144,7 @@ fill_directory_recusively(QDir const & dir,
 ****
 ***/
 
-bool
+void
 FileUtils::fillTemporaryDirectory(QString const & dir_path, int min_files, int max_files, int max_filesize, int max_dirs)
 {
     const auto dir = QDir(dir_path);
@@ -156,8 +156,6 @@ FileUtils::fillTemporaryDirectory(QString const & dir_path, int min_files, int m
 
     while (n_files_left > 0)
         fill_directory_recusively(dir, max_filesize, n_files_left, n_subdirs_left);
-
-    return true;
 }
 
 QStringList

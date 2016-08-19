@@ -65,7 +65,7 @@ TEST_F(TarCreatorFixture, Create)
             // build a directory full of random files
             QTemporaryDir in;
             QDir indir(in.path());
-            ASSERT_TRUE(FileUtils::fillTemporaryDirectory(in.path()));
+            FileUtils::fillTemporaryDirectory(in.path());
 
             // create the tar creator
             EXPECT_TRUE(QDir::setCurrent(in.path()));
