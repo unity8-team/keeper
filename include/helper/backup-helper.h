@@ -48,8 +48,9 @@ public:
     static constexpr int MAX_INACTIVITY_TIME = 10000;
 
     void set_storage_framework_socket(std::shared_ptr<QLocalSocket> const& sf_socket);
-    void start(QStringList const& urls);
-    void stop();
+    void start(QStringList const& urls) override;
+    void stop() override;
+    void on_helper_process_stopped() override;
     int get_helper_socket() const;
 
 private:
