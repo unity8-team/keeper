@@ -31,13 +31,12 @@
 #include <cstring> // std::strerror
 
 
-FileUtils::Info
-FileUtils::createDummyFile(const QDir& dir, qint64 filesize)
+namespace
 {
-    FileUtils::Info info;
-    info.info = QFileInfo();
-    info.checksum = QByteArray();
 
+QFileInfo
+create_dummy_file(QDir const& dir, qint64 filesize)
+{
     // NB we want to exercise long filenames, but this cutoff length is arbitrary
     static constexpr int MAX_BASENAME_LEN {200};
     int filename_len = qrand() % MAX_BASENAME_LEN;
@@ -53,7 +52,7 @@ FileUtils::createDummyFile(const QDir& dir, qint64 filesize)
     if(!f.open())
     {
         qWarning() << "Error opening temporary file:" << f.errorString();
-        return info;
+        return QFileInfo();
     }
     static constexpr qint64 max_step = 1024;
     char buf[max_step];
@@ -70,90 +69,13 @@ FileUtils::createDummyFile(const QDir& dir, qint64 filesize)
         left -= this_step;
     }
     f.close();
-
-    // get a checksum
-    if(!f.open())
-    {
-        qWarning() << "Error opening temporary file:" << f.errorString();
-        return info;
-    }
-    QCryptographicHash hash(QCryptographicHash::Sha1);
-    hash.addData(&f);
-    const auto checksum = hash.result();
-    f.close();
-
-    info.info = QFileInfo(f.fileName());
-    info.checksum = checksum;
-    return info;
+    return QFileInfo(f.fileName());
 }
-
-bool recursiveFillDirectory(QString const & dirPath, int max_filesize, int & num_created, QVector<FileUtils::Info> & files, int & max_dirs)
-{
-    // get the number of files or directories that we will create at this level
-    // it will always be less than the number of files remaining to create
-    auto nb_items_to_create = qrand() % (files.size() - num_created);
-    if ((files.size() - num_created) <= 1 )
-    {
-        nb_items_to_create = 1;
-    }
-
-    for (auto i = 0; i < nb_items_to_create && num_created < files.size(); ++i)
-    {
-        // decide if it's a file or a directory
-        // we create a directory 25% of the time
-        if (max_dirs && qrand() % 100 < 25)
-        {
-            QDir dir(dirPath);
-            auto newDirName = QString("Directory_%1").arg(num_created);
-            if (!dir.mkdir(newDirName))
-            {
-                qWarning() << "Error creating temporary directory" << newDirName << "under" << dirPath << std::strerror(errno);
-                return false;
-            }
-
-            QDir newDir(dir.absoluteFilePath(newDirName));
-
-            max_dirs--;
-
-            // fill it
-            recursiveFillDirectory(newDir.absolutePath(), max_filesize, num_created, files, max_dirs);
-        }
-        else
-        {
-            // get the new file and increment num_created
-            auto& file = files[num_created];
-            const auto filesize = qrand() % max_filesize;
-            file = FileUtils::createDummyFile(dirPath, filesize);
-            if (!file.info.isFile())
-            {
-                return false;
-            }
-            ++num_created;
-        }
-    }
-    return true;
-}
-
-bool FileUtils::fillTemporaryDirectory(QString const & dir, int max_files_per_test, int max_filesize, int max_dirs)
-{
-    const auto n_files = std::max(1, (qrand() % max_files_per_test));
-    QVector<FileUtils::Info> files (n_files);
-    auto dirs_to_create = max_dirs;
-    int num_created = 0;
-    while (num_created < files.size())
-    {
-        recursiveFillDirectory(dir, max_filesize, num_created, files, dirs_to_create);
-    }
-    return true;
-}
-
-namespace
-{
 
 QByteArray
-fileChecksum(QString const & fileName, QCryptographicHash::Algorithm hashAlgorithm)
+calculate_checksum(QString const & filePath, QCryptographicHash::Algorithm hashAlgorithm)
 {
-    QFile f(fileName);
+    QFile f(filePath);
     if (f.open(QFile::ReadOnly)) {
         QCryptographicHash hash(hashAlgorithm);
         if (hash.addData(&f)) {
@@ -163,7 +85,89 @@ fileChecksum(QString const & fileName, QCryptographicHash::Algorithm hashAlgorit
     return QByteArray();
 }
 
-} // anon namespace
+QByteArray
+calculate_checksum(QString const & filePath)
+{
+    return calculate_checksum(filePath, QCryptographicHash::Sha1);
+}
+
+bool
+fill_directory_recusively(QDir const & dir,
+                          int max_filesize,
+                          int & n_files_left,
+                          int & n_subdirs_left)
+{
+    // decide how many items to create in this directory
+    const auto n_to_create = (n_files_left > 0)
+                           ? std::max(1, qrand() % n_files_left)
+                           : 0;
+
+    for (auto i=0; i<n_to_create; ++i)
+    {
+        // decide if it's a file or a directory
+        // we create a directory 25% of the time
+        if ((n_subdirs_left > 0) && (qrand() % 100 < 25))
+        {
+            // create a new subdirectory
+            auto newDirName = QString("Directory_%1").arg(n_subdirs_left);
+            if (!dir.mkdir(newDirName))
+            {
+                qWarning() << "Error creating temporary directory" << newDirName << "under" << dir.absolutePath() << std::strerror(errno);
+                return false;
+            }
+
+            // fill it
+            QDir newDir(dir.absoluteFilePath(newDirName));
+            --n_subdirs_left;
+            fill_directory_recusively(newDir, max_filesize, n_files_left, n_subdirs_left);
+        }
+        else if (n_files_left > 0)
+        {
+            // create a new file
+            const auto filesize = qrand() % max_filesize;
+            const auto fileinfo = create_dummy_file(dir, filesize);
+            if (!fileinfo.isFile())
+            {
+                return false;
+            }
+
+            --n_files_left;
+        }
+    }
+
+    return true;
+}
+
+} // namespace
+
+/***
+****
+***/
+
+FileUtils::Info
+FileUtils::createDummyFile(const QDir& dir, qint64 filesize)
+{
+    FileUtils::Info ret;
+    ret.info = create_dummy_file(dir, filesize);
+    ret.checksum = calculate_checksum(ret.info.absoluteFilePath());
+    return ret;
+}
+
+bool
+FileUtils::fillTemporaryDirectory(QString const & dir_path, int max_files, int max_filesize, int max_dirs)
+{
+    const auto dir = QDir(dir_path);
+    const auto n_files_wanted = std::max(1, (qrand() % max_files));
+    const auto n_subdirs_wanted = max_dirs;
+
+    int n_files_left {n_files_wanted};
+    int n_subdirs_left {n_subdirs_wanted};
+
+    while (n_files_left > 0)
+        fill_directory_recusively(dir, max_filesize, n_files_left, n_subdirs_left);
+
+    return true;
+}
 
 QStringList
 FileUtils::getFilesRecursively(QString const & dirPath)
@@ -201,8 +205,8 @@ FileUtils::compareFiles(QString const & filePath1, QString const & filePath2)
         qWarning() << "File to compare:" << info2.absoluteFilePath() << "does not exist";
         return false;
     }
-    auto checksum1 = fileChecksum(filePath1, QCryptographicHash::Md5);
-    auto checksum2 = fileChecksum(filePath1, QCryptographicHash::Md5);
+    auto checksum1 = calculate_checksum(filePath1, QCryptographicHash::Md5);
+    auto checksum2 = calculate_checksum(filePath1, QCryptographicHash::Md5);
     if (checksum1 != checksum2)
     {
         qWarning() << "Checksum for file:" << filePath1 << "differ";
