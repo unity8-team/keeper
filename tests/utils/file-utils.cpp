@@ -139,11 +139,17 @@ fill_directory_recusively(QDir const & dir,
 ***/
 
 void
-FileUtils::fillTemporaryDirectory(QString const & dir_path, int min_files, int max_files, int max_filesize, int max_dirs)
+FileUtils::fillTemporaryDirectory(QString const & dir_path,
+                                  int min_files,
+                                  int max_files,
+                                  int max_filesize,
+                                  int max_dirs)
 {
     const auto dir = QDir(dir_path);
-    const auto n_files_wanted = min_files == max_files ? min_files : min_files + (qrand() % (max_files - min_files));
     const auto n_subdirs_wanted = max_dirs;
+    const auto n_files_wanted = min_files == max_files
+                              ? min_files
+                              : min_files + (qrand() % (max_files - min_files));
 
     int n_files_left {n_files_wanted};
     int n_subdirs_left {n_subdirs_wanted};
