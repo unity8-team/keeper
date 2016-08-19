@@ -124,7 +124,7 @@ bool recursiveFillDirectory(QString const & dirPath, int max_filesize, int & j, 
             auto& file = files[j];
             const auto filesize = qrand() % max_filesize;
             file = FileUtils::createDummyFile(dirPath, filesize);
-            if (file.info == QFileInfo())
+            if (!file.info.isFile())
             {
                 return false;
             }
