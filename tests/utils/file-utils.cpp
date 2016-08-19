@@ -234,8 +234,10 @@ FileUtils::compareDirectories(QString const & dir1Path, QString const & dir2Path
         return false;
     }
 
-    QStringList filesDir1 = getFilesRecursively(dir1Path);
-    QStringList filesDir2 = getFilesRecursively(dir2Path);
+    auto filesDir1 = getFilesRecursively(dir1Path);
+    auto filesDir2 = getFilesRecursively(dir2Path);
+    filesDir1.sort();
+    filesDir2.sort();
 
     if ( filesDir1.size() != filesDir2.size())
     {
@@ -246,6 +248,15 @@ FileUtils::compareDirectories(QString const & dir1Path, QString const & dir2Path
                    << "], dir \""
                    << dir2Path
                    << "\" has [" << filesDir2.size() << "]";
+
+        for (int i=0; i<filesDir1.size() && i<filesDir2.size(); ++i)
+        {
+            if (i<filesDir1.size())
+                qWarning() << "A" << filesDir1[i];
+            if (i<filesDir2.size())
+                qWarning() << "B" << filesDir2[i];
+        }
+
         return false;
     }
     for (auto file: filesDir1)
