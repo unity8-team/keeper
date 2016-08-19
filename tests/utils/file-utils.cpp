@@ -111,7 +111,7 @@ bool recursiveFillDirectory(QString const & dirPath, int max_filesize, int & j, 
                 return false;
             }
 
-            QDir newDir(QString("%1%2%3").arg(dir.absolutePath()).arg(QDir::separator()).arg(newDirName));
+            QDir newDir(dir.absolutePath(newDirName));
 
             max_dirs--;
 
