@@ -87,7 +87,7 @@ FileUtils::createDummyFile(const QDir& dir, qint64 filesize)
     return info;
 }
 
-bool recursiveFillDirectory(QString const & dirPath, int max_filesize, int & j, QVector<FileUtils::Info> & files, qint64 & filesize_sum, int & max_dirs)
+bool recursiveFillDirectory(QString const & dirPath, int max_filesize, int & j, QVector<FileUtils::Info> & files, int & max_dirs)
 {
     // get the number of files or directories that we will create at this level
     // it will always be less than the number of files remaining to create
@@ -116,7 +116,7 @@ bool recursiveFillDirectory(QString const & dirPath, int max_filesize, int & j, 
             max_dirs--;
 
             // fill it
-            recursiveFillDirectory(newDir.absolutePath(), max_filesize, j, files, filesize_sum, max_dirs);
+            recursiveFillDirectory(newDir.absolutePath(), max_filesize, j, files, max_dirs);
         }
         else
         {
@@ -128,7 +128,6 @@ bool recursiveFillDirectory(QString const & dirPath, int max_filesize, int & j, 
             {
                 return false;
             }
-            filesize_sum += file.info.size();
         }
     }
     return true;
@@ -138,12 +137,11 @@ bool FileUtils::fillTemporaryDirectory(QString const & dir, int max_files_per_te
 {
     const auto n_files = std::max(1, (qrand() % max_files_per_test));
     QVector<FileUtils::Info> files (n_files);
-    qint64 filesize_sum = 0;
     auto dirs_to_create = max_dirs;
     int j = 0;
     while (j<files.size())
     {
-        recursiveFillDirectory(dir, max_filesize, j, files, filesize_sum, dirs_to_create);
+        recursiveFillDirectory(dir, max_filesize, j, files, dirs_to_create);
     }
     return true;
 }
