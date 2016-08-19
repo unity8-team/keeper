@@ -27,7 +27,7 @@ class TestHelper: public Helper
 
 public:
 
-    TestHelper(clock_func const & clock = default_clock, QObject *parent = nullptr): Helper{clock, parent} {}
+    TestHelper(QString const & appid = QString(), clock_func const & clock = default_clock, QObject *parent = nullptr): Helper{appid, clock, parent} {}
 
     ~TestHelper() =default;
 
