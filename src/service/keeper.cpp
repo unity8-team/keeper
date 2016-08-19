@@ -147,6 +147,47 @@ public:
         return state_;
     }
 
+    QDBusUnixFileDescriptor start_backup(QDBusConnection bus, const QDBusMessage& msg, quint64 n_bytes)
+    {
+        qDebug("Helper::StartBackup(n_bytes=%zu)", size_t(n_bytes));
+
+        // the next time we get a socket from storage-framework, return it to our caller
+        auto tag = new int {};
+        auto on_socket_ready = [bus,msg,n_bytes,tag,this](std::shared_ptr<QLocalSocket> const& sf_socket)
+        {
+            if (sf_socket)
+            {
+                qDebug("calling helper.set_storage_framework_socket(n_bytes=%zu socket=%d)",
+                       size_t(n_bytes),
+                       int(sf_socket->socketDescriptor()));
+                backup_helper_->set_expected_size(n_bytes);
+                backup_helper_->set_storage_framework_socket(sf_socket);
+            }
+            auto reply = msg.createReply();
+            reply << QVariant::fromValue(QDBusUnixFileDescriptor(backup_helper_->get_helper_socket()));
+            bus.send(reply);
+
+            // one-shot client, so disconnect now
+            disconnect(*tag);
+            delete tag;
+        };
+        // cppcheck-suppress deallocuse
+        *tag = remember_connection(
+            QObject::connect(
+                storage_.data(),
+                &StorageFrameworkClient::socketReady,
+                on_socket_ready
+            )
+        );
+
+        // ask storage framework for a new socket
+        storage_->getNewFileForBackup(n_bytes);
+
+        // tell the caller that we'll be responding async
+        msg.setDelayedReply(true);
+        return QDBusUnixFileDescriptor(0);
+    }
+
 private:
 
     void on_helper_state_changed(Helper::State state)
@@ -372,6 +413,29 @@ private:
     ****
     ***/
 
+    int remember_connection(QMetaObject::Connection conn)
+    {
+        static int nexttag {1};
+        auto tag = nexttag++;
+        auto sp = std::shared_ptr<QMetaObject::Connection>(
+            new QMetaObject::Connection(conn),
+            [](QMetaObject::Connection *c) {
+                QObject::disconnect(*c);
+            }
+        );
+        connections_.insert(tag, sp);
+        return tag;
+    }
+
+    void disconnect(int tag)
+    {
+        connections_.remove(tag);
+    }
+
+    /***
+    ****
+    ***/
+
     Keeper * const q_ptr;
     QSharedPointer<HelperRegistry> helper_registry_;
     QSharedPointer<MetadataProvider> backup_choices_;
@@ -382,6 +446,7 @@ private:
     QStringList remaining_tasks_;
     QString current_task_;
     QVariantDictMap state_;
+    QMap<int,std::shared_ptr<QMetaObject::Connection>> connections_;
 
     mutable QMap<QString,TaskData> task_data_;
 };
@@ -410,31 +475,7 @@ Keeper::StartBackup(QDBusConnection bus, const QDBusMessage& msg, quint64 n_byte
 {
     Q_D(Keeper);
 
-    qDebug("Helper::StartBackup(n_bytes=%zu)", size_t(n_bytes));
-
-    // the next time we get a socket from storage-framework, return it to our caller
-    auto on_socket_ready = [bus,msg,n_bytes,this,d](std::shared_ptr<QLocalSocket> const &sf_socket)
-    {
-        if (sf_socket)
-        {
-            qDebug("getNewFileForBackup() returned socket %d", int(sf_socket->socketDescriptor()));
-            qDebug("calling helper.set_storage_framework_socket(n_bytes=%zu socket=%d)", size_t(n_bytes), int(sf_socket->socketDescriptor()));
-            d->backup_helper_->set_expected_size(n_bytes);
-            d->backup_helper_->set_storage_framework_socket(sf_socket);
-        }
-        auto reply = msg.createReply();
-        reply << QVariant::fromValue(QDBusUnixFileDescriptor(d->backup_helper_->get_helper_socket()));
-        bus.send(reply);
-    };
-    // cppcheck-suppress deallocuse
-    QObject::connect(d->storage_.data(), &StorageFrameworkClient::socketReady, on_socket_ready);
-
-    // ask storage framework for a new socket
-    d->storage_->getNewFileForBackup(n_bytes);
-
-    // tell the caller that we'll be responding async
-    msg.setDelayedReply(true);
-    return QDBusUnixFileDescriptor(0);
+    return d->start_backup(bus, msg, n_bytes);
 }
 
 QVector<Metadata>
