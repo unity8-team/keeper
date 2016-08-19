@@ -35,7 +35,7 @@ namespace FileUtils
 
     Info createDummyFile(const QDir& dir, qint64 filesize);
 
-    bool fillTemporaryDirectory(QString const & dir, int max_files_per_test=100, int max_filesize=1024, int max_dirs=20);
+    bool fillTemporaryDirectory(QString const & dir, int min_files_per_test=1, int max_files_per_test=100, int max_filesize=1024, int max_dirs=20);
 
     bool compareFiles(QString const & filePath1, QString const & filePath2);
 

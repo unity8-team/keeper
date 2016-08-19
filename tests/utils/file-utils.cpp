@@ -154,10 +154,10 @@ FileUtils::createDummyFile(const QDir& dir, qint64 filesize)
 }
 
 bool
-FileUtils::fillTemporaryDirectory(QString const & dir_path, int max_files, int max_filesize, int max_dirs)
+FileUtils::fillTemporaryDirectory(QString const & dir_path, int min_files, int max_files, int max_filesize, int max_dirs)
 {
     const auto dir = QDir(dir_path);
-    const auto n_files_wanted = std::max(1, (qrand() % max_files));
+    const auto n_files_wanted = min_files == max_files ? min_files : min_files + (qrand() % (max_files - min_files));
     const auto n_subdirs_wanted = max_dirs;
 
     int n_files_left {n_files_wanted};
