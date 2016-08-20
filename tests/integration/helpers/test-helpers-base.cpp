@@ -66,6 +66,17 @@ void TestHelpersBase::startTasks()
     g_dbus_connection_set_exit_on_close(bus, FALSE);
     g_object_add_weak_pointer(G_OBJECT(bus), (gpointer*)&bus);
 
+    auto session_bus = QDBusConnection::sessionBus();
+    user_iface.reset(
+        new DBusInterfaceKeeperUser(
+            DBusTypes::KEEPER_SERVICE,
+            DBusTypes::KEEPER_USER_PATH,
+            session_bus
+        )
+    );
+    ASSERT_TRUE(user_iface->isValid()) << qPrintable(session_bus.lastError().message());
+
+
     /* Make sure we pretend the CG manager is just on our bus */
     g_setenv("UBUNTU_APP_LAUNCH_CG_MANAGER_SESSION_BUS", "YES", TRUE);
 
@@ -221,6 +232,7 @@ void TestHelpersBase::SetUp()
 
 void TestHelpersBase::TearDown()
 {
+    user_iface.reset();
     kill(dbus_test_process_get_pid(keeper_process), SIGTERM);
 
     registry.reset();
@@ -562,3 +574,44 @@ void TestHelpersBase::pause(guint time)
         g_main_iteration(TRUE);
     }
 }
+
+bool
+TestHelpersBase::wait_for(
+    std::function<bool()>&& test_function,
+    qint64 timeout_msec,
+    qint64 test_interval)
+{
+    QElapsedTimer timer;
+    timer.start();
+    for(;;) {
+        if (test_function())
+            return true;
+        if (timer.hasExpired(timeout_msec))
+            return false;
+        QThread::msleep(test_interval);
+    }
+}
+
+bool
+TestHelpersBase::wait_for_tasks_to_finish()
+{
+    auto tasks_exist = [this]{
+        return !user_iface->state().isEmpty();
+    };
+
+    auto all_tasks_finished = [this]{
+        const auto state = user_iface->state();
+        bool all_done = true;
+        for(const auto& properties : state) {
+            const auto action = properties.value(KEY_ACTION);
+            qDebug() << "uuid" << properties.value(KEY_UUID).toString() << "action" << action;
+            bool task_done = (action == ACTION_CANCELLED) || (action == ACTION_FAILED) || (action == ACTION_COMPLETE);
+            if (!task_done)
+                all_done = false;
+        }
+        return all_done;
+    };
+
+    return wait_for(tasks_exist) && wait_for(all_tasks_finished,5000);
+}
+
