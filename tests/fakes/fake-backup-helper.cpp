@@ -35,8 +35,6 @@ main(int argc, char **argv)
 {
     QCoreApplication app(argc, argv);
 
-    const auto blob = QByteArray(FAKE_BACKUP_HELPER_PAYLOAD);
-
     // dump the inputs to stdout
     qDebug() << "argc:" << argc;
     for(int i=0; i<argc; ++i)
@@ -53,11 +51,13 @@ main(int argc, char **argv)
 
     qDebug() << "Is valid:" << helper_iface.isValid();
 
-    auto blob_size = blob.size();
+    auto blob = QByteArray(FAKE_BACKUP_HELPER_PAYLOAD);
+    const auto blob_size = blob.size();
 #ifdef COMPILE_WITH_FAILURE
-        // just remove 1 byte from the size to emulate a failure
-        blob_size--;
+    // make the blob one byte too small
+    blob.chop(1);
 #endif
+
     auto fd_reply = helper_iface.StartBackup(blob_size);
     fd_reply.waitForFinished();
     if (fd_reply.isError())
