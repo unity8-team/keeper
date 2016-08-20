@@ -79,6 +79,8 @@ void TestHelpersBase::SetUp()
 {
     Helper::registerMetaTypes();
 
+    removeHelperMarkBeforeStarting();
+
     /* Click DB test mode */
     g_setenv("TEST_CLICK_DB", "click-db-dir", TRUE);
     g_setenv("TEST_CLICK_USER", "test-user", TRUE);
