@@ -20,7 +20,6 @@
  */
 #pragma once
 
-#include <functional>
 #include <future>
 #include <thread>
 
@@ -63,28 +62,6 @@ extern "C" {
 
 class TestHelpersBase : public ::testing::Test
 {
-    // FIXME: these should go in a shared header in include/
-
-    static constexpr char const * KEY_ACTION = {"action"};
-    static constexpr char const * KEY_CTIME = {"ctime"};
-    static constexpr char const * KEY_BLOB = {"blob-data"};
-    static constexpr char const * KEY_ERROR = {"error"};
-    static constexpr char const * KEY_HELPER = {"helper-exec"};
-    static constexpr char const * KEY_NAME = {"display-name"};
-    static constexpr char const * KEY_PERCENT = {"percent-done"};
-    static constexpr char const * KEY_SIZE = {"size"};
-    static constexpr char const * KEY_SPEED = {"speed"};
-    static constexpr char const * KEY_SUBTYPE = {"subtype"};
-    static constexpr char const * KEY_TYPE = {"type"};
-    static constexpr char const * KEY_UUID = {"uuid"};
-
-    static constexpr char const * ACTION_QUEUED = {"queued"};
-    static constexpr char const * ACTION_SAVING = {"saving"};
-    static constexpr char const * ACTION_RESTORING = {"restoring"};
-    static constexpr char const * ACTION_CANCELLED = {"cancelled"};
-    static constexpr char const * ACTION_FAILED = {"failed"};
-    static constexpr char const * ACTION_COMPLETE = {"complete"};
-
 public:
     TestHelpersBase() = default;
 
@@ -102,7 +79,6 @@ protected:
     QProcess keeper_client;
     QTemporaryDir xdg_data_home_dir;
     DbusTestProcess * keeper_process = nullptr;
-    QScopedPointer<DBusInterfaceKeeperUser> user_iface;
 
 private:
     static void focus_cb(const gchar* appid, gpointer user_data);
@@ -147,9 +123,6 @@ protected:
     bool have_env(GVariant* env_array, const gchar* key);
 
     void pause(guint time = 0);
-
-    bool wait_for(std::function<bool()>&& test_function, qint64 timeout_msec=1000, qint64 test_interval=100);
-    bool wait_for_tasks_to_finish();
 };
 
 #define EXPECT_ENV(expected, envvars, key) EXPECT_EQ(expected, get_env(envvars, key)) << "for key " << key

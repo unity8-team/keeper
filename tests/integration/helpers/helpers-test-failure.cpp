@@ -38,6 +38,15 @@ TEST_F(TestHelpers, BackupHelperWritesTooLittle)
     // starts the services, including keeper-service
     startTasks();
 
+    QDBusConnection connection = QDBusConnection::sessionBus();
+    QScopedPointer<DBusInterfaceKeeperUser> user_iface(new DBusInterfaceKeeperUser(
+                                                            DBusTypes::KEEPER_SERVICE,
+                                                            DBusTypes::KEEPER_USER_PATH,
+                                                            connection
+                                                        ) );
+
+    ASSERT_TRUE(user_iface->isValid()) << qPrintable(QDBusConnection::sessionBus().lastError().message());
+
     // ask for a list of backup choices
     QDBusReply<QVariantDictMap> choices = user_iface->call("GetBackupChoices");
     EXPECT_TRUE(choices.isValid()) << qPrintable(choices.error().message());
@@ -60,11 +69,17 @@ TEST_F(TestHelpers, BackupHelperWritesTooLittle)
     QDBusReply<void> backup_reply = user_iface->call("StartBackup", QStringList{user_folder_uuid});
     ASSERT_TRUE(backup_reply.isValid()) << qPrintable(QDBusConnection::sessionBus().lastError().message());
 
-    EXPECT_TRUE(wait_for_tasks_to_finish());
+    // Wait until the helper finishes
+    EXPECT_TRUE(waitUntilHelperFinishes(DEKKO_APP_ID, 15000, 1));
 
-    // check that the this task failed
+    // check that the content of the file is the expected
+    EXPECT_EQ(0, checkStorageFrameworkNbFiles());
+
+    // check that the state is failed
     QVariantDictMap state = user_iface->state();
-    auto iter = state.find(user_folder_uuid);
+
+    // check that the state has the uuid
+    QVariantDictMap::const_iterator iter = state.find(user_folder_uuid);
     EXPECT_TRUE(iter != state.end());
     auto state_values = state[user_folder_uuid];
 
