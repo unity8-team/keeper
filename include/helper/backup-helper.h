@@ -31,7 +31,7 @@
 #include <memory>
 
 class BackupHelperPrivate;
-class BackupHelper : public Helper
+class BackupHelper final: public Helper
 {
     Q_OBJECT
     Q_DECLARE_PRIVATE(BackupHelper)
