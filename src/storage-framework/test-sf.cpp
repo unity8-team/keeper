@@ -26,6 +26,7 @@ TestSF::TestSF(QObject *parent)
     , timer_(new QTimer())
     , sf_(new StorageFrameworkClient())
     , seconds_{0}
+    , test_executed_{}
 {
     connect(timer_.data(), &QTimer::timeout, this, &TestSF::timeout_reached);
     timer_->start(2000);
@@ -47,7 +48,7 @@ void TestSF::timeout_reached()
     {
         start();
     }
-    if (seconds_ == 3)
+    if ( seconds_ > 4 && sf_socket_ && !test_executed_)
     {
 	QByteArray test("12345");
 	const auto n = sf_socket_->write(test);
@@ -62,6 +63,7 @@ void TestSF::timeout_reached()
                 qWarning() << "Write error:" << sf_socket_->errorString();
 	    }
 	}
+	test_executed_ = true;
     }
     qDebug() << "tick...";
 }

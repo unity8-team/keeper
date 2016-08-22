@@ -47,4 +47,5 @@ private:
     QScopedPointer<StorageFrameworkClient> sf_;
     std::shared_ptr<QLocalSocket> sf_socket_;
     int seconds_;
+    bool test_executed_;
 };
