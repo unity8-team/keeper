@@ -28,3 +28,16 @@ set(
   ${LIB_NAME}
   PARENT_SCOPE
 )
+
+add_executable(
+  test-sf
+  main.cpp
+  test-sf.cpp
+)
+
+target_link_libraries(
+  test-sf
+  ${LIB_NAME}
+  ${SERVICE_PRODUCTION_SF_DEPS_LIBRARIES}
+)
+

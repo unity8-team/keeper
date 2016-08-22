@@ -116,10 +116,20 @@ public:
             }
         );
 
+	QObject::connect(
+                    storage_framework_socket_.get(), &QLocalSocket::stateChanged,
+                    std::bind(&BackupHelperPrivate::on_state_changed, this, std::placeholders::_1)
+                );
+
         // TODO xavi is going to remove this line
         q_ptr->set_state(Helper::State::STARTED);
 
         reset_inactivity_timer();
+    }
+
+    void on_state_changed(QLocalSocket::LocalSocketState socketState)
+    {
+	qDebug() << "State of storage framework socket changed to: " << socketState;
     }
 
     void stop()

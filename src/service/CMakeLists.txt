@@ -1,5 +1,6 @@
 set(SERVICE_LIB "keeperservice")
 set(SERVICE_EXEC "keeper-service")
+set(SERVICE_LOCAL_EXEC "keeper-service-local")
 
 include_directories("${CMAKE_SOURCE_DIR}/src")
 include_directories("${CMAKE_BINARY_DIR}/src/qdbus-stubs")
@@ -27,18 +28,39 @@ add_executable(
   ${SERVICE_EXEC_SOURCES}
 )
 
+add_executable(
+  ${SERVICE_LOCAL_EXEC}
+  ${SERVICE_EXEC_SOURCES}
+)
+
 link_directories(
   ${SERVICE_DEPS_LIBRARY_DIRS}
+)
+
+set(
+  SERVICE_STATIC_LIBS
+  util
+  qdbus-stubs
+  storage-framework
+  backup-helper
 )
 
 target_link_libraries(
   ${SERVICE_EXEC}
   ${SERVICE_LIB}
-  util
-  qdbus-stubs
-  storage-framework
-  backup-helper
+  ${SERVICE_STATIC_LIBS}
   ${SERVICE_DEPS_LIBRARIES}
+  ${SERVICE_PRODUCTION_SF_DEPS_LIBRARIES}
+  Qt5::Core
+  Qt5::DBus
+)
+
+target_link_libraries(
+  ${SERVICE_LOCAL_EXEC}
+  ${SERVICE_LIB}
+  ${SERVICE_STATIC_LIBS}
+  ${SERVICE_DEPS_LIBRARIES}
+  ${SERVICE_DEVEL_SF_DEPS_LIBRARIES}
   Qt5::Core
   Qt5::DBus
 )
