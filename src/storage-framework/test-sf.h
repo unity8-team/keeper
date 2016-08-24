@@ -29,23 +29,27 @@ class TestSF : public QObject
 {
     Q_OBJECT
 public:
-    TestSF(QObject *parent = nullptr);
+    TestSF(bool commit, QObject *parent = nullptr);
     virtual ~TestSF();
 
     Q_DISABLE_COPY(TestSF)
 
     void start();
-
+    void write();
+    void finish();
     void timeout_reached();
 
 public Q_SLOTS:
     void sf_socket_ready(std::shared_ptr<QLocalSocket> const& sf_socket);
     void on_sf_socket_state_changed(QLocalSocket::LocalSocketState socketState);
+    void on_sf_socket_finished();
 
 private:
+    enum class State { INACTIVE, WAITING_SOCKET, SOCKET_READY, WROTE, WAITING_FINISH };
     QScopedPointer<QTimer> timer_;
     QScopedPointer<StorageFrameworkClient> sf_;
     std::shared_ptr<QLocalSocket> sf_socket_;
-    int seconds_;
-    bool test_executed_;
+    bool commit_;
+    State state_;
+    
 };

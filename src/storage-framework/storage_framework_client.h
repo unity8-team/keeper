@@ -22,7 +22,7 @@
 
 #include <unity/storage/qt/client/client-api.h>
 
-class StorageFrameworkClient : public QObject
+class StorageFrameworkClient final: public QObject
 {
     Q_OBJECT
 public:
@@ -39,7 +39,7 @@ public:
     void finish(bool do_commit);
 
 Q_SIGNALS:
-    void socketReady(std::shared_ptr<QLocalSocket> const&sf_socket);
+    void socketReady(std::shared_ptr<QLocalSocket> const& sf_socket);
     void finished();
 
 private Q_SLOTS:

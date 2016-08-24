@@ -21,50 +21,82 @@
 #include <QDebug>
 #include <QTimer>
 
-TestSF::TestSF(QObject *parent)
+TestSF::TestSF(bool commit, QObject *parent)
     : QObject(parent)
     , timer_(new QTimer())
     , sf_(new StorageFrameworkClient())
-    , seconds_{0}
-    , test_executed_{}
+    , commit_(commit)
+    , state_(TestSF::State::INACTIVE)
 {
     connect(timer_.data(), &QTimer::timeout, this, &TestSF::timeout_reached);
     timer_->start(2000);
 
     connect(sf_.data(), &StorageFrameworkClient::socketReady, this, &TestSF::sf_socket_ready);
+    connect(sf_.data(), &StorageFrameworkClient::finished, this, &TestSF::on_sf_socket_finished);
 }
 
 TestSF::~TestSF() = default;
 
 void TestSF::start()
 {
-    qDebug() << "Asking for socket";
+    state_ = TestSF::State::WAITING_SOCKET;
     sf_->getNewFileForBackup(1024);
+}
+
+void TestSF::write()
+{
+    QByteArray test("12345");
+    const auto n = sf_socket_->write(test);
+    if (n > 0) 
+    {
+	qDebug() << "Wrote " << n << " bytes OK";
+        state_ = TestSF::State::WROTE;
+    }
+    else 
+    {
+        if (n < 0) 
+        {
+            qWarning() << "Write error:" << sf_socket_->errorString();
+	}
+    }
+}
+
+void TestSF::finish()
+{
+    sf_->finish(commit_);
+    if (commit_)
+    {
+        state_ = TestSF::State::WAITING_FINISH;
+    }
+    else
+    {
+        state_ = TestSF::State::INACTIVE;
+    }
 }
 
 void TestSF::timeout_reached()
 {
-    if (++seconds_ == 1)
+    switch (state_)
     {
-        start();
-    }
-    if ( seconds_ > 4 && sf_socket_ && !test_executed_)
-    {
-	QByteArray test("12345");
-	const auto n = sf_socket_->write(test);
-	if (n > 0) 
-        {
-	    qDebug() << "Wrote " << n << " bytes OK";
-	}
-	else 
-        {
-	    if (n < 0) 
-            {
-                qWarning() << "Write error:" << sf_socket_->errorString();
-	    }
-	}
-	test_executed_ = true;
-    }
+	case TestSF::State::INACTIVE:
+		qDebug() << "********************************* Asking for socket";
+		start();
+		break;
+	case TestSF::State::WAITING_SOCKET:
+		qDebug() << "********************************* Waiting for socket";
+		break;
+	case TestSF::State::SOCKET_READY:
+                qDebug() << "********************************* Writing to the socket";
+		write();
+		break;
+	case TestSF::State::WROTE:
+		qDebug() << "********************************* Finishing socket: commiting changes = " << commit_;
+		finish();
+		break;
+	case TestSF::State::WAITING_FINISH:
+		qDebug() << "********************************* Waiting for the socket to finish";
+		break;
+    };
     qDebug() << "tick...";
 }
 
@@ -73,6 +105,7 @@ void TestSF::sf_socket_ready(std::shared_ptr<QLocalSocket> const& sf_socket)
 	qDebug() << "Storage framework socket ok";
         sf_socket_ = sf_socket;
 	connect(sf_socket_.get(), &QLocalSocket::stateChanged, this, &TestSF::on_sf_socket_state_changed);
+        state_ = TestSF::State::SOCKET_READY;
 }
 
 void TestSF::on_sf_socket_state_changed(QLocalSocket::LocalSocketState socketState)
@@ -80,3 +113,8 @@ void TestSF::on_sf_socket_state_changed(QLocalSocket::LocalSocketState socketSta
     qDebug() << "State of storage framework socket changed to: " << socketState;
 }
 
+void TestSF::on_sf_socket_finished()
+{
+    qDebug() << "Socket finished";
+    state_ = TestSF::State::INACTIVE;
+}

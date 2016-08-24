@@ -15,20 +15,12 @@
  *
  * Author: Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
-#include <QLocalSocket>
+
 #include "storage_framework_client.h"
 
-
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#include <sys/types.h>
-#include <time.h>
+#include <QDateTime>
+#include <QLocalSocket>
+#include <QString>
 
 using namespace unity::storage::qt::client;
 
@@ -53,7 +45,6 @@ void StorageFrameworkClient::getNewFileForBackup(quint64 n_bytes)
 
 void StorageFrameworkClient::finish(bool do_commit)
 {
-
     if (!uploader_ || !do_commit)
     {
         qDebug() << "StorageFrameworkClient::finish() is throwing away the file";
@@ -74,9 +65,16 @@ void StorageFrameworkClient::finish(bool do_commit)
 
 void StorageFrameworkClient::onUploaderClosed()
 {
-    auto file = uploader_closed_watcher_.result();
-    qDebug() << "Uploader for file" << file->name() << "was closed";
-    qDebug() << "Uploader was closed";
+    try
+    {
+        auto file = uploader_closed_watcher_.result();
+        qDebug() << "Uploader for file" << file->name() << "was closed";
+    }
+    catch (std::exception const& e)
+    {
+        qDebug() << "ERROR: StorageFrameworkClient::onUploaderClosed():" << e.what();
+    }
+
     uploader_->socket()->disconnectFromServer();
     uploader_.reset();
     Q_EMIT(finished());
@@ -115,7 +113,7 @@ void StorageFrameworkClient::rootsReady()
 
         // get the current date and time to create the new file
         QDateTime now = QDateTime::currentDateTime();
-        QString new_file_name = QString("Backup_%1").arg(now.toString("dd.MM.yyyy-hh:mm:ss.zzz"));
+        QString new_file_name = QString("Backup_%1").arg(now.toString("dd.MM.yyyy-hh.mm.ss.zzz"));
 
         uploader_ready_watcher_.setFuture(root->create_file(new_file_name, accounts_watcher_.property("n_bytes").toUInt()));
     }
@@ -128,7 +126,14 @@ void StorageFrameworkClient::rootsReady()
 
 void StorageFrameworkClient::uploaderReady()
 {
-    uploader_ = uploader_ready_watcher_.result();
+    try
+    {
+        uploader_ = uploader_ready_watcher_.result();
+    }
+    catch (std::exception const& e)
+    {
+        qDebug() << "ERROR: StorageFrameworkClient::uploaderReady():" << e.what();
+    }
 
     Q_EMIT (socketReady(uploader_->socket()));
 }
