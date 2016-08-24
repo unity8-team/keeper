@@ -31,6 +31,7 @@ public:
 
     Metadata();
     Metadata(QString const& uuid, QString const& display_name);
+    ~Metadata();
 
     // metadata keys
     static QString const TYPE_KEY;

@@ -22,7 +22,7 @@
 
 #include <unity/storage/qt/client/client-api.h>
 
-class StorageFrameworkClient : public QObject
+class StorageFrameworkClient final: public QObject
 {
     Q_OBJECT
 public:

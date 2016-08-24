@@ -15,20 +15,12 @@
  *
  * Author: Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
-#include <QLocalSocket>
+
 #include "storage_framework_client.h"
 
-
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#include <sys/types.h>
-#include <time.h>
+#include <QDateTime>
+#include <QLocalSocket>
+#include <QString>
 
 using namespace unity::storage::qt::client;
 
@@ -53,7 +45,6 @@ void StorageFrameworkClient::getNewFileForBackup(quint64 n_bytes)
 
 void StorageFrameworkClient::finish(bool do_commit)
 {
-
     if (!uploader_ || !do_commit)
     {
         qDebug() << "StorageFrameworkClient::finish() is throwing away the file";
@@ -84,7 +75,6 @@ void StorageFrameworkClient::onUploaderClosed()
         qDebug() << "ERROR: StorageFrameworkClient::onUploaderClosed():" << e.what();
     }
 
-    qDebug() << "Uploader was closed";
     uploader_->socket()->disconnectFromServer();
     uploader_.reset();
     Q_EMIT(finished());

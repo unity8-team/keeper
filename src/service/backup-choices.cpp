@@ -50,7 +50,7 @@ BackupChoices::BackupChoices() =default;
 BackupChoices::~BackupChoices() =default;
 
 QVector<Metadata>
-BackupChoices::get_backups()
+BackupChoices::get_backups() const
 {
     QVector<Metadata> ret;
 

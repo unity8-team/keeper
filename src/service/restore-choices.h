@@ -33,7 +33,7 @@ class RestoreChoices: public MetadataProvider
 public:
     RestoreChoices();
     virtual ~RestoreChoices();
-    QVector<Metadata> get_backups() override;
+    QVector<Metadata> get_backups() const override;
 
 private:
     unity::storage::qt::client::Runtime::SPtr runtime_;

@@ -14,20 +14,13 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authors:
- *   Charles Kerr <charles.kerr@canoincal.com>
+ *   Charles Kerr <charles.kerr@canonical.com>
  */
 
 #pragma once
 
-#include "service/metadata-provider.h"
-
-/**
- * A MetadataProvider that lists the backups that can be created
- */
-class BackupChoices: public MetadataProvider
-{
-public:
-    BackupChoices();
-    virtual ~BackupChoices();
-    QVector<Metadata> get_backups() const override;
-};
+#ifdef __GNUC__
+  #define __pure __attribute__((pure))
+#else
+  #define __pure
+#endif
