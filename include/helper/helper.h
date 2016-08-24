@@ -35,10 +35,12 @@ public:
     Q_DISABLE_COPY(Helper)
 
     Q_ENUMS(State)
-    enum class State {NOT_STARTED, STARTED, CANCELLED, FAILED, COMPLETE};
+    enum class State {NOT_STARTED, STARTED, CANCELLED, FAILED, DATA_COMPLETE, COMPLETE};
 
     Q_PROPERTY(Helper::State state READ state NOTIFY state_changed)
     State state() const;
+
+    virtual QString to_string(Helper::State state) const;
 
     // NB: range is [0.0 .. 1.0]
     Q_PROPERTY(float percent_done READ percent_done NOTIFY percent_done_changed)
@@ -68,7 +70,7 @@ protected:
     Helper(QString const & appid, const clock_func& clock=default_clock, QObject *parent=nullptr);
     void set_state(State);
     void record_data_transferred(qint64 n_bytes);
-    virtual void on_helper_process_stopped();
+    virtual void on_helper_process_stopped() = 0;
 
 private:
 

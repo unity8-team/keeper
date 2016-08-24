@@ -166,7 +166,7 @@ public:
     {
         if (state_ != state)
         {
-            qDebug() << "changing state of helper" << static_cast<void*>(this) << "from" << toString(state_) << "to" << toString(state);
+            qDebug() << "changing state of helper" << static_cast<void*>(this) << "from" << q_ptr->to_string(state_) << "to" << q_ptr->to_string(state);
             state_ = state;
             q_ptr->state_changed(state);
         }
@@ -221,9 +221,21 @@ public:
         ual_stop();
     }
 
-    void on_helper_process_stopped()
+    QString to_string(Helper::State state) const
     {
-        q_ptr->set_state(Helper::State::COMPLETE);
+        auto ret = QStringLiteral("bug");
+
+        switch (state)
+        {
+            case State::NOT_STARTED:   ret = QStringLiteral("not-started"); break;
+            case State::STARTED:       ret = QStringLiteral("started");     break;
+            case State::CANCELLED:     ret = QStringLiteral("cancelled");   break;
+            case State::FAILED:        ret = QStringLiteral("failed");      break;
+            case State::DATA_COMPLETE: ret = QStringLiteral("finishing");   break;
+            case State::COMPLETE:      ret = QStringLiteral("complete");    break;
+        }
+
+        return ret;
     }
 
 private:
@@ -311,22 +323,6 @@ private:
         }
     }
 
-    QString toString(Helper::State state)
-    {
-        auto ret = QStringLiteral("bug");
-
-        switch (state)
-        {
-            case State::NOT_STARTED: ret = QStringLiteral("not-started"); break;
-            case State::STARTED:     ret = QStringLiteral("started");     break;
-            case State::CANCELLED:   ret = QStringLiteral("cancelled");   break;
-            case State::FAILED:      ret = QStringLiteral("failed");      break;
-            case State::COMPLETE:    ret = QStringLiteral("complete");    break;
-        }
-
-        return ret;
-    }
-
     Helper * const q_ptr;
     QString appid_;
     clock_func clock_;
@@ -358,6 +354,14 @@ Helper::state() const
     Q_D(const Helper);
 
     return d->state();
+}
+
+QString
+Helper::to_string(Helper::State state) const
+{
+    Q_D(const Helper);
+
+    return d->to_string(state);
 }
 
 int
@@ -437,12 +441,4 @@ Helper::stop()
     Q_D(Helper);
 
     d->stop();
-}
-
-void
-Helper::on_helper_process_stopped()
-{
-    Q_D(Helper);
-
-    d->on_helper_process_stopped();
 }

@@ -52,6 +52,10 @@ public:
     void stop() override;
     void on_helper_process_stopped() override;
     int get_helper_socket() const;
+    QString to_string(Helper::State state) const override;
+
+public Q_SLOTS:
+    void on_storage_framework_finished();
 
 private:
     QScopedPointer<BackupHelperPrivate> const d_ptr;

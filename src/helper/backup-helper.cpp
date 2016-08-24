@@ -56,6 +56,7 @@ public:
         , read_error_{}
         , write_error_{}
         , cancelled_{}
+        , storage_framework_socket_open_{}
     {
         // listen for inactivity
         QObject::connect(timer_.data(), &QTimer::timeout,
@@ -104,14 +105,25 @@ public:
         storage_framework_socket_ = sf_socket;
 
         // listen for data uploaded
-        QObject::connect(storage_framework_socket_.get(), &QLocalSocket::bytesWritten,
-                         std::bind(&BackupHelperPrivate::on_data_uploaded, this, std::placeholders::_1)
-                         );
+
+        storage_framework_socket_connection_.reset(
+                          new QMetaObject::Connection(
+                               QObject::connect(
+                                       storage_framework_socket_.get(), &QLocalSocket::bytesWritten,
+                                   std::bind(&BackupHelperPrivate::on_data_uploaded, this, std::placeholders::_1)
+                               )
+                           ),
+                            [](QMetaObject::Connection* c){
+                                QObject::disconnect(*c);
+                            }
+                );
 
         // TODO xavi is going to remove this line
         q_ptr->set_state(Helper::State::STARTED);
 
         reset_inactivity_timer();
+
+        storage_framework_socket_open_ = true;
     }
 
     void stop()
@@ -129,6 +141,32 @@ public:
     int get_helper_socket() const
     {
         return int(helper_socket_->socketDescriptor());
+    }
+
+    void on_storage_framework_finished()
+    {
+        qDebug() << "storage framework has finished for the current helper...";
+        storage_framework_socket_open_ = false;
+        check_for_done();
+    }
+
+    QString to_string(Helper::State state) const
+    {
+        QString ret = QStringLiteral("bug");
+        switch (state)
+        {
+            case Helper::State::STARTED:
+                ret = QStringLiteral("saving");
+                break;
+            case Helper::State::NOT_STARTED:
+            case Helper::State::CANCELLED:
+            case Helper::State::FAILED:
+            case Helper::State::DATA_COMPLETE:
+            case Helper::State::COMPLETE:
+                ret = q_ptr->Helper::to_string(state);
+                break;
+        }
+        return ret;
     }
 
 private:
@@ -223,7 +261,10 @@ private:
 
         if (n_uploaded_ == q_ptr->expected_size())
         {
-            q_ptr->set_state(Helper::State::COMPLETE);
+            if (storage_framework_socket_open_)
+                q_ptr->set_state(Helper::State::DATA_COMPLETE);
+            else
+                q_ptr->set_state(Helper::State::COMPLETE);
         }
         else if (read_error_ || write_error_ || n_uploaded_ != q_ptr->expected_size())
         {
@@ -252,6 +293,8 @@ private:
     bool read_error_;
     bool write_error_;
     bool cancelled_;
+    bool storage_framework_socket_open_;
+    std::shared_ptr<QMetaObject::Connection> storage_framework_socket_connection_;
 };
 
 /***
@@ -308,4 +351,20 @@ BackupHelper::get_helper_socket() const
     Q_D(const BackupHelper);
 
     return d->get_helper_socket();
+}
+
+QString
+BackupHelper::to_string(Helper::State state) const
+{
+    Q_D(const BackupHelper);
+
+    return d->to_string(state);
+}
+
+void
+BackupHelper::on_storage_framework_finished()
+{
+    Q_D(BackupHelper);
+
+    return d->on_storage_framework_finished();
 }
