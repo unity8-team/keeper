@@ -74,8 +74,16 @@ void StorageFrameworkClient::finish(bool do_commit)
 
 void StorageFrameworkClient::onUploaderClosed()
 {
-    auto file = uploader_closed_watcher_.result();
-    qDebug() << "Uploader for file" << file->name() << "was closed";
+    try
+    {
+        auto file = uploader_closed_watcher_.result();
+        qDebug() << "Uploader for file" << file->name() << "was closed";
+    }
+    catch (std::exception const& e)
+    {
+        qDebug() << "ERROR: StorageFrameworkClient::onUploaderClosed():" << e.what();
+    }
+
     qDebug() << "Uploader was closed";
     uploader_->socket()->disconnectFromServer();
     uploader_.reset();
@@ -128,7 +136,14 @@ void StorageFrameworkClient::rootsReady()
 
 void StorageFrameworkClient::uploaderReady()
 {
-    uploader_ = uploader_ready_watcher_.result();
+    try
+    {
+        uploader_ = uploader_ready_watcher_.result();
+    }
+    catch (std::exception const& e)
+    {
+        qDebug() << "ERROR: StorageFrameworkClient::uploaderReady():" << e.what();
+    }
 
     Q_EMIT (socketReady(uploader_->socket()));
 }
