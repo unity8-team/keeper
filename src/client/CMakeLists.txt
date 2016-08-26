@@ -1,3 +1,5 @@
+add_subdirectory(qml-plugin)
+
 set(
   CLIENT_LIB
   keeper-client-${KEEPER_MAJOR}.${KEEPER_MINOR}

@@ -17,41 +17,149 @@
  *     Marcus Tomlinson <marcus.tomlinson@canonical.com>
  */
 
+#include <QTimer>
+
 #include <client/client.h>
 
 #include <qdbus-stubs/keeper_user_interface.h>
 
-class KeeperClientPrivate final
+struct KeeperClientPrivate final
 {
     Q_DISABLE_COPY(KeeperClientPrivate)
 
-public:
-    KeeperClientPrivate()
-        : user_iface(new DBusInterfaceKeeperUser(
-                         DBusTypes::KEEPER_SERVICE,
-                         DBusTypes::KEEPER_USER_PATH,
-                         QDBusConnection::sessionBus()
-                         ))
+    KeeperClientPrivate(QObject* parent)
+        : userIface(new DBusInterfaceKeeperUser(
+                          DBusTypes::KEEPER_SERVICE,
+                          DBusTypes::KEEPER_USER_PATH,
+                          QDBusConnection::sessionBus()
+                          )),
+        status(""),
+        progress(0),
+        readyToBackup(false),
+        backupBusy(false),
+        stateTimer(parent)
     {
     }
 
     ~KeeperClientPrivate() = default;
 
-    QScopedPointer<DBusInterfaceKeeperUser> user_iface;
+    QScopedPointer<DBusInterfaceKeeperUser> userIface;
+    QString status;
+    QMap<QString, QVariantMap> backups;
+    double progress;
+    bool readyToBackup;
+    bool backupBusy;
+    QTimer stateTimer;
 };
 
-KeeperClient::KeeperClient(QObject* parent)
-    : QObject{parent}
-    , d_ptr(new KeeperClientPrivate())
+KeeperClient::KeeperClient(QObject* parent) :
+    QObject(parent),
+    d(new KeeperClientPrivate(this))
 {
     DBusTypes::registerMetaTypes();
+
+    // Store backups list locally with an additional "enabled" pair to keep track enabled states
+    // TODO: We should be listening to a backupChoicesChanged signal to keep this list updated
+    d->backups = getBackupChoices();
+    for(auto iter = d->backups.begin(); iter != d->backups.end(); ++iter)
+    {
+        iter.value()["enabled"] = false;
+    }
+
+    connect(&d->stateTimer, &QTimer::timeout, this, &KeeperClient::stateUpdated);
 }
 
 KeeperClient::~KeeperClient() = default;
 
-QMap<QString, QVariantMap> KeeperClient::GetBackupChoices() const
+QStringList KeeperClient::backupUuids()
 {
-    QDBusReply<QMap<QString, QVariantMap>> choices = d_ptr->user_iface->call("GetBackupChoices");
+    QStringList returnList;
+    for(auto iter = d->backups.begin(); iter != d->backups.end(); ++iter)
+    {
+        // TODO: We currently only support "folder" type backups
+        if (iter.value().value("type").toString() == "folder")
+        {
+            returnList.append(iter.key());
+        }
+    }
+    return returnList;
+}
+
+QString KeeperClient::status()
+{
+    return d->status;
+}
+
+double KeeperClient::progress()
+{
+    return d->progress;
+}
+
+bool KeeperClient::readyToBackup()
+{
+    return d->readyToBackup;
+}
+
+bool KeeperClient::backupBusy()
+{
+    return d->backupBusy;
+}
+
+void KeeperClient::enableBackup(QString uuid, bool enabled)
+{
+    d->backups[uuid]["enabled"] = enabled;
+
+    for (auto const& backup : d->backups)
+    {
+        d->readyToBackup = false;
+
+        if (backup.value("enabled") == true)
+        {
+            d->readyToBackup = true;
+            break;
+        }
+    }
+
+    Q_EMIT readyToBackupChanged();
+}
+
+void KeeperClient::startBackup()
+{
+    // TODO: Instead of polling for state, we should be listening to a stateChanged signal
+    if (!d->stateTimer.isActive())
+    {
+        d->stateTimer.start(200);
+    }
+
+    // Determine which backups are enabled, and start only those
+    QStringList backupList;
+    for(auto iter = d->backups.begin(); iter != d->backups.end(); ++iter)
+    {
+        if (iter.value().value("enabled").toBool())
+        {
+            backupList.append(iter.key());
+        }
+    }
+
+    if (!backupList.empty())
+    {
+        startBackup(backupList);
+
+        d->status = "Preparing Backup...";
+        Q_EMIT statusChanged();
+        d->backupBusy = true;
+        Q_EMIT backupBusyChanged();
+    }
+}
+
+QString KeeperClient::getBackupName(QString uuid)
+{
+    return d->backups.value(uuid).value("display-name").toString();
+}
+
+QMap<QString, QVariantMap> KeeperClient::getBackupChoices() const
+{
+    QDBusReply<QMap<QString, QVariantMap>> choices = d->userIface->call("GetBackupChoices");
 
     if (!choices.isValid())
     {
@@ -62,17 +170,61 @@ QMap<QString, QVariantMap> KeeperClient::GetBackupChoices() const
     return choices.value();
 }
 
-void KeeperClient::StartBackup(const QStringList& uuids) const
+void KeeperClient::startBackup(const QStringList& uuids) const
 {
-    QDBusReply<void> backup_reply = d_ptr->user_iface->call("StartBackup", uuids);
+    QDBusReply<void> backupReply = d->userIface->call("StartBackup", uuids);
 
-    if (!backup_reply.isValid())
+    if (!backupReply.isValid())
     {
-        qWarning() << "Error starting backup:" << backup_reply.error().message();
+        qWarning() << "Error starting backup:" << backupReply.error().message();
     }
 }
 
-QMap<QString, QVariantMap> KeeperClient::GetState() const
+QMap<QString, QVariantMap> KeeperClient::getState() const
 {
-    return d_ptr->user_iface->state();
+    return d->userIface->state();
+}
+
+void KeeperClient::stateUpdated()
+{
+    auto states = getState();
+
+    if (!states.empty())
+    {
+        // Calculate current total progress
+        // TODO: May be better to monitor each backup's progress separately instead of total
+        //       to avoid irregular jumps in progress between larger and smaller backups
+        double totalProgress = 0;
+        for (auto const& state : states)
+        {
+            totalProgress += state.value("percent-done").toDouble();
+        }
+
+        d->progress = totalProgress / states.count();
+        Q_EMIT progressChanged();
+
+        // Update backup status
+        if (d->progress > 0 && d->progress < 1)
+        {
+            d->status = "Backup In Progress...";
+            Q_EMIT statusChanged();
+
+            d->backupBusy = true;
+            Q_EMIT backupBusyChanged();
+        }
+        else if (d->progress >= 1)
+        {
+            d->status = "Backup Complete";
+            Q_EMIT statusChanged();
+
+            d->backupBusy = false;
+            Q_EMIT backupBusyChanged();
+
+            // Stop state timer
+            if (d->stateTimer.isActive())
+            {
+                d->stateTimer.stop();
+            }
+        }
+    }
 }
