@@ -21,7 +21,7 @@
 #include <dbus-types.h>
 #include <util/logging.h>
 
-#include "keeper_user_interface.h"
+#include <keeper_user_interface.h>
 
 #include <QCoreApplication>
 #include <QDBusConnection>

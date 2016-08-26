@@ -20,9 +20,9 @@
 #include <QtQml>
 #include <QtQml/QQmlContext>
 
-#include "plugin.h"
-#include <client.h>
+#include <plugin.h>
 
+#include <client.h>
 
 void QmlKeeperPlugin::registerTypes(const char *uri)
 {
