@@ -218,10 +218,12 @@ private:
     {
         if (n_uploaded_ == q_ptr->expected_size())
         {
+            qDebug() << "n_uploaded = " << n_uploaded_ << " expected = " << q_ptr->expected_size() << " --- COMPLETE";
             q_ptr->set_state(Helper::State::COMPLETE);
         }
         else if (read_error_ || write_error_ || (n_uploaded_ > q_ptr->expected_size()))
         {
+            qDebug() << "n_uploaded = " << n_uploaded_ << " expected = " << q_ptr->expected_size() << " --- FAILED";
             q_ptr->set_state(Helper::State::FAILED);
         }
         else if (cancelled_)

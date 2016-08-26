@@ -19,30 +19,58 @@
 
 #pragma once
 
-#define KEEPER_EXPORT __attribute__((visibility("default")))
-
 #include <QObject>
 #include <QScopedPointer>
+#include <QStringList>
 #include <QVariant>
 
 class KeeperClientPrivate;
 
-class KEEPER_EXPORT KeeperClient final : public QObject
+class Q_DECL_EXPORT KeeperClient : public QObject
 {
     Q_OBJECT
     Q_DISABLE_COPY(KeeperClient)
 
+// QML
 public:
     explicit KeeperClient(QObject* parent = nullptr);
     ~KeeperClient();
 
-    QMap<QString, QVariantMap> GetBackupChoices() const;
-    void StartBackup(QStringList const& uuids) const;
+    Q_PROPERTY(QStringList backupUuids READ backupUuids CONSTANT)
+    QStringList backupUuids();
 
-    QMap<QString, QVariantMap> GetState() const;
+    Q_PROPERTY(QString status READ status NOTIFY statusChanged)
+    QString status();
+
+    Q_PROPERTY(double progress READ progress NOTIFY progressChanged)
+    double progress();
+
+    Q_PROPERTY(bool readyToBackup READ readyToBackup NOTIFY readyToBackupChanged)
+    bool readyToBackup();
+
+    Q_PROPERTY(bool backupBusy READ backupBusy NOTIFY backupBusyChanged)
+    bool backupBusy();
+
+    Q_INVOKABLE QString getBackupName(QString uuid);
+    Q_INVOKABLE void enableBackup(QString uuid, bool enabled);
+    Q_INVOKABLE void startBackup();
+
+// C++
+public:
+    QMap<QString, QVariantMap> getBackupChoices() const;
+    void startBackup(QStringList const& uuids) const;
+
+    QMap<QString, QVariantMap> getState() const;
 
 Q_SIGNALS:
+    void statusChanged();
+    void progressChanged();
+    void readyToBackupChanged();
+    void backupBusyChanged();
+
+private Q_SLOTS:
+    void stateUpdated();
 
 private:
-    QScopedPointer<KeeperClientPrivate> const d_ptr;
+    QScopedPointer<KeeperClientPrivate> const d;
 };
