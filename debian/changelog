@@ -1,5 +1,9 @@
-keeper (0.1.0) UNRELEASED; urgency=medium
+keeper (0.1.0+16.10.20160826-0ubuntu1) yakkety; urgency=medium
 
+  [ Xavi Garcia ]
   * Initial release. 
 
- -- Xavi Garcia <xavi.garcia.mena@canonical.com>  Fri, 17 Jun 2016 11:53:10 +0200
+  [ Marcus Tomlinson, Xavi Garcia Mena ]
+  * Add client QML API
+
+ -- Marcus Tomlinson <marcus.tomlinson@canonical.com>  Fri, 26 Aug 2016 10:17:02 +0000
