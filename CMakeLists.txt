@@ -1,7 +1,12 @@
 # Version
 set(KEEPER_MAJOR "0")
-set(KEEPER_MINOR "0")
-set(KEEPER_MICRO "1")
+set(KEEPER_MINOR "1")
+set(KEEPER_MICRO "0")
+
+set(
+  KEEPER_CLIENT_LIB
+  keeper-client-${KEEPER_MAJOR}.${KEEPER_MINOR}
+)
 
 # Default install location. Must be set here, before setting the project.
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -52,6 +57,7 @@ set(CMAKE_INSTALL_FULL_PKGLIBEXECDIR "${CMAKE_INSTALL_FULL_LIBEXECDIR}/${CMAKE_P
 find_package(Threads REQUIRED)
 
 set(CMAKE_AUTOMOC ON)
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 add_definitions(
     -DQT_NO_KEYWORDS=1
