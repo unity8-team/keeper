@@ -77,6 +77,9 @@ void TestHelpersBase::startTasks()
 
 void TestHelpersBase::SetUp()
 {
+    // let's leave things clean
+    EXPECT_TRUE(removeHelperMarkBeforeStarting());
+
     Helper::registerMetaTypes();
 
     /* Click DB test mode */
@@ -410,6 +413,7 @@ bool TestHelpersBase::waitUntilHelperFinishes(QString const & app_id, int maxTim
     // TODO create a new mock for upstart that controls the lifecycle of the
     // helper process so we can do this in a cleaner way.
     QFile helper_mark(SIMPLE_HELPER_MARK_FILE_PATH);
+    qDebug() << "Helper mark exists before waiting..." << helper_mark.exists();
     QElapsedTimer timer;
     timer.start();
     auto times_to_wait = times;
