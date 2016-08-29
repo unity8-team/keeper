@@ -57,4 +57,5 @@ private:
     QFutureWatcher<QVector<std::shared_ptr<unity::storage::qt::client::Account>>> accounts_watcher_;
     QFutureWatcher<QVector<std::shared_ptr<unity::storage::qt::client::Root>>> roots_watcher_;
     std::shared_ptr<unity::storage::qt::client::Uploader> uploader_;
+    std::shared_ptr<unity::storage::qt::client::Root> root_;
 };

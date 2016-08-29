@@ -30,6 +30,7 @@ StorageFrameworkClient::StorageFrameworkClient(QObject *parent)
     , uploader_ready_watcher_(parent)
     , uploader_closed_watcher_(parent)
     , uploader_()
+    , root_(nullptr)
 {
     QObject::connect(&uploader_ready_watcher_,&QFutureWatcher<std::shared_ptr<Uploader>>::finished, this, &StorageFrameworkClient::uploaderReady);
     QObject::connect(&uploader_closed_watcher_,&QFutureWatcher<std::shared_ptr<File>>::finished, this, &StorageFrameworkClient::onUploaderClosed);
@@ -41,6 +42,19 @@ void StorageFrameworkClient::getNewFileForBackup(quint64 n_bytes)
 {
     accounts_watcher_.setProperty("n_bytes", n_bytes);
     accounts_watcher_.setFuture(runtime_->accounts());
+    if (root_) {
+        qDebug() << "id:" << root_->native_identity();
+        qDebug() << "time:" << root_->last_modified_time();
+
+        // XGM ADD A new file to the root
+        QFutureWatcher<std::shared_ptr<Uploader>> new_file_watcher;
+
+        // get the current date and time to create the new file
+        QDateTime now = QDateTime::currentDateTime();
+        QString new_file_name = QString("Backup_%1").arg(now.toString("dd.MM.yyyy-hh.mm.ss.zzz"));
+
+        uploader_ready_watcher_.setFuture(root_->create_file(new_file_name, accounts_watcher_.property("n_bytes").toUInt()));
+    }
 }
 
 void StorageFrameworkClient::finish(bool do_commit)
@@ -92,6 +106,7 @@ void StorageFrameworkClient::accountsReady()
         }
 
         roots_watcher_.setFuture(accounts[0]->roots());
+        
     }
     catch (std::exception & e)
     {
@@ -103,10 +118,9 @@ void StorageFrameworkClient::accountsReady()
 void StorageFrameworkClient::rootsReady()
 {
     try {
-        Root::SPtr root = roots_watcher_.result()[0];
-
-        qDebug() << "id:" << root->native_identity();
-        qDebug() << "time:" << root->last_modified_time();
+        root_ = roots_watcher_.result()[0];
+        qDebug() << "id:" << root_->native_identity();
+        qDebug() << "time:" << root_->last_modified_time();
 
         // XGM ADD A new file to the root
         QFutureWatcher<std::shared_ptr<Uploader>> new_file_watcher;
@@ -115,7 +129,7 @@ void StorageFrameworkClient::rootsReady()
         QDateTime now = QDateTime::currentDateTime();
         QString new_file_name = QString("Backup_%1").arg(now.toString("dd.MM.yyyy-hh.mm.ss.zzz"));
 
-        uploader_ready_watcher_.setFuture(root->create_file(new_file_name, accounts_watcher_.property("n_bytes").toUInt()));
+        uploader_ready_watcher_.setFuture(root_->create_file(new_file_name, accounts_watcher_.property("n_bytes").toUInt()));
     }
     catch (std::exception & e)
     {
@@ -128,6 +142,7 @@ void StorageFrameworkClient::uploaderReady()
 {
     try
     {
+        qDebug() << "uploadReady";
         uploader_ = uploader_ready_watcher_.result();
     }
     catch (std::exception const& e)

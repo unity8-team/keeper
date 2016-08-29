@@ -57,7 +57,7 @@ void TestSF::write()
         if (n < 0) 
         {
             qWarning() << "Write error:" << sf_socket_->errorString();
-	}
+	    }
     }
 }
 
@@ -79,22 +79,22 @@ void TestSF::timeout_reached()
     switch (state_)
     {
 	case TestSF::State::INACTIVE:
-		qDebug() << "********************************* Asking for socket";
+		qDebug() << QDateTime::currentDateTime().toString() << "********************************* Asking for socket";
 		start();
 		break;
 	case TestSF::State::WAITING_SOCKET:
-		qDebug() << "********************************* Waiting for socket";
+		qDebug() << QDateTime::currentDateTime().toString() << "********************************* Waiting for socket";
 		break;
 	case TestSF::State::SOCKET_READY:
-                qDebug() << "********************************* Writing to the socket";
+        qDebug() << QDateTime::currentDateTime().toString() << "********************************* Writing to the socket";
 		write();
 		break;
 	case TestSF::State::WROTE:
-		qDebug() << "********************************* Finishing socket: commiting changes = " << commit_;
+		qDebug() << QDateTime::currentDateTime().toString() << "********************************* Finishing socket: commiting changes = " << commit_;
 		finish();
 		break;
 	case TestSF::State::WAITING_FINISH:
-		qDebug() << "********************************* Waiting for the socket to finish";
+		qDebug() << QDateTime::currentDateTime().toString() << "********************************* Waiting for the socket to finish";
 		break;
     };
     qDebug() << "tick...";
