@@ -99,6 +99,7 @@ void KeeperTaskPrivate::on_helper_state_changed(Helper::State state)
             task_data_.percent_done = 1;
             qDebug() << "Helper data complete.. closing the socket.";
             break;
+
         case Helper::State::COMPLETE:
             qDebug() << "Helper complete.";
             break;

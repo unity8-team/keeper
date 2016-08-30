@@ -51,12 +51,6 @@ public:
         , helper_socket_(new QLocalSocket())
         , read_socket_(new QLocalSocket())
         , upload_buffer_{}
-        , n_read_{}
-        , n_uploaded_{}
-        , read_error_{}
-        , write_error_{}
-        , cancelled_{}
-        , storage_framework_socket_open_{}
     {
         // listen for inactivity
         QObject::connect(timer_.data(), &QTimer::timeout,
@@ -151,21 +145,9 @@ public:
 
     QString to_string(Helper::State state) const
     {
-        QString ret = QStringLiteral("bug");
-        switch (state)
-        {
-            case Helper::State::STARTED:
-                ret = QStringLiteral("saving");
-                break;
-            case Helper::State::NOT_STARTED:
-            case Helper::State::CANCELLED:
-            case Helper::State::FAILED:
-            case Helper::State::DATA_COMPLETE:
-            case Helper::State::COMPLETE:
-                ret = q_ptr->Helper::to_string(state);
-                break;
-        }
-        return ret;
+        return state == Helper::State::STARTED
+            ? QStringLiteral("saving")
+            : q_ptr->Helper::to_string(state);
     }
 
 private:
@@ -274,12 +256,12 @@ private:
     QScopedPointer<QLocalSocket> helper_socket_;
     QScopedPointer<QLocalSocket> read_socket_;
     QByteArray upload_buffer_;
-    qint64 n_read_;
-    qint64 n_uploaded_;
-    bool read_error_;
-    bool write_error_;
-    bool cancelled_;
-    bool storage_framework_socket_open_;
+    qint64 n_read_ = 0;
+    qint64 n_uploaded_ = 0;
+    bool read_error_ = false;
+    bool write_error_ = false;
+    bool cancelled_ = false;
+    bool storage_framework_socket_open_ = false;
     std::shared_ptr<QMetaObject::Connection> storage_framework_socket_connection_;
 };
 
