@@ -115,8 +115,6 @@ public:
         q_ptr->set_state(Helper::State::STARTED);
 
         reset_inactivity_timer();
-
-        storage_framework_socket_open_ = true;
     }
 
     void stop()
@@ -139,7 +137,7 @@ public:
     void on_storage_framework_finished()
     {
         qDebug() << "storage framework has finished for the current helper...";
-        storage_framework_socket_open_ = false;
+        storage_framework_socket_.reset();
         check_for_done();
     }
 
@@ -229,7 +227,7 @@ private:
     {
         if (n_uploaded_ == q_ptr->expected_size())
         {
-            if (storage_framework_socket_open_)
+            if (storage_framework_socket_)
                 q_ptr->set_state(Helper::State::DATA_COMPLETE);
             else
                 q_ptr->set_state(Helper::State::COMPLETE);
@@ -261,7 +259,6 @@ private:
     bool read_error_ = false;
     bool write_error_ = false;
     bool cancelled_ = false;
-    bool storage_framework_socket_open_ = false;
     std::shared_ptr<QMetaObject::Connection> storage_framework_socket_connection_;
 };
 
