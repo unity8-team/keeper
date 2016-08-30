@@ -36,7 +36,7 @@ public Q_SLOTS:
     QDBusObjectPath GetJobByName(QString const &name) const;
 
 public:
-    UpstartMock(QObject* parent = 0);
+    explicit UpstartMock(QObject* parent = 0);
     virtual ~UpstartMock();
 
 private:
@@ -44,4 +44,3 @@ private:
 };
 
 } // namespace testing
-

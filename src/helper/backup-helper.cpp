@@ -29,6 +29,7 @@
 #include <QScopedPointer>
 #include <QString>
 #include <QTimer>
+#include <QThread>
 #include <QVector>
 
 #include <fcntl.h>
@@ -51,12 +52,6 @@ public:
         , helper_socket_(new QLocalSocket())
         , read_socket_(new QLocalSocket())
         , upload_buffer_{}
-        , n_read_{}
-        , n_uploaded_{}
-        , read_error_{}
-        , write_error_{}
-        , cancelled_{}
-        , storage_framework_socket_open_{}
     {
         // listen for inactivity
         QObject::connect(timer_.data(), &QTimer::timeout,
@@ -105,18 +100,17 @@ public:
         storage_framework_socket_ = sf_socket;
 
         // listen for data uploaded
-
         storage_framework_socket_connection_.reset(
-                          new QMetaObject::Connection(
-                               QObject::connect(
-                                       storage_framework_socket_.get(), &QLocalSocket::bytesWritten,
-                                   std::bind(&BackupHelperPrivate::on_data_uploaded, this, std::placeholders::_1)
-                               )
-                           ),
-                            [](QMetaObject::Connection* c){
-                                QObject::disconnect(*c);
-                            }
-                );
+            new QMetaObject::Connection(
+                QObject::connect(
+                    storage_framework_socket_.get(), &QLocalSocket::bytesWritten,
+                    std::bind(&BackupHelperPrivate::on_data_uploaded, this, std::placeholders::_1)
+                )
+            ),
+            [](QMetaObject::Connection* c){
+                QObject::disconnect(*c);
+            }
+        );
 
         // TODO xavi is going to remove this line
         q_ptr->set_state(Helper::State::STARTED);
@@ -152,21 +146,9 @@ public:
 
     QString to_string(Helper::State state) const
     {
-        QString ret = QStringLiteral("bug");
-        switch (state)
-        {
-            case Helper::State::STARTED:
-                ret = QStringLiteral("saving");
-                break;
-            case Helper::State::NOT_STARTED:
-            case Helper::State::CANCELLED:
-            case Helper::State::FAILED:
-            case Helper::State::DATA_COMPLETE:
-            case Helper::State::COMPLETE:
-                ret = q_ptr->Helper::to_string(state);
-                break;
-        }
-        return ret;
+        return state == Helper::State::STARTED
+            ? QStringLiteral("saving")
+            : q_ptr->Helper::to_string(state);
     }
 
 private:
@@ -185,12 +167,11 @@ private:
 
     void on_data_uploaded(qint64 n)
     {
-        // TODO review this after checking if there's a bug in storage framework.
-        // TODO The issue is that bytesWritten is called for every backup helper that was
-        // TODO executed before.
-//        n_uploaded_ += n;
+        n_uploaded_ += n;
+        q_ptr->record_data_transferred(n);
         qDebug("n_read %zu n_uploaded %zu (newly uploaded %zu)", size_t(n_read_), size_t(n_uploaded_), size_t(n));
         process_more();
+        check_for_done();
     }
 
     void process_more()
@@ -219,8 +200,6 @@ private:
             if (n > 0) {
                 upload_buffer_.remove(0, int(n));
                 qDebug("upload_buffer_.size() is %zu after writing %zu to cloud", size_t(upload_buffer_.size()), size_t(n));
-                n_uploaded_ += n;
-                q_ptr->record_data_transferred(n);
                 continue;
             }
             else {
@@ -247,23 +226,13 @@ private:
         timer_->stop();
     }
 
-    void wait_backup_socket_is_clear()
-    {
-        while (read_socket_->bytesAvailable())
-        {
-            process_more();
-        }
-    }
-
     void check_for_done()
     {
-        wait_backup_socket_is_clear();
-
         if (cancelled_)
         {
             q_ptr->set_state(Helper::State::CANCELLED);
         }
-        else if (read_error_ || write_error_ || n_uploaded_ != q_ptr->expected_size())
+        else if (read_error_ || write_error_ || n_uploaded_ > q_ptr->expected_size())
         {
             q_ptr->set_state(Helper::State::FAILED);
         }
@@ -288,12 +257,12 @@ private:
     QScopedPointer<QLocalSocket> helper_socket_;
     QScopedPointer<QLocalSocket> read_socket_;
     QByteArray upload_buffer_;
-    qint64 n_read_;
-    qint64 n_uploaded_;
-    bool read_error_;
-    bool write_error_;
-    bool cancelled_;
-    bool storage_framework_socket_open_;
+    qint64 n_read_ = 0;
+    qint64 n_uploaded_ = 0;
+    bool read_error_ = false;
+    bool write_error_ = false;
+    bool cancelled_ = false;
+    bool storage_framework_socket_open_ = false;
     std::shared_ptr<QMetaObject::Connection> storage_framework_socket_connection_;
 };
 

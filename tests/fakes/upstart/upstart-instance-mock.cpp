@@ -35,4 +35,3 @@ QString UpstartInstanceMock::name() const
     qDebug() << "Returning Instance name " << name_;
     return name_;
 }
-

@@ -29,5 +29,5 @@ class BackupChoices: public MetadataProvider
 public:
     BackupChoices();
     virtual ~BackupChoices();
-    QVector<Metadata> get_backups() override;
+    QVector<Metadata> get_backups() const override;
 };

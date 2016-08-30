@@ -27,7 +27,7 @@ class MetadataProvider
 {
 public:
     virtual ~MetadataProvider() =0;
-    virtual QVector<Metadata> get_backups() =0;
+    virtual QVector<Metadata> get_backups() const =0;
 
 protected:
     MetadataProvider() =default;

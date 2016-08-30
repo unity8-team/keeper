@@ -199,7 +199,7 @@ public:
         size_ += n_bytes;
         sized_ += double(n_bytes);
 
-        history_.add(clock_(), n_bytes);
+        history_.add(clock_(), size_t(n_bytes));
 
         update_percent_done();
     }
