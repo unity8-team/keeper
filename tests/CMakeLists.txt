@@ -34,6 +34,8 @@ add_definitions(
   -DTEST_SIMPLE_HELPER="${CMAKE_BINARY_DIR}/tests/fakes/${BACKUP_HELPER}"
   -DKEEPER_SERVICE_BIN="${CMAKE_BINARY_DIR}/src/service/keeper-service"
   -DKEEPER_TAR_CREATE_BIN="${KEEPER_TAR_CREATE_BIN}"
+  -DUPSTART_MOCK_BIN="${CMAKE_BINARY_DIR}/tests/fakes/upstart/upstart-mock"
+  -DTEST_INACTIVE_HELPER="${CMAKE_SOURCE_DIR}/tests/fakes/inactive_helper.sh"
 )
 
 set(SERVICE_TEMPLATE_FILE "${CMAKE_CURRENT_SOURCE_DIR}/com_canonical_keeper.py")
@@ -45,6 +47,30 @@ execute_process (
   COMMAND sed -r -e "s|/usr/(local/)?||g"
   OUTPUT_VARIABLE PYTHON_PACKAGE_DIR OUTPUT_STRIP_TRAILING_WHITESPACE
 )
+###
+### Upstart mock
+###
+
+set(upstart_interface_xml "com.ubuntu.Upstart0_6.xml")
+set(upstart_job_interface_xml "com.ubuntu.Upstart0_6.Job.xml")
+set(upstart_instance_interface_xml "com.ubuntu.Upstart0_6.Instance.xml")
+
+set_source_files_properties(${upstart_interface_xml}
+                            PROPERTIES
+                              NO_NAMESPACE YES
+                              CLASSNAME UpstartMockInterface
+                              INCLUDE "event-info.h")
+
+set_source_files_properties(${upstart_job_interface_xml}
+                            PROPERTIES
+                              NO_NAMESPACE YES
+                              CLASSNAME UpstartJobMockInterface
+                              INCLUDE "job-info.h")
+
+set_source_files_properties(${upstart_instance_interface_xml}
+                            PROPERTIES
+                              NO_NAMESPACE YES
+                              CLASSNAME UpstartInstanceMockInterface)
 
 ###
 ###  The Tests

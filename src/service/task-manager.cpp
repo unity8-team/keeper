@@ -22,6 +22,7 @@
 #include "keeper-task-backup.h"
 #include "storage-framework/storage_framework_client.h"
 #include "task-manager.h"
+#include "util/dbus-utils.h"
 
 class TaskManagerPrivate
 {
@@ -150,6 +151,7 @@ private:
         qDebug() << "Creating task for uuid = " << uuid;
         // initialize a new task
 
+        task_.data()->disconnect();
         if (td.type == KeeperTask::TaskType::BACKUP)
         {
             task_.reset(new KeeperTaskBackup(td, helper_registry_, storage_));
@@ -159,6 +161,10 @@ private:
             // TODO initialize a Restore task
         }
 
+        qDebug() << "task created: " << state_;
+
+        set_current_task(uuid);
+
         QObject::connect(task_.data(), &KeeperTask::task_state_changed,
             std::bind(&TaskManagerPrivate::on_helper_state_changed, this, std::placeholders::_1)
         );
@@ -167,7 +173,6 @@ private:
                     std::bind(&TaskManager::socket_ready, q_ptr, std::placeholders::_1)
                 );
 
-        set_current_task(uuid);
 
         return task_->start();
     }
@@ -177,9 +182,6 @@ private:
         auto const prev = current_task_;
 
         current_task_ = uuid;
-
-        if (!prev.isEmpty())
-            update_task_state(prev);
 
         if (!uuid.isEmpty())
             update_task_state(uuid);
@@ -207,6 +209,7 @@ private:
 
     void update_task_state(QString const& uuid)
     {
+        qDebug() << "Updating state for " << uuid << static_cast<void *>(task_.data());
         auto it = task_data_.find(uuid);
         if (it == task_data_.end())
         {
@@ -220,6 +223,7 @@ private:
     void update_task_state(KeeperTask::KeeperTask::TaskData& td)
     {
         state_[td.metadata.uuid()] = task_->state();
+        qDebug() << "----------------------------------------upated start state: " << state_;
 
 #if 0
         // FIXME: we don't need this to work correctly for the sprint because Marcus is polling in a loop

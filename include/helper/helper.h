@@ -62,6 +62,8 @@ public:
     virtual void start(QStringList const& urls);
     virtual void stop();
 
+    static constexpr int MAX_UAL_WAIT_TIME = 1000;
+
 Q_SIGNALS:
     void state_changed(Helper::State);
     void percent_done_changed(float);

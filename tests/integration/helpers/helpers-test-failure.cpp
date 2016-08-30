@@ -36,10 +36,10 @@ TEST_F(TestHelpers, StartFullTest)
     XdgUserDirsSandbox tmp_dir;
 
     // starts the services, including keeper-service
-    startTasks();
+    start_tasks();
 
     QDBusConnection connection = QDBusConnection::sessionBus();
-    QScopedPointer<DBusInterfaceKeeperUser> user_iface(new DBusInterfaceKeeperUser(
+    QSharedPointer<DBusInterfaceKeeperUser> user_iface(new DBusInterfaceKeeperUser(
                                                             DBusTypes::KEEPER_SERVICE,
                                                             DBusTypes::KEEPER_USER_PATH,
                                                             connection
@@ -61,7 +61,7 @@ TEST_F(TestHelpers, StartFullTest)
     ASSERT_TRUE(FileUtils::fillTemporaryDirectory(user_dir, qrand() % 1000));
 
     // search for the user folder uuid
-    auto user_folder_uuid = getUUIDforXdgFolderPath(user_dir, choices.value());
+    auto user_folder_uuid = get_uuid_for_xdg_folder_path(user_dir, choices.value());
     ASSERT_FALSE(user_folder_uuid.isEmpty());
     qDebug() << "User folder UUID is:" << user_folder_uuid;
 
@@ -69,11 +69,11 @@ TEST_F(TestHelpers, StartFullTest)
     QDBusReply<void> backup_reply = user_iface->call("StartBackup", QStringList{user_folder_uuid});
     ASSERT_TRUE(backup_reply.isValid()) << qPrintable(QDBusConnection::sessionBus().lastError().message());
 
-    // Wait until the helper finishes
-    EXPECT_TRUE(waitUntilHelperFinishes(DEKKO_APP_ID, 15000, 1));
+    // wait until all the tasks have the action state "failed"
+    EXPECT_TRUE(wait_for_all_tasks_have_action_state({user_folder_uuid}, "failed", user_iface));
 
     // check that the content of the file is the expected
-    EXPECT_EQ(0, checkStorageFrameworkNbFiles());
+    EXPECT_EQ(0, check_storage_framework_nb_files());
 
     // check that the state is failed
     QVariantDictMap state = user_iface->state();
@@ -87,7 +87,4 @@ TEST_F(TestHelpers, StartFullTest)
     EXPECT_EQ(state_values["display-name"].toString(), QStringLiteral("Music"));
     // sent 1 byte more than the expected, so percentage has to be greater than 1.0
     EXPECT_TRUE(state_values["percent-done"].toFloat() > 1.0);
-
-    // let's leave things clean
-    EXPECT_TRUE(removeHelperMarkBeforeStarting());
 }

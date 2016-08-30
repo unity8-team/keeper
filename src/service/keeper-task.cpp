@@ -135,6 +135,7 @@ QVariantMap KeeperTaskPrivate::calculate_task_state()
 
     ret.insert(QStringLiteral("uuid"), uuid);
 
+    qDebug() << "+++++++++++++++++++++++++++++++++++++++++++ Returning state: " << ret;
     return ret;
 }
 

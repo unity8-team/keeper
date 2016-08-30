@@ -1,0 +1,19 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node>
+  <interface name="com.ubuntu.Upstart0_6.Job">
+    <method name="Start">
+      <arg direction="in" type="as" name="env" />
+      <arg direction="in" type="b" name="wait" />
+      <arg direction="out" type="o" name="path" />
+    </method>
+
+    <method name="Stop">
+      <arg direction="in" type="as" name="env" />
+      <arg direction="in" type="b" name="wait" />
+    </method>
+
+    <method name="GetAllInstances">
+      <arg direction="out" type="ao" name="paths" />
+    </method>
+  </interface>
+</node>

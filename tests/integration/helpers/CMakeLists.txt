@@ -3,7 +3,7 @@ add_definitions(
   -DPROJECT_NAME="${CMAKE_PROJECT_NAME}"
   -DHELPER_REGISTRY_FILENAME="${HELPER_REGISTRY_FILENAME}"
 )
-
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 #
 # helpers-test
@@ -32,9 +32,9 @@ set(
 
 add_executable(
   ${HELPERS_TEST}
+  ${interface_files}
   helpers-test.cc
   test-helpers-base.cpp
-  mir-mock.cpp
 )
 
 set_target_properties(
@@ -86,7 +86,6 @@ add_executable(
   ${HELPERS_TEST_FAILURE}
   helpers-test-failure.cpp
   test-helpers-base.cpp
-  mir-mock.cpp
 )
 
 set_target_properties(

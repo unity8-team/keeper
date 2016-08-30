@@ -21,11 +21,10 @@
 
 #include <ubuntu-app-launch/registry.h>
 #include <service/app-const.h>
-extern "C" {
-    #include <ubuntu-app-launch.h>
-}
+#include <ubuntu-app-launch.h>
 
 #include <QDebug>
+#include <QTimer>
 
 #include <cmath> // std::fabs()
 #include <sys/time.h> // gettimeofday()
@@ -151,8 +150,12 @@ public:
         , expected_size_{}
         , history_{}
         , registry_(new ubuntu::app_launch::Registry())
+        , timer_wait_ual_(new QTimer())
     {
         ual_init();
+        QObject::connect(timer_wait_ual_.data(), &QTimer::timeout,
+            std::bind(&HelperPrivate::on_max_time_waiting_for_ual_started, this)
+        );
     }
 
     ~HelperPrivate()
@@ -273,6 +276,7 @@ private:
         auto appid = ubuntu::app_launch::AppID::parse(appid_.toStdString());
         auto helper = ubuntu::app_launch::Helper::create(backupType, appid, registry_);
 
+        reset_wait_for_ual_timer();
         helper->launch(urls);
     }
 
@@ -297,6 +301,7 @@ private:
     {
         qDebug() << "HELPER STARTED +++++++++++++++++++++++++++++++++++++" << appid;
         auto self = static_cast<HelperPrivate*>(vself);
+        self->stop_wait_for_ual_timer();
         self->q_ptr->set_state(Helper::State::STARTED);
     }
 
@@ -323,6 +328,24 @@ private:
         }
     }
 
+    void reset_wait_for_ual_timer()
+    {
+        static constexpr int MAX_TIME_WAITING_FOR_DATA {Helper::MAX_UAL_WAIT_TIME};
+        timer_wait_ual_->start(MAX_TIME_WAITING_FOR_DATA);
+    }
+
+    void stop_wait_for_ual_timer()
+    {
+        timer_wait_ual_->stop();
+    }
+
+    void on_max_time_waiting_for_ual_started()
+    {
+        qDebug() << "Max time reached waiting for UAL to start";
+        q_ptr->set_state(Helper::State::FAILED);
+        stop_wait_for_ual_timer();
+    }
+
     Helper * const q_ptr;
     QString appid_;
     clock_func clock_;
@@ -334,6 +357,7 @@ private:
     float percent_done_ {};
     float last_notified_percent_done_ {};
     std::shared_ptr<ubuntu::app_launch::Registry> registry_;
+    QScopedPointer<QTimer> timer_wait_ual_;
 };
 
 /***

@@ -259,20 +259,20 @@ private:
     {
         wait_backup_socket_is_clear();
 
-        if (n_uploaded_ == q_ptr->expected_size())
+        if (cancelled_)
         {
-            if (storage_framework_socket_open_)
-                q_ptr->set_state(Helper::State::DATA_COMPLETE);
-            else
-                q_ptr->set_state(Helper::State::COMPLETE);
+            q_ptr->set_state(Helper::State::CANCELLED);
         }
         else if (read_error_ || write_error_ || n_uploaded_ != q_ptr->expected_size())
         {
             q_ptr->set_state(Helper::State::FAILED);
         }
-        else if (cancelled_)
+        else if (n_uploaded_ == q_ptr->expected_size())
         {
-            q_ptr->set_state(Helper::State::CANCELLED);
+            if (storage_framework_socket_open_)
+                q_ptr->set_state(Helper::State::DATA_COMPLETE);
+            else
+                q_ptr->set_state(Helper::State::COMPLETE);
         }
     }
 
