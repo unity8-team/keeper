@@ -12,6 +12,9 @@ set(SERVICE_LIB_SOURCES
   keeper-user.cpp
   keeper-helper.cpp
   restore-choices.cpp
+  task-manager.cpp
+  keeper-task.cpp
+  keeper-task-backup.cpp
 )
 add_library(
   ${SERVICE_LIB}
