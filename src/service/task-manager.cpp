@@ -150,6 +150,7 @@ private:
         qDebug() << "Creating task for uuid = " << uuid;
         // initialize a new task
 
+        task_.data()->disconnect();
         if (td.type == KeeperTask::TaskType::BACKUP)
         {
             task_.reset(new KeeperTaskBackup(td, helper_registry_, storage_));
@@ -159,6 +160,10 @@ private:
             // TODO initialize a Restore task
         }
 
+        qDebug() << "task created: " << state_;
+
+        set_current_task(uuid);
+
         QObject::connect(task_.data(), &KeeperTask::task_state_changed,
             std::bind(&TaskManagerPrivate::on_helper_state_changed, this, std::placeholders::_1)
         );
@@ -167,7 +172,6 @@ private:
                     std::bind(&TaskManager::socket_ready, q_ptr, std::placeholders::_1)
                 );
 
-        set_current_task(uuid);
 
         return task_->start();
     }
@@ -177,9 +181,6 @@ private:
         auto const prev = current_task_;
 
         current_task_ = uuid;
-
-        if (!prev.isEmpty())
-            update_task_state(prev);
 
         if (!uuid.isEmpty())
             update_task_state(uuid);

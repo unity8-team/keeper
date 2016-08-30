@@ -169,8 +169,8 @@ private:
         n_uploaded_ += n;
         q_ptr->record_data_transferred(n);
         qDebug("n_read %zu n_uploaded %zu (newly uploaded %zu)", size_t(n_read_), size_t(n_uploaded_), size_t(n));
-        check_for_done();
         process_more();
+        check_for_done();
     }
 
     void process_more()
