@@ -106,11 +106,13 @@ public:
             case Helper::State::STARTED:
             case Helper::State::CANCELLED:
             case Helper::State::FAILED:
+            case Helper::State::HELPER_FINISHED:
                 break;
 
             case Helper::State::DATA_COMPLETE:
                 task_data_[current_task_].percent_done = 1;
                 break;
+
             case Helper::State::COMPLETE:
                 qDebug() << "STARTING NEXT TASK ---------------------------------------";
                 start_next_task();

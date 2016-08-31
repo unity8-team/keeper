@@ -230,12 +230,13 @@ public:
 
         switch (state)
         {
-            case State::NOT_STARTED:   ret = QStringLiteral("not-started"); break;
-            case State::STARTED:       ret = QStringLiteral("started");     break;
-            case State::CANCELLED:     ret = QStringLiteral("cancelled");   break;
-            case State::FAILED:        ret = QStringLiteral("failed");      break;
-            case State::DATA_COMPLETE: ret = QStringLiteral("finishing");   break;
-            case State::COMPLETE:      ret = QStringLiteral("complete");    break;
+            case State::NOT_STARTED:     ret = QStringLiteral("not-started"); break;
+            case State::STARTED:         ret = QStringLiteral("started");     break;
+            case State::CANCELLED:       ret = QStringLiteral("cancelled");   break;
+            case State::FAILED:          ret = QStringLiteral("failed");      break;
+            case State::DATA_COMPLETE:   ret = QStringLiteral("finishing");   break;
+            case State::HELPER_FINISHED: ret = QStringLiteral("finishing");   break;
+            case State::COMPLETE:        ret = QStringLiteral("complete");    break;
         }
 
         return ret;
@@ -309,6 +310,7 @@ private:
     {
         qDebug() << "HELPER STOPPED +++++++++++++++++++++++++++++++++++++" << appid;
         auto self = static_cast<HelperPrivate*>(vself);
+        self->set_state(Helper::State::HELPER_FINISHED);
         self->q_ptr->on_helper_process_stopped();
     }
 

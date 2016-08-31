@@ -29,7 +29,6 @@
 #include <QScopedPointer>
 #include <QString>
 #include <QTimer>
-#include <QThread>
 #include <QVector>
 
 #include <fcntl.h>
@@ -116,8 +115,6 @@ public:
         q_ptr->set_state(Helper::State::STARTED);
 
         reset_inactivity_timer();
-
-        storage_framework_socket_open_ = true;
     }
 
     void stop()
@@ -140,7 +137,7 @@ public:
     void on_storage_framework_finished()
     {
         qDebug() << "storage framework has finished for the current helper...";
-        storage_framework_socket_open_ = false;
+        storage_framework_socket_.reset();
         check_for_done();
     }
 
@@ -238,8 +235,16 @@ private:
         }
         else if (n_uploaded_ == q_ptr->expected_size())
         {
-            if (storage_framework_socket_open_)
-                q_ptr->set_state(Helper::State::DATA_COMPLETE);
+            if (storage_framework_socket_)
+            {
+                if (q_ptr->state() == Helper::State::HELPER_FINISHED)
+                {
+                    // only in the case that the helper process finished we move to the next state
+                    // this is to prevent to start the next task too early
+                    q_ptr->set_state(Helper::State::DATA_COMPLETE);
+                    stop_inactivity_timer();
+                }
+            }
             else
                 q_ptr->set_state(Helper::State::COMPLETE);
         }
@@ -262,7 +267,6 @@ private:
     bool read_error_ = false;
     bool write_error_ = false;
     bool cancelled_ = false;
-    bool storage_framework_socket_open_ = false;
     std::shared_ptr<QMetaObject::Connection> storage_framework_socket_connection_;
 };
 

@@ -122,6 +122,10 @@ public:
                 storage_->finish(false);
                 break;
 
+            case Helper::State::HELPER_FINISHED:
+                qDebug() << "Backup helper process finished... ";
+                break;
+
             case Helper::State::DATA_COMPLETE:
                 task_data_.percent_done = 1;
                 qDebug() << "Backup helper finished... closing the socket.";
