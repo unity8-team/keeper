@@ -133,7 +133,7 @@ bool recursiveFillDirectory(QString const & dirPath, int max_filesize, int & j, 
 
 bool FileUtils::fillTemporaryDirectory(QString const & dir, int max_files_per_test, int max_filesize, int max_dirs)
 {
-    const auto n_files = std::max(1, (qrand() % max_files_per_test));
+    const auto n_files = std::max(1, (qrand() % std::max(1, max_files_per_test)));
     QVector<FileUtils::Info> files (n_files);
     qint64 filesize_sum = 0;
     auto dirs_to_create = max_dirs;
