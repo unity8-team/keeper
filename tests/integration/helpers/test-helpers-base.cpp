@@ -104,7 +104,8 @@ void TestHelpersBase::TearDown()
     // TODO investigate why the service gets to an state that does not listen to SIGTEM signals
     // If we don't make the following call at main.cpp handler.setupUnixSignalHandlers();
     // it exists fine.
-    kill(keeper_service->pid(), SIGKILL);
+    if (keeper_service)
+        kill(keeper_service->pid(), SIGKILL);
 }
 
 bool TestHelpersBase::init_helper_registry(QString const& registry)
