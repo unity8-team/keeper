@@ -37,7 +37,7 @@ public:
     Q_DISABLE_COPY(Helper)
 
     Q_ENUMS(State)
-    enum class State {NOT_STARTED, STARTED, CANCELLED, FAILED, DATA_COMPLETE, COMPLETE};
+    enum class State {NOT_STARTED, STARTED, CANCELLED, FAILED, DATA_COMPLETE, HELPER_FINISHED, COMPLETE};
 
     Q_PROPERTY(Helper::State state READ state NOTIFY state_changed)
     State state() const __pure;
@@ -63,6 +63,8 @@ public:
     // life cycle control.
     virtual void start(QStringList const& urls);
     virtual void stop();
+
+    static constexpr int MAX_UAL_WAIT_TIME = 1000;
 
 Q_SIGNALS:
     void state_changed(Helper::State);
