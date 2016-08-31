@@ -68,9 +68,6 @@ TEST_F(TestHelpers, BackupHelperWritesTooMuch)
     QFile helper_mark(SIMPLE_HELPER_MARK_FILE_PATH);
     qDebug() << "Helper mark exists before calling StartBackup..." << helper_mark.exists();
 
-    // let's leave things clean
-    EXPECT_TRUE(removeHelperMarkBeforeStarting());
-
     // Now we know the music folder uuid, let's start the backup for it.
     QDBusReply<void> backup_reply = user_iface->call("StartBackup", QStringList{user_folder_uuid});
     ASSERT_TRUE(backup_reply.isValid()) << qPrintable(QDBusConnection::sessionBus().lastError().message());

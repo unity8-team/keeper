@@ -68,9 +68,6 @@ void TestHelpersBase::start_tasks()
 
 void TestHelpersBase::SetUp()
 {
-    // let's leave things clean
-    EXPECT_TRUE(removeHelperMarkBeforeStarting());
-
     Helper::registerMetaTypes();
 
     g_setenv("XDG_DATA_DIRS", CMAKE_SOURCE_DIR, true);

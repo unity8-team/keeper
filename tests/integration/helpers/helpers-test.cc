@@ -20,7 +20,6 @@
  */
 
 #include "test-helpers-base.h"
-#include "DBusPropertiesInterface.h"
 
 class TestHelpers: public TestHelpersBase
 {
