@@ -51,11 +51,6 @@ public:
         , helper_socket_(new QLocalSocket())
         , read_socket_(new QLocalSocket())
         , upload_buffer_{}
-        , n_read_{}
-        , n_uploaded_{}
-        , read_error_{}
-        , write_error_{}
-        , cancelled_{}
     {
         // listen for inactivity
         QObject::connect(timer_.data(), &QTimer::timeout,
@@ -139,6 +134,20 @@ public:
         return int(helper_socket_->socketDescriptor());
     }
 
+    void on_storage_framework_finished()
+    {
+        qDebug() << "storage framework has finished for the current helper...";
+        storage_framework_socket_.reset();
+        check_for_done();
+    }
+
+    QString to_string(Helper::State state) const
+    {
+        return state == Helper::State::STARTED
+            ? QStringLiteral("saving")
+            : q_ptr->Helper::to_string(state);
+    }
+
 private:
 
     void on_inactivity_detected()
@@ -158,8 +167,8 @@ private:
         n_uploaded_ += n;
         q_ptr->record_data_transferred(n);
         qDebug("n_read %zu n_uploaded %zu (newly uploaded %zu)", size_t(n_read_), size_t(n_uploaded_), size_t(n));
-        check_for_done();
         process_more();
+        check_for_done();
     }
 
     void process_more()
@@ -218,8 +227,10 @@ private:
     {
         if (n_uploaded_ == q_ptr->expected_size())
         {
-            qDebug() << "n_uploaded = " << n_uploaded_ << " expected = " << q_ptr->expected_size() << " --- COMPLETE";
-            q_ptr->set_state(Helper::State::COMPLETE);
+            if (storage_framework_socket_)
+                q_ptr->set_state(Helper::State::DATA_COMPLETE);
+            else
+                q_ptr->set_state(Helper::State::COMPLETE);
         }
         else if (read_error_ || write_error_ || (n_uploaded_ > q_ptr->expected_size()))
         {
@@ -241,15 +252,15 @@ private:
     BackupHelper * const q_ptr;
     QScopedPointer<QTimer> timer_;
     std::shared_ptr<QLocalSocket> storage_framework_socket_;
-    std::shared_ptr<QMetaObject::Connection> storage_framework_socket_connection_;
     QScopedPointer<QLocalSocket> helper_socket_;
     QScopedPointer<QLocalSocket> read_socket_;
     QByteArray upload_buffer_;
-    qint64 n_read_;
-    qint64 n_uploaded_;
-    bool read_error_;
-    bool write_error_;
-    bool cancelled_;
+    qint64 n_read_ = 0;
+    qint64 n_uploaded_ = 0;
+    bool read_error_ = false;
+    bool write_error_ = false;
+    bool cancelled_ = false;
+    std::shared_ptr<QMetaObject::Connection> storage_framework_socket_connection_;
 };
 
 /***
@@ -306,4 +317,20 @@ BackupHelper::get_helper_socket() const
     Q_D(const BackupHelper);
 
     return d->get_helper_socket();
+}
+
+QString
+BackupHelper::to_string(Helper::State state) const
+{
+    Q_D(const BackupHelper);
+
+    return d->to_string(state);
+}
+
+void
+BackupHelper::on_storage_framework_finished()
+{
+    Q_D(BackupHelper);
+
+    return d->on_storage_framework_finished();
 }
