@@ -225,7 +225,6 @@ private:
     void update_task_state(KeeperTask::KeeperTask::TaskData& td)
     {
         state_[td.metadata.uuid()] = task_->state();
-        qDebug() << "----------------------------------------upated start state: " << state_;
 
 #if 0
         // FIXME: we don't need this to work correctly for the sprint because Marcus is polling in a loop
