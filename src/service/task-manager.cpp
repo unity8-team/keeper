@@ -22,6 +22,7 @@
 #include "keeper-task-backup.h"
 #include "storage-framework/storage_framework_client.h"
 #include "task-manager.h"
+#include "util/dbus-utils.h"
 
 class TaskManagerPrivate
 {
@@ -105,11 +106,13 @@ public:
             case Helper::State::STARTED:
             case Helper::State::CANCELLED:
             case Helper::State::FAILED:
+            case Helper::State::HELPER_FINISHED:
                 break;
 
             case Helper::State::DATA_COMPLETE:
                 task_data_[current_task_].percent_done = 1;
                 break;
+
             case Helper::State::COMPLETE:
                 qDebug() << "STARTING NEXT TASK ---------------------------------------";
                 start_next_task();
@@ -208,6 +211,7 @@ private:
 
     void update_task_state(QString const& uuid)
     {
+        qDebug() << "Updating state for " << uuid << static_cast<void *>(task_.data());
         auto it = task_data_.find(uuid);
         if (it == task_data_.end())
         {

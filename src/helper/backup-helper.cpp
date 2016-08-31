@@ -225,21 +225,28 @@ private:
 
     void check_for_done()
     {
-        if (n_uploaded_ == q_ptr->expected_size())
-        {
-            if (storage_framework_socket_)
-                q_ptr->set_state(Helper::State::DATA_COMPLETE);
-            else
-                q_ptr->set_state(Helper::State::COMPLETE);
-        }
-        else if (read_error_ || write_error_ || (n_uploaded_ > q_ptr->expected_size()))
-        {
-            qDebug() << "n_uploaded = " << n_uploaded_ << " expected = " << q_ptr->expected_size() << " --- FAILED";
-            q_ptr->set_state(Helper::State::FAILED);
-        }
-        else if (cancelled_)
+        if (cancelled_)
         {
             q_ptr->set_state(Helper::State::CANCELLED);
+        }
+        else if (read_error_ || write_error_ || n_uploaded_ > q_ptr->expected_size())
+        {
+            q_ptr->set_state(Helper::State::FAILED);
+        }
+        else if (n_uploaded_ == q_ptr->expected_size())
+        {
+            if (storage_framework_socket_)
+            {
+                if (q_ptr->state() == Helper::State::HELPER_FINISHED)
+                {
+                    // only in the case that the helper process finished we move to the next state
+                    // this is to prevent to start the next task too early
+                    q_ptr->set_state(Helper::State::DATA_COMPLETE);
+                    stop_inactivity_timer();
+                }
+            }
+            else
+                q_ptr->set_state(Helper::State::COMPLETE);
         }
     }
 
