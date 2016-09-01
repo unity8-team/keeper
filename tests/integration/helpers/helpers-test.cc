@@ -64,14 +64,13 @@ TEST_F(TestHelpers, StartFullTest)
     // starts the services, including keeper-service
     start_tasks();
 
-    QDBusConnection connection = QDBusConnection::sessionBus();
     QSharedPointer<DBusInterfaceKeeperUser> user_iface(new DBusInterfaceKeeperUser(
                                                             DBusTypes::KEEPER_SERVICE,
                                                             DBusTypes::KEEPER_USER_PATH,
-                                                            connection
+                                                            dbus_test_runner.sessionConnection()
                                                         ) );
 
-    ASSERT_TRUE(user_iface->isValid()) << qPrintable(QDBusConnection::sessionBus().lastError().message());
+    ASSERT_TRUE(user_iface->isValid()) << qPrintable(dbus_test_runner.sessionConnection().lastError().message());
 
     // ask for a list of backup choices
     QDBusReply<QVariantDictMap> choices = user_iface->call("GetBackupChoices");
@@ -108,13 +107,30 @@ TEST_F(TestHelpers, StartFullTest)
 
     // Now we know the music folder uuid, let's start the backup for it.
     QDBusReply<void> backup_reply = user_iface->call("StartBackup", QStringList{user_folder_uuid, user_folder_uuid_2});
-    ASSERT_TRUE(backup_reply.isValid()) << qPrintable(QDBusConnection::sessionBus().lastError().message());
+    ASSERT_TRUE(backup_reply.isValid()) << qPrintable(dbus_test_runner.sessionConnection().lastError().message());
 
     // wait until all the tasks have the action state "complete"
     EXPECT_TRUE(wait_for_all_tasks_have_action_state({user_folder_uuid, user_folder_uuid_2}, "complete", user_iface));
 
     // check that the content of the file is the expected
     EXPECT_TRUE(check_storage_framework_files(QStringList{user_dir, user_dir_2}));
+}
+
+TEST_F(TestHelpers, SimplyCheckThatTheSecondDBusInterfaceIsFine)
+{
+    XdgUserDirsSandbox tmp_dir;
+
+    // starts the services, including keeper-service
+    start_tasks();
+
+    QSharedPointer<DBusInterfaceKeeperUser> user_iface(new DBusInterfaceKeeperUser(
+                                                            DBusTypes::KEEPER_SERVICE,
+                                                            DBusTypes::KEEPER_USER_PATH,
+                                                            dbus_test_runner.sessionConnection()
+                                                        ) );
+
+    ASSERT_TRUE(user_iface->isValid()) << qPrintable(dbus_test_runner.sessionConnection().lastError().message());
+
 }
 
 TEST_F(TestHelpers, BadHelperPath)
