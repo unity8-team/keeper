@@ -40,10 +40,11 @@ StorageFrameworkUploader::socket()
 void
 StorageFrameworkUploader::commit()
 {
-    qDebug() << "StorageFrameworkClient::finish() is committing";
+    qDebug() << Q_FUNC_INFO << "is committing";
 
     std::function<void(std::shared_ptr<unity::storage::qt::client::File> const&)> on_finished =
         [this](std::shared_ptr<unity::storage::qt::client::File> const& /*file*/){
+            qDebug() << "committed";
             Q_EMIT(committed());
         };
 
