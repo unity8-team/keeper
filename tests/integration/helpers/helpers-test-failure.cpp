@@ -38,14 +38,13 @@ TEST_F(TestHelpers, BackupHelperWritesTooMuch)
     // starts the services, including keeper-service
     start_tasks();
 
-    QDBusConnection connection = QDBusConnection::sessionBus();
     QSharedPointer<DBusInterfaceKeeperUser> user_iface(new DBusInterfaceKeeperUser(
                                                             DBusTypes::KEEPER_SERVICE,
                                                             DBusTypes::KEEPER_USER_PATH,
-                                                            connection
+                                                            dbus_test_runner.sessionConnection()
                                                         ) );
 
-    ASSERT_TRUE(user_iface->isValid()) << qPrintable(QDBusConnection::sessionBus().lastError().message());
+    ASSERT_TRUE(user_iface->isValid()) << qPrintable(dbus_test_runner.sessionConnection().lastError().message());
 
     // ask for a list of backup choices
     QDBusReply<QVariantDictMap> choices = user_iface->call("GetBackupChoices");
@@ -70,7 +69,7 @@ TEST_F(TestHelpers, BackupHelperWritesTooMuch)
 
     // Now we know the music folder uuid, let's start the backup for it.
     QDBusReply<void> backup_reply = user_iface->call("StartBackup", QStringList{user_folder_uuid});
-    ASSERT_TRUE(backup_reply.isValid()) << qPrintable(QDBusConnection::sessionBus().lastError().message());
+    ASSERT_TRUE(backup_reply.isValid()) << qPrintable(dbus_test_runner.sessionConnection().lastError().message());
 
     // wait until all the tasks have the action state "failed"
     EXPECT_TRUE(wait_for_all_tasks_have_action_state({user_folder_uuid}, "failed", user_iface));
