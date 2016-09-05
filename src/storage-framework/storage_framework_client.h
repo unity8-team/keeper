@@ -13,48 +13,45 @@
  * You should have received a copy of the GNU General Public License along
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Author: Xavi Garcia <xavi.garcia.mena@canonical.com>
+ * Authors:
+ *   Xavi Garcia <xavi.garcia.mena@canonical.com>
+ *   Charles Kerr <charles.kerr@canonical.com>
  */
+
 #pragma once
+
+#include "util/connection-helper.h"
+#include "storage-framework/uploader.h"
+
+#include <unity/storage/qt/client/client-api.h>
 
 #include <QObject>
 #include <QFutureWatcher>
 
-#include <unity/storage/qt/client/client-api.h>
+#include <cstddef> // int64_t
+#include <functional>
+#include <memory>
 
 class StorageFrameworkClient final: public QObject
 {
     Q_OBJECT
+
 public:
+
     Q_DISABLE_COPY(StorageFrameworkClient)
     StorageFrameworkClient(QObject *parent = nullptr);
-    virtual ~StorageFrameworkClient() = default;
+    virtual ~StorageFrameworkClient();
 
-    // TODO this is a simple method to obtain a new file for a backup
-    // we'll need to get it from a UI, but the result should be the same
-    // As the storage framework works async, we'll receive the Uploader in a signal
-    // coming from a QFutureWatcher
-    void getNewFileForBackup(quint64 n_bytes);
-
-    void finish(bool do_commit);
-
-Q_SIGNALS:
-    void socketReady(std::shared_ptr<QLocalSocket> const& sf_socket);
-    void finished();
-
-private Q_SLOTS:
-    void uploaderReady();
-    void onUploaderClosed();
-    void accountsReady();
-    void rootsReady();
+    QFuture<std::shared_ptr<Uploader>> get_new_uploader(int64_t n_bytes);
 
 private:
-    unity::storage::qt::client::Runtime::SPtr runtime_;
 
-    // watchers
-    QFutureWatcher<std::shared_ptr<unity::storage::qt::client::Uploader>> uploader_ready_watcher_;
-    QFutureWatcher<std::shared_ptr<unity::storage::qt::client::File>> uploader_closed_watcher_;
-    QFutureWatcher<QVector<std::shared_ptr<unity::storage::qt::client::Account>>> accounts_watcher_;
-    QFutureWatcher<QVector<std::shared_ptr<unity::storage::qt::client::Root>>> roots_watcher_;
-    std::shared_ptr<unity::storage::qt::client::Uploader> uploader_;
+    void add_accounts_task(std::function<void(QVector<unity::storage::qt::client::Account::SPtr> const&)> task);
+    void add_roots_task(std::function<void(QVector<unity::storage::qt::client::Root::SPtr> const&)> task);
+
+    unity::storage::qt::client::Account::SPtr choose(QVector<unity::storage::qt::client::Account::SPtr> const& choices) const;
+    unity::storage::qt::client::Root::SPtr choose(QVector<unity::storage::qt::client::Root::SPtr> const& choices) const;
+
+    unity::storage::qt::client::Runtime::SPtr runtime_;
+    ConnectionHelper connection_helper_;
 };
