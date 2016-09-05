@@ -226,16 +226,6 @@ private:
     {
         state_[td.metadata.uuid()] = task_->state();
 
-#if 0
-        // FIXME: we don't need this to work correctly for the sprint because Marcus is polling in a loop
-        // but we will need this in order for him to stop doing that
-
-        // TODO: compare old and new and decide if it's worth emitting a PropertyChanged signal;
-        // eg don't contribute to dbus noise for minor speed fluctuations
-
-        // TODO: this function is called inside a loop when initializing the state
-        // after start_tasks(), so also ensure we don't have a notify flood here
-
         DBusUtils::notifyPropertyChanged(
             QDBusConnection::sessionBus(),
             *q_ptr,
@@ -243,7 +233,11 @@ private:
             DBusTypes::KEEPER_USER_INTERFACE,
             QStringList(QStringLiteral("State"))
         );
-#endif
+
+        if (!state_[td.metadata.uuid()].isEmpty())
+        {
+            Q_EMIT(q_ptr->state_changed());
+        }
     }
 
     void set_current_task_action(QString const& action)

@@ -114,7 +114,7 @@ void KeeperTaskPrivate::on_helper_state_changed(Helper::State state)
 
 void KeeperTaskPrivate::on_helper_percent_done_changed(float /*percent_done*/)
 {
-    calculate_task_state();
+    calculate_and_notify_state(helper_->state());
 }
 
 QVariantMap KeeperTaskPrivate::calculate_task_state()

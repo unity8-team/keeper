@@ -20,11 +20,271 @@
  */
 #include "test-helpers-base.h"
 
+#include "DBusPropertiesInterface.h"
+
 #include <sys/types.h>
 #include <signal.h>
 
 using namespace QtDBusTest;
 using namespace QtDBusMock;
+
+///
+/// State helpers
+//
+
+bool qvariant_to_map(QVariant const& variant, QVariantMap& map)
+{
+    if (variant.type() == QMetaType::QVariantMap)
+    {
+        map = variant.toMap();
+        return true;
+    }
+    qWarning() << "qvariant_to_map: Could not convert variant to QVariantMap. Variant received has type " << variant.typeName();
+
+    return false;
+}
+
+bool qdbus_argument_to_map(QVariant const& variant, QVariantMap& map)
+{
+    if (variant.canConvert<QDBusArgument>())
+    {
+        QDBusArgument value(variant.value<QDBusArgument>());
+        if (value.currentType() == QDBusArgument::MapType)
+        {
+            value >> map;
+            return true;
+        }
+        else
+        {
+            qWarning() << "qdbus_argument_to_map: Could not convert variant to QVariantMap. Variant received has type " << value.currentType();
+        }
+    }
+    else
+    {
+        qWarning() << "qdbus_argument_to_map: Could not convert variant to QDBusArgument.";
+    }
+    return false;
+}
+
+bool qdbus_argument_to_variant_dict_map(QVariant const& variant, QVariantDictMap& map)
+{
+    if (variant.canConvert<QDBusArgument>())
+    {
+        QDBusArgument value(variant.value<QDBusArgument>());
+        if (value.currentType() == QDBusArgument::MapType)
+        {
+            value >> map;
+            return true;
+        }
+        else
+        {
+            qWarning() << "qdbus_argument_to_map: Could not convert variant to QVariantDictMap. Variant received has type " << value.currentType();
+        }
+    }
+    else
+    {
+        qWarning() << "qdbus_argument_to_map: Could not convert variant to QDBusArgument.";
+    }
+    return false;
+}
+
+bool get_property_qvariant_dict_map(QString const & property, QVariant const &variant, QVariantDictMap & map)
+{
+    QVariantMap properties_map;
+    if (!qvariant_to_map(variant, properties_map))
+    {
+        qWarning() << "Error converting variant in PropertiesChanged signal to QVariantMap";
+        return false;
+    }
+
+    auto iter = properties_map.find(property);
+    if (iter == properties_map.end())
+    {
+        qWarning() << "Property [" << property << "] was not found in PropertiesChanged";
+        return false;
+    }
+
+    if(!qdbus_argument_to_variant_dict_map((*iter), map))
+    {
+        qWarning() << "Error converting property [" << property << "] to QVariantDictMap";
+        return false;
+    }
+
+    return true;
+}
+
+bool all_tasks_has_state(QMap<QString, QString> const & tasks_state, QString const & state)
+{
+    for (auto iter = tasks_state.begin(); iter != tasks_state.end(); ++iter )
+    {
+        if ((*iter) != state)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool get_task_property(QString const &property, QVariantMap const &values, QVariant &value)
+{
+    auto iter = values.find(property);
+    if (iter == values.end())
+    {
+        qWarning() << "Property [" << property << "] was not found.";
+        return false;
+    }
+    value = (*iter);
+    return true;
+}
+
+bool analyze_task_percentage_values(QString const & uuid, QList<QVariantMap> const & recorded_values)
+{
+    double previous_percentage = -1.0;
+    for (auto iter = recorded_values.begin(); iter != recorded_values.end(); ++iter)
+    {
+        QVariant percentage;
+        if (!get_task_property("percent-done", (*iter), percentage))
+        {
+            qWarning() << "Percentage was not found for task: " << uuid;
+            return false;
+        }
+        bool ok_double;
+        auto percentage_double = percentage.toDouble(&ok_double);
+        if (!ok_double)
+        {
+            qWarning() << "Error converting percent-done to double for uuid: " << uuid << ". State: " << (*iter);
+            return false;
+        }
+        if (percentage_double < previous_percentage)
+        {
+            qWarning() << "ERROR, current percentage is less than previous: current=" << percentage_double << ", previous=" << previous_percentage;
+            return false;
+        }
+        previous_percentage = percentage_double;
+    }
+    return true;
+}
+
+bool check_valid_action_state_step(QString const &previous, QString const &current)
+{
+    if (current == "saving")
+    {
+        return previous == "saving" || previous == "none";
+    }
+    else if (current == "finishing")
+    {
+        return previous == "finishing" || previous == "saving";
+    }
+    else if (current == "complete")
+    {
+        // we may pass from "saving" to "complete" if we don't have enough time
+        // to emit the "finishing" state change
+        return previous == "complete" || previous == "finishing" || previous == "saving";
+    }
+    else if (current == "failed")
+    {
+        // we can get to failed from any state except complete
+        return previous != "complete";
+    }
+    else
+    {
+        // for possible new states, please add your code here
+        qWarning() << "Unhandled state: " << current;
+        return false;
+    }
+    return false;
+}
+
+bool analyze_task_action_values(QString const & uuid, QList<QVariantMap> const & recorded_values)
+{
+    QString previous_action = "none";
+    for (auto iter = recorded_values.begin(); iter != recorded_values.end(); ++iter)
+    {
+        QVariant action;
+        if (!get_task_property("action", (*iter), action))
+        {
+            qWarning() << "Action was not found for task: " << uuid;
+            return false;
+        }
+        auto current_action = action.toString();
+
+        if (!check_valid_action_state_step(previous_action, action.toString()))
+        {
+            qWarning() << "Bad action state step: previous state=" << previous_action << ", current=" << action.toString();
+            return false;
+        }
+        previous_action = action.toString();
+    }
+    return true;
+}
+
+bool analyze_task_display_name_values(QString const & uuid, QList<QVariantMap> const & recorded_values)
+{
+    QString previous_name;
+    // check that the display name never changes between recorded states
+    for (auto iter = recorded_values.begin(); iter != recorded_values.end(); ++iter)
+    {
+        QVariant name;
+        if (!get_task_property("display-name", (*iter), name))
+        {
+            qWarning() << "display-name was not found for task: " << uuid;
+            return false;
+        }
+        auto current_name = name.toString();
+
+        if (previous_name.isEmpty())
+        {
+            previous_name = name.toString();
+        }
+        else
+        {
+            if (name.toString() != previous_name)
+            {
+                qWarning() << "ERROR: display-name for uuid: " << uuid << " changed from " << previous_name << " to " << name.toString();
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool analyze_tasks_values(QMap<QString, QList<QVariantMap>> const &uuids_state)
+{
+    for (auto iter = uuids_state.begin(); iter != uuids_state.end(); ++iter)
+    {
+        if(!analyze_task_display_name_values(iter.key(), (*iter)))
+            return false;
+        if(!analyze_task_action_values(iter.key(), (*iter)))
+            return false;
+        if(!analyze_task_percentage_values(iter.key(), (*iter)))
+            return false;
+    }
+    return true;
+}
+
+bool verify_signal_interface_and_invalidated_properties(QVariant const &interface,
+                                                        QVariant const &invalidated_properties,
+                                                        QString const & valid_interface,
+                                                        QString const & expected_property)
+{
+    auto props_list = invalidated_properties.toStringList();
+    if (!props_list.contains(expected_property))
+    {
+        qWarning() << "ERROR: PropertiesChanged signal did not include the property: " << expected_property << " as the ones invalidated";
+        return false;
+    }
+
+    if (interface.toString() != valid_interface)
+    {
+        qWarning() << "ERROR: Interface: [" << interface.toString() << "] is not valid. Expecting: [" << valid_interface << "]";
+        return false;
+    }
+    return true;
+}
+
+///
+///
+///
 
 TestHelpersBase::TestHelpersBase()
     :dbus_mock(dbus_test_runner)
@@ -278,6 +538,115 @@ bool TestHelpersBase::check_task_has_action_state(QVariantDictMap const & state,
     return (*iter_props).toString() == action_state;
 }
 
+bool TestHelpersBase::capture_and_check_state_until_all_tasks_complete(QStringList const & uuids, QString const & action_state, int max_timeout)
+{
+
+    QSharedPointer<DBusPropertiesInterface> properties_interface(new DBusPropertiesInterface(
+                                                            DBusTypes::KEEPER_SERVICE,
+                                                            DBusTypes::KEEPER_USER_PATH,
+                                                            dbus_test_runner.sessionConnection()
+                                                        ) );
+
+    if (!properties_interface->isValid())
+    {
+        qWarning() << "DBusProperties interface is not valid.";
+        return false;
+    }
+    QSignalSpy spy(properties_interface.data(),&DBusPropertiesInterface::PropertiesChanged);
+
+    QMap<QString, QList<QVariantMap>> uuids_state;
+    QMap<QString, QString> uuids_current_state;
+
+    // initialize the current state map to wait for all expected uuids
+    for (auto uuid : uuids)
+    {
+        uuids_current_state[uuid] = "none";
+        uuids_state[uuid] = QList<QVariantMap>();
+    }
+
+    QElapsedTimer timer;
+    timer.start();
+    bool finished = false;
+    while (!timer.hasExpired(max_timeout) && !finished)
+    {
+        spy.wait();
+
+        qDebug() << "PropertiesChanged SIGNALS RECEIVED:  " << spy.count();
+        while (spy.count())
+        {
+            QList<QVariant> arguments = spy.takeFirst();
+
+            if (arguments.size() != 3)
+            {
+                qWarning() << "Bad number of arguments in PropertiesChanged signal";
+                return false;
+            }
+
+            // verify interface and invalidated_properties arguments
+            if(!verify_signal_interface_and_invalidated_properties(arguments.at(0), arguments.at(2), DBusTypes::KEEPER_USER_INTERFACE, "State"))
+            {
+                return false;
+            }
+            QVariantDictMap map;
+            if (!get_property_qvariant_dict_map("State", arguments.at(1), map))
+            {
+                return false;
+            }
+            for (auto iter = map.begin(); iter != map.end(); ++iter )
+            {
+                // check for unexpected uuids
+                if (!uuids.contains(iter.key()))
+                {
+                    qWarning() << "State contains unexpected uuid: " << iter.key();
+                    return false;
+                }
+
+                QVariantMap values;
+                if (!qvariant_to_map((*iter), values))
+                {
+                    qWarning() << "Error converting second argument in PropertiesChanged signal to QVariantMap for uuid: " << iter.key();
+                    return false;
+                }
+                qDebug() << "State for uuid: " << iter.key() << " : " << values;
+
+                QVariant action;
+                if (get_task_property("action", values, action))
+                {
+                    if (action.type() != QVariant::String)
+                    {
+                        qWarning() << "Property [action] is not a string";
+                        return false;
+                    }
+                    // store the current action state
+                    uuids_current_state[iter.key()] = action.toString();
+
+                    bool store = true;
+                    if (action.toString() == action_state)
+                    {
+                        // check if it worths storing this new event
+                        if (uuids_state[iter.key()].last() == values)
+                        {
+                            store = false;
+                        }
+                    }
+                    if (store)
+                    {
+                        // store the current state for later inspection
+                        uuids_state[iter.key()].push_back(values);
+                    }
+                }
+            }
+        }
+        finished = all_tasks_has_state(uuids_current_state, action_state);
+        if (finished)
+        {
+            qDebug() << "ALL TASKS FINISHED =========================================";
+        }
+    }
+    // check for the recorded values
+    return analyze_tasks_values(uuids_state);
+}
+
 QString TestHelpersBase::get_uuid_for_xdg_folder_path(QString const &path, QVariantDictMap const & choices) const
 {
     for(auto iter = choices.begin(); iter != choices.end(); ++iter)
@@ -295,4 +664,22 @@ QString TestHelpersBase::get_uuid_for_xdg_folder_path(QString const &path, QVari
     }
 
     return QString();
+}
+
+bool TestHelpersBase::start_dbus_monitor()
+{
+    if (!dbus_monitor_process)
+    {
+        system("echo $DBUS_SESSION_BUS_ADDRESS");
+        dbus_monitor_process.reset(new QProcess());
+
+        dbus_monitor_process->setProcessChannelMode(QProcess::ForwardedChannels);
+
+        dbus_monitor_process->start("dbus-monitor", QStringList() << "--session");
+        if (!dbus_monitor_process->waitForStarted())
+        {
+            return false;
+        }
+    }
+    return true;
 }

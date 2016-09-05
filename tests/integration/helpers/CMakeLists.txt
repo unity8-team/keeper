@@ -23,6 +23,7 @@ include_directories(
   ${UAL_INCLUDE_DIRS}
   ${PROP-CPP_INCLUDE_DIRS}
   ${HELPERS_TEST_DEPS_INCLUDE_DIRS}
+  "${CMAKE_BINARY_DIR}/tests/qdbus-stubs"
 )
 
 set(
@@ -48,6 +49,7 @@ target_link_libraries(
   ${HELPERS_TEST}
   ${HELPERS_TEST_DEPS_LDFLAGS}
   ${INTEGRATION_TEST_LIBRARIES}
+  qdbus-stubs-tests
   Qt5::Core
   Qt5::DBus
   Qt5::Test
@@ -113,6 +115,7 @@ target_link_libraries(
   ${HELPERS_TEST_FAILURE}
   ${HELPERS_TEST_DEPS_LDFLAGS}
   ${INTEGRATION_TEST_LIBRARIES}
+  qdbus-stubs-tests
   Qt5::Core
   Qt5::DBus
   Qt5::Test

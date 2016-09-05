@@ -38,11 +38,10 @@ TEST_F(TestHelpers, BackupHelperWritesTooMuch)
     // starts the services, including keeper-service
     start_tasks();
 
-    QDBusConnection connection = QDBusConnection::sessionBus();
     QSharedPointer<DBusInterfaceKeeperUser> user_iface(new DBusInterfaceKeeperUser(
                                                             DBusTypes::KEEPER_SERVICE,
                                                             DBusTypes::KEEPER_USER_PATH,
-                                                            connection
+                                                            dbus_test_runner.sessionConnection()
                                                         ) );
 
     ASSERT_TRUE(user_iface->isValid()) << qPrintable(QDBusConnection::sessionBus().lastError().message());
@@ -72,7 +71,12 @@ TEST_F(TestHelpers, BackupHelperWritesTooMuch)
     QDBusReply<void> backup_reply = user_iface->call("StartBackup", QStringList{user_folder_uuid});
     ASSERT_TRUE(backup_reply.isValid()) << qPrintable(QDBusConnection::sessionBus().lastError().message());
 
-    // wait until all the tasks have the action state "failed"
+    // waits until all tasks are complete, recording PropertiesChanged signals
+    // and checks all the recorded values
+    EXPECT_TRUE(capture_and_check_state_until_all_tasks_complete({user_folder_uuid}, "failed"));
+
+    // wait until all the tasks have the action state "complete"
+    // this one uses pooling so it should just call Get once
     EXPECT_TRUE(wait_for_all_tasks_have_action_state({user_folder_uuid}, "failed", user_iface));
 
     // check that the content of the file is the expected

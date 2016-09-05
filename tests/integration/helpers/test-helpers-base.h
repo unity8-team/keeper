@@ -73,6 +73,7 @@ protected:
     QtDBusMock::DBusMock dbus_mock;
     QSharedPointer<QtDBusTest::QProcessDBusService> keeper_service;
     QSharedPointer<QtDBusTest::QProcessDBusService> upstart_service;
+    QScopedPointer<QProcess> dbus_monitor_process;
 
 protected:
     void start_tasks();
@@ -97,7 +98,11 @@ protected:
 
     bool check_task_has_action_state(QVariantDictMap const & state, QString const & uuid, QString const & action_state);
 
+    bool capture_and_check_state_until_all_tasks_complete(QStringList const & uuids, QString const & action_state, int max_timeout = 15000);
+
     QString get_uuid_for_xdg_folder_path(QString const &path, QVariantDictMap const & choices) const;
+
+    bool start_dbus_monitor();
 };
 
 #define EXPECT_ENV(expected, envvars, key) EXPECT_EQ(expected, get_env(envvars, key)) << "for key " << key

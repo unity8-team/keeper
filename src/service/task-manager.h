@@ -46,6 +46,10 @@ public:
 
     Q_DISABLE_COPY(TaskManager)
 
+    Q_PROPERTY(QVariantDictMap State
+               READ get_state
+               NOTIFY state_changed)
+
     void start_tasks(QStringList const & task_uuids);
 
     QVariantDictMap get_state() const;
@@ -54,6 +58,7 @@ public:
 
 Q_SIGNALS:
     void socket_ready(int reply);
+    void state_changed();
 
 private:
     QScopedPointer<TaskManagerPrivate> const d_ptr;

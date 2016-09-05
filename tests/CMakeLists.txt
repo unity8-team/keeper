@@ -99,6 +99,7 @@ add_subdirectory(unit)
 add_subdirectory(utils)
 add_subdirectory(fakes)
 add_subdirectory(integration)
+add_subdirectory(qdbus-stubs)
 
 set(
   COVERAGE_TEST_TARGETS
