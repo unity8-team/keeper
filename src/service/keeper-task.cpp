@@ -14,8 +14,8 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authors:
- *   Xavi Garcia <xavi.garcia.mena@canoincal.com>
- *   Charles Kerr <charles.kerr@canoincal.com>
+ *   Xavi Garcia <xavi.garcia.mena@canonical.com>
+ *   Charles Kerr <charles.kerr@canonical.com>
  */
 #include "app-const.h" // DEKKO_APP_ID
 #include "helper/metadata.h"

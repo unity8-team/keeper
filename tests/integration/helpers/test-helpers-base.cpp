@@ -15,7 +15,7 @@
  *
  * Authors:
  *     Ted Gould <ted.gould@canonical.com>
- *     Xavi Garcia <xavi.garcia.mena@gmail.com>
+ *     Xavi Garcia <xavi.garcia.mena@canonical.com>
  *     Charles Kerr <charles.kerr@canonical.com>
  */
 #include "test-helpers-base.h"
