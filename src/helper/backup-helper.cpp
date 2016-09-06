@@ -27,7 +27,6 @@
 #include <QLocalSocket>
 #include <QMap>
 #include <QObject>
-#include <QScopedPointer>
 #include <QString>
 #include <QTimer>
 #include <QVector>
@@ -47,18 +46,14 @@ public:
         BackupHelper* backup_helper
     )
         : q_ptr(backup_helper)
-        , timer_(new QTimer())
-        , helper_socket_(new QLocalSocket())
-        , read_socket_(new QLocalSocket())
-        , upload_buffer_{}
     {
         // listen for inactivity
-        QObject::connect(timer_.data(), &QTimer::timeout,
+        QObject::connect(&timer_, &QTimer::timeout,
             std::bind(&BackupHelperPrivate::on_inactivity_detected, this)
         );
 
         // listen for data ready to read
-        QObject::connect(read_socket_.data(), &QLocalSocket::readyRead,
+        QObject::connect(&read_socket_, &QLocalSocket::readyRead,
             std::bind(&BackupHelperPrivate::on_ready_read, this)
         );
 
@@ -73,9 +68,9 @@ public:
         }
 
         // helper socket is for the client.
-        helper_socket_->setSocketDescriptor(fds[1], QLocalSocket::ConnectedState, QIODevice::WriteOnly);
+        helper_socket_.setSocketDescriptor(fds[1], QLocalSocket::ConnectedState, QIODevice::WriteOnly);
 
-        read_socket_->setSocketDescriptor(fds[0], QLocalSocket::ConnectedState, QIODevice::ReadOnly);
+        read_socket_.setSocketDescriptor(fds[0], QLocalSocket::ConnectedState, QIODevice::ReadOnly);
     }
 
     ~BackupHelperPrivate() = default;
@@ -123,7 +118,7 @@ public:
 
     int get_helper_socket() const
     {
-        return int(helper_socket_->socketDescriptor());
+        return int(helper_socket_.socketDescriptor());
     }
 
     QString to_string(Helper::State state) const
@@ -208,7 +203,7 @@ private:
             // try to fill the upload buf
             int max_bytes = UPLOAD_BUFFER_MAX_ - upload_buffer_.size();
             if (max_bytes > 0) {
-                const auto n = read_socket_->read(readbuf, max_bytes);
+                const auto n = read_socket_.read(readbuf, max_bytes);
                 if (n > 0) {
                     n_read_ += n;
                     upload_buffer_.append(readbuf, int(n));
@@ -244,12 +239,12 @@ private:
     void reset_inactivity_timer()
     {
         static constexpr int MAX_TIME_WAITING_FOR_DATA {BackupHelper::MAX_INACTIVITY_TIME};
-        timer_->start(MAX_TIME_WAITING_FOR_DATA);
+        timer_.start(MAX_TIME_WAITING_FOR_DATA);
     }
 
     void stop_inactivity_timer()
     {
-        timer_->stop();
+        timer_.stop();
     }
 
     void check_for_done()
@@ -286,10 +281,10 @@ private:
     static constexpr int UPLOAD_BUFFER_MAX_ {1024*16};
 
     BackupHelper * const q_ptr;
-    QScopedPointer<QTimer> timer_;
+    QTimer timer_;
     std::shared_ptr<Uploader> uploader_;
-    QScopedPointer<QLocalSocket> helper_socket_;
-    QScopedPointer<QLocalSocket> read_socket_;
+    QLocalSocket helper_socket_;
+    QLocalSocket read_socket_;
     QByteArray upload_buffer_;
     qint64 n_read_ = 0;
     qint64 n_uploaded_ = 0;
