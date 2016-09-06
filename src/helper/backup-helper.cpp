@@ -110,12 +110,6 @@ public:
         q_ptr->Helper::stop();
     }
 
-    void on_helper_process_stopped()
-    {
-        check_for_done();
-        stop_inactivity_timer();
-    }
-
     int get_helper_socket() const
     {
         return int(helper_socket_.socketDescriptor());
