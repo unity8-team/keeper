@@ -112,8 +112,8 @@ StorageFrameworkClient::get_new_uploader(int64_t n_bytes)
         {
             std::function<void(std::shared_ptr<sf::Uploader> const&)> on_uploader_ready = [this, fi](std::shared_ptr<sf::Uploader> const& uploader)
             {
-                qDebug() << "root->create_file() finished"; 
-                auto wrapper = std::shared_ptr<Uploader>(new StorageFrameworkUploader(uploader, this));
+                qDebug() << "root->create_file() finished";
+                auto wrapper = std::shared_ptr<Uploader>(new StorageFrameworkUploader(uploader, this), [](Uploader* u){u->deleteLater();});
                 QFutureInterface<decltype(wrapper)> qfi(fi);
                 qfi.reportResult(wrapper);
                 qfi.reportFinished();
