@@ -131,13 +131,14 @@ private:
 
     bool start_task(QString const& uuid)
     {
-        if (!task_data_.contains(uuid))
+        auto it = task_data_.find(uuid);
+        if (it == task_data_.end())
         {
-            qCritical() << "no task data found for" << uuid;
+            qCritical() << "no task data for" << uuid;
             return false;
         }
 
-        auto& td = task_data_[uuid];
+        auto& td = it.value();
 
         qDebug() << "Creating task for uuid = " << uuid;
         // initialize a new task
