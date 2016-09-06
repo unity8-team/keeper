@@ -32,12 +32,12 @@
  * A class to manage connections to QFutures and one-shot signals.
  * It will disconnect & release resources when the QFuture is finished
  * or when the single-shot signal is called.
- * 
+ *
  * Destroying the ConnectionHelper also disconnects & releases resources,
  * so an object that needs to safely manage those kinds of connections
  * can aggregate a ConnectionHelper so that connections are destroyed when
  * the object is destroyed.
- */ 
+ */
 class ConnectionHelper final: public QObject
 {
     Q_OBJECT
