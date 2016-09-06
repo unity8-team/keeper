@@ -44,8 +44,9 @@ StorageFrameworkUploader::commit()
 
     std::function<void(std::shared_ptr<unity::storage::qt::client::File> const&)> on_finished =
         [this](std::shared_ptr<unity::storage::qt::client::File> const& /*file*/){
-            qDebug() << "committed";
-            Q_EMIT(committed());
+            bool success = true; // FIXME
+            qDebug() << "commit finished with" << success;
+            Q_EMIT(commit_finished(success));
         };
 
     connections_.connect_future(uploader_->finish_upload(), on_finished);

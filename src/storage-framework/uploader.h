@@ -40,5 +40,5 @@ public:
 
 Q_SIGNALS:
 
-    void committed();
+    void commit_finished(bool success);
 };
