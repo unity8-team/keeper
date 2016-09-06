@@ -149,6 +149,24 @@ void KeeperTaskPrivate::calculate_and_notify_state(Helper::State state)
     Q_EMIT(q_ptr->task_state_changed(state));
 }
 
+QVariantMap KeeperTaskPrivate::get_initial_state(KeeperTask::TaskData const &td)
+{
+    QVariantMap ret;
+
+    auto const uuid = td.metadata.uuid();
+
+    ret.insert(QStringLiteral("action"), td.action);
+
+    // TODO review this when we add the restore tasks.
+    // TODO we maybe have different fields
+    ret.insert(QStringLiteral("display-name"), td.metadata.display_name());
+    ret.insert(QStringLiteral("speed"), 0);
+    ret.insert(QStringLiteral("percent-done"), double(0.0));
+    ret.insert(QStringLiteral("uuid"), uuid);
+
+    return ret;
+}
+
 KeeperTask::KeeperTask(TaskData const & task_data,
                        QSharedPointer<HelperRegistry> const & helper_registry,
                        QSharedPointer<StorageFrameworkClient> const & storage,
@@ -177,4 +195,9 @@ QVariantMap KeeperTask::state() const
 {
     Q_D(const KeeperTask);
     return d->state();
+}
+
+QVariantMap KeeperTask::get_initial_state(KeeperTask::TaskData const &td)
+{
+    return KeeperTaskPrivate::get_initial_state(td);
 }

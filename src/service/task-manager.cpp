@@ -79,8 +79,10 @@ public:
             td.type = type;
             td.action = QStringLiteral("queued"); // TODO i18n
 
-//            update_task_state(td);
+            set_initial_task_state(td);
         }
+        // notify the initial state once for all tasks
+        notify_state_changed();
 
         start_next_task();
     }
@@ -222,10 +224,13 @@ private:
         update_task_state(it.value());
     }
 
-    void update_task_state(KeeperTask::KeeperTask::TaskData& td)
+    void set_initial_task_state(KeeperTask::KeeperTask::TaskData& td)
     {
-        state_[td.metadata.uuid()] = task_->state();
+        state_[td.metadata.uuid()] = KeeperTask::get_initial_state(td);
+    }
 
+    void notify_state_changed()
+    {
         DBusUtils::notifyPropertyChanged(
             QDBusConnection::sessionBus(),
             *q_ptr,
@@ -234,9 +239,24 @@ private:
             QStringList(QStringLiteral("State"))
         );
 
-        if (!state_[td.metadata.uuid()].isEmpty())
+        Q_EMIT(q_ptr->state_changed());
+    }
+
+    void update_task_state(KeeperTask::KeeperTask::TaskData& td)
+    {
+        auto task_state = task_->state();
+
+        // avoid sending repeated states to minimize the use of the bus
+        if (task_state != state_[td.metadata.uuid()] && !task_state.isEmpty())
         {
-            Q_EMIT(q_ptr->state_changed());
+            state_[td.metadata.uuid()] = task_state;
+
+            // FIXME: we don't need this to work correctly for the sprint because Marcus is polling in a loop
+            // but we will need this in order for him to stop doing that
+
+            // TODO: compare old and new and decide if it's worth emitting a PropertyChanged signal;
+            // eg don't contribute to dbus noise for minor speed fluctuations
+            notify_state_changed();
         }
     }
 

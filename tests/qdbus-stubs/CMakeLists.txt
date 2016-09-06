@@ -26,10 +26,10 @@ set(
 )
 
 set_source_files_properties(
-    "${properties_xml}"
-    PROPERTIES
-    NO_NAMESPACE YES
-    CLASSNAME DBusPropertiesInterface
+  "${properties_xml}"
+  PROPERTIES
+  NO_NAMESPACE YES
+  CLASSNAME DBusPropertiesInterface
 )
 
 qt5_add_dbus_interface(
@@ -51,4 +51,3 @@ add_library(
   STATIC
   ${interface_files}
 )
-
