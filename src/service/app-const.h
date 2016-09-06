@@ -24,7 +24,4 @@ namespace
     constexpr char const HELPER_TYPE[] = "backup-helper";
     constexpr char const DEKKO_HELPER_BIN[] = "/custom/click/dekko.dekkoproject/0.6.20/backup-helper";
     constexpr char const DEKKO_HELPER_DIR[] = "/custom/click/dekko.dekkoproject/0.6.20";
-
-    // TODO set a valid bin path (depending on the installation path)
-    constexpr char const FOLDER_HELPER_BIN_PATH[] = "/tmp/folder-backup-helper.sh";
 }
