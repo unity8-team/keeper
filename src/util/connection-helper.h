@@ -39,10 +39,10 @@ public:
     virtual ~ConnectionHelper() =default;
 
     void
-    remember_connection(QMetaObject::Connection const& c,
-                        std::function<void(void)> const& closure = [](){})
+    remember(QMetaObject::Connection const& c,
+             std::function<void(void)> const& closure = [](){})
     {
-        remember_connection(c, next_tag++, closure);
+        remember(c, next_tag++, closure);
     }
 
     template<typename PointerToMemberFunction,
@@ -54,8 +54,7 @@ public:
                     std::function<void(void)> const& closure = [](){})
     {
         auto const tag = next_tag++;
-        qDebug() << "new tag" << tag;
-        remember_connection(
+        remember(
             QObject::connect(
                 qobject_cast<typename QtPrivate::FunctionPointer<PointerToMemberFunction>::Object *>(sender),
                 signal,
@@ -93,9 +92,9 @@ private:
     std::map<decltype(next_tag),std::shared_ptr<QMetaObject::Connection>> connections_;
 
     void
-    remember_connection(QMetaObject::Connection const& connection,
-                        decltype(next_tag) tag,
-                        std::function<void(void)> const& closure = [](){})
+    remember(QMetaObject::Connection const& connection,
+             decltype(next_tag) tag,
+             std::function<void(void)> const& closure = [](){})
     {
         connections_[tag] = std::shared_ptr<QMetaObject::Connection>(
             new QMetaObject::Connection(connection),
