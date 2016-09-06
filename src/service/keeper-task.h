@@ -45,7 +45,6 @@ public:
         QString error;
         KeeperTask::TaskType type;
         Metadata metadata;
-        float percent_done;
     };
 
     KeeperTask(TaskData const & task_data,

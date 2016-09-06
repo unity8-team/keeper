@@ -50,7 +50,7 @@ public:
 
     QVariantDictMap get_state() const;
 
-    void ask_for_storage_framework_socket(quint64 n_bytes);
+    void ask_for_uploader(quint64 n_bytes);
 
 Q_SIGNALS:
     void socket_ready(int reply);
