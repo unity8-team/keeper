@@ -72,9 +72,8 @@ Q_SIGNALS:
 
 protected:
     Helper(QString const & appid, const clock_func& clock=default_clock, QObject *parent=nullptr);
-    void set_state(State);
+    virtual void set_state(State);
     void record_data_transferred(qint64 n_bytes);
-    virtual void on_helper_process_stopped() = 0;
 
 private:
 

@@ -18,8 +18,9 @@
  *     Charles Kerr <charles.kerr@canonical.com>
  */
 
-#include <helper/backup-helper.h>
-#include <service/app-const.h> // HELPER_TYPE
+#include "util/connection-helper.h"
+#include "helper/backup-helper.h"
+#include "service/app-const.h" // HELPER_TYPE
 
 #include <QByteArray>
 #include <QDebug>
@@ -47,7 +48,6 @@ public:
     )
         : q_ptr(backup_helper)
         , timer_(new QTimer())
-        , storage_framework_socket_(new QLocalSocket())
         , helper_socket_(new QLocalSocket())
         , read_socket_(new QLocalSocket())
         , upload_buffer_{}
@@ -88,7 +88,7 @@ public:
         reset_inactivity_timer();
     }
 
-    void set_storage_framework_socket(std::shared_ptr<QLocalSocket> const& sf_socket)
+    void set_uploader(std::shared_ptr<Uploader> const& uploader)
     {
         n_read_ = 0;
         n_uploaded_ = 0;
@@ -96,20 +96,12 @@ public:
         write_error_ = false;
         cancelled_ = false;
 
-        storage_framework_socket_ = sf_socket;
+        uploader_ = uploader;
 
-        // listen for data uploaded
-        storage_framework_socket_connection_.reset(
-            new QMetaObject::Connection(
-                QObject::connect(
-                    storage_framework_socket_.get(), &QLocalSocket::bytesWritten,
-                    std::bind(&BackupHelperPrivate::on_data_uploaded, this, std::placeholders::_1)
-                )
-            ),
-            [](QMetaObject::Connection* c){
-                QObject::disconnect(*c);
-            }
-        );
+        connections_.remember(QObject::connect(
+            uploader_->socket().get(), &QLocalSocket::bytesWritten,
+            std::bind(&BackupHelperPrivate::on_data_uploaded, this, std::placeholders::_1)
+        ));
 
         // TODO xavi is going to remove this line
         q_ptr->set_state(Helper::State::STARTED);
@@ -134,18 +126,51 @@ public:
         return int(helper_socket_->socketDescriptor());
     }
 
-    void on_storage_framework_finished()
-    {
-        qDebug() << "storage framework has finished for the current helper...";
-        storage_framework_socket_.reset();
-        check_for_done();
-    }
-
     QString to_string(Helper::State state) const
     {
         return state == Helper::State::STARTED
             ? QStringLiteral("saving")
             : q_ptr->Helper::to_string(state);
+    }
+
+    void on_state_changed(Helper::State state)
+    {
+        switch (state)
+        {
+            case Helper::State::HELPER_FINISHED:
+                qDebug() << "helper finished";
+                check_for_done();
+                stop_inactivity_timer();
+                break;
+
+            case Helper::State::CANCELLED:
+            case Helper::State::FAILED:
+                qDebug() << "cancelled/failed, calling uploader_.reset()";
+                uploader_.reset();
+                break;
+
+            case Helper::State::DATA_COMPLETE: {
+                qDebug() << "Backup helper finished, calling uploader_.commit()";
+                connections_.connect_oneshot(
+                    uploader_.get(),
+                    &Uploader::commit_finished,
+                    std::function<void(bool)>{[this](bool success){
+                        qDebug() << "Commit finished";
+                        uploader_.reset();
+                        if (!success)
+                            write_error_ = true;
+                        check_for_done();
+                    }}
+                );
+                uploader_->commit();
+                break;
+            }
+
+            //case Helper::State::NOT_STARTED:
+            //case Helper::State::STARTED:
+            default:
+                break;
+        }
     }
 
 private:
@@ -173,7 +198,11 @@ private:
 
     void process_more()
     {
+        if (!uploader_)
+            return;
+
         char readbuf[UPLOAD_BUFFER_MAX_];
+        auto socket = uploader_->socket();
         for(;;)
         {
             // try to fill the upload buf
@@ -193,7 +222,7 @@ private:
             }
 
             // try to empty the upload buf
-            const auto n = storage_framework_socket_->write(upload_buffer_);
+            const auto n = socket->write(upload_buffer_);
             if (n > 0) {
                 upload_buffer_.remove(0, int(n));
                 qDebug("upload_buffer_.size() is %zu after writing %zu to cloud", size_t(upload_buffer_.size()), size_t(n));
@@ -202,7 +231,7 @@ private:
             else {
                 if (n < 0) {
                     write_error_ = true;
-                    qWarning() << "Write error:" << storage_framework_socket_->errorString();
+                    qWarning() << "Write error:" << socket->errorString();
                     stop();
                 }
                 break;
@@ -235,7 +264,7 @@ private:
         }
         else if (n_uploaded_ == q_ptr->expected_size())
         {
-            if (storage_framework_socket_)
+            if (uploader_)
             {
                 if (q_ptr->state() == Helper::State::HELPER_FINISHED)
                 {
@@ -258,7 +287,7 @@ private:
 
     BackupHelper * const q_ptr;
     QScopedPointer<QTimer> timer_;
-    std::shared_ptr<QLocalSocket> storage_framework_socket_;
+    std::shared_ptr<Uploader> uploader_;
     QScopedPointer<QLocalSocket> helper_socket_;
     QScopedPointer<QLocalSocket> read_socket_;
     QByteArray upload_buffer_;
@@ -267,7 +296,7 @@ private:
     bool read_error_ = false;
     bool write_error_ = false;
     bool cancelled_ = false;
-    std::shared_ptr<QMetaObject::Connection> storage_framework_socket_connection_;
+    ConnectionHelper connections_;
 };
 
 /***
@@ -303,19 +332,11 @@ BackupHelper::stop()
 }
 
 void
-BackupHelper::on_helper_process_stopped()
+BackupHelper::set_uploader(std::shared_ptr<Uploader> const &uploader)
 {
     Q_D(BackupHelper);
 
-    d->on_helper_process_stopped();
-}
-
-void
-BackupHelper::set_storage_framework_socket(std::shared_ptr<QLocalSocket> const &sf_socket)
-{
-    Q_D(BackupHelper);
-
-    d->set_storage_framework_socket(sf_socket);
+    d->set_uploader(uploader);
 }
 
 int
@@ -335,9 +356,11 @@ BackupHelper::to_string(Helper::State state) const
 }
 
 void
-BackupHelper::on_storage_framework_finished()
+BackupHelper::set_state(Helper::State state)
 {
     Q_D(BackupHelper);
 
-    return d->on_storage_framework_finished();
+    Helper::set_state(state);
+    qDebug() << Q_FUNC_INFO;
+    d->on_state_changed(state);
 }

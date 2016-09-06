@@ -150,10 +150,9 @@ public:
         , expected_size_{}
         , history_{}
         , registry_(new ubuntu::app_launch::Registry())
-        , timer_wait_ual_(new QTimer())
     {
         ual_init();
-        QObject::connect(timer_wait_ual_.data(), &QTimer::timeout,
+        QObject::connect(&timer_wait_ual_, &QTimer::timeout,
             std::bind(&HelperPrivate::on_max_time_waiting_for_ual_started, this)
         );
     }
@@ -310,8 +309,7 @@ private:
     {
         qDebug() << "HELPER STOPPED +++++++++++++++++++++++++++++++++++++" << appid;
         auto self = static_cast<HelperPrivate*>(vself);
-        self->set_state(Helper::State::HELPER_FINISHED);
-        self->q_ptr->on_helper_process_stopped();
+        self->q_ptr->set_state(Helper::State::HELPER_FINISHED);
     }
 
     void update_percent_done()
@@ -333,12 +331,12 @@ private:
     void reset_wait_for_ual_timer()
     {
         static constexpr int MAX_TIME_WAITING_FOR_DATA {Helper::MAX_UAL_WAIT_TIME};
-        timer_wait_ual_->start(MAX_TIME_WAITING_FOR_DATA);
+        timer_wait_ual_.start(MAX_TIME_WAITING_FOR_DATA);
     }
 
     void stop_wait_for_ual_timer()
     {
-        timer_wait_ual_->stop();
+        timer_wait_ual_.stop();
     }
 
     void on_max_time_waiting_for_ual_started()
@@ -359,7 +357,7 @@ private:
     float percent_done_ {};
     float last_notified_percent_done_ {};
     std::shared_ptr<ubuntu::app_launch::Registry> registry_;
-    QScopedPointer<QTimer> timer_wait_ual_;
+    QTimer timer_wait_ual_;
 };
 
 /***
