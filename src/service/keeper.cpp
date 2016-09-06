@@ -84,17 +84,17 @@ public:
 
         qDebug("Keeper::StartBackup(n_bytes=%zu)", size_t(n_bytes));
 
-        std::function<void(int)> on_socket_ready = [bus,msg](int fd){
-            qDebug("BackupManager returned socket %d", fd);
-            auto reply = msg.createReply();
-            reply << QVariant::fromValue(QDBusUnixFileDescriptor(fd));
-            bus.send(reply);
-        };
-
         connections_.connect_oneshot(
             task_manager_.data(),
             &TaskManager::socket_ready,
-            on_socket_ready
+            std::function<void(int)>{
+                [bus,msg](int fd){
+                    qDebug("BackupManager returned socket %d", fd);
+                    auto reply = msg.createReply();
+                    reply << QVariant::fromValue(QDBusUnixFileDescriptor(fd));
+                    bus.send(reply);
+                }
+            }
         );
 
         qDebug() << "Asking for an storage framework socket to the task manager";

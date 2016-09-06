@@ -110,18 +110,23 @@ StorageFrameworkClient::get_new_uploader(int64_t n_bytes)
         auto root = choose(roots);
         if (root)
         {
-            std::function<void(std::shared_ptr<sf::Uploader> const&)> on_uploader_ready = [this, fi](std::shared_ptr<sf::Uploader> const& uploader)
-            {
-                qDebug() << "root->create_file() finished";
-                auto wrapper = std::shared_ptr<Uploader>(new StorageFrameworkUploader(uploader, this), [](Uploader* u){u->deleteLater();});
-                QFutureInterface<decltype(wrapper)> qfi(fi);
-                qfi.reportResult(wrapper);
-                qfi.reportFinished();
-            };
-
             auto const now = QDateTime::currentDateTime();
             auto const filename = QStringLiteral("Backup_%1").arg(now.toString("dd.MM.yyyy-hh.mm.ss.zzz"));
-            connection_helper_.connect_future(root->create_file(filename, n_bytes), on_uploader_ready);
+            connection_helper_.connect_future(
+                root->create_file(filename, n_bytes),
+                std::function<void(std::shared_ptr<sf::Uploader> const&)>{
+                    [this, fi](std::shared_ptr<sf::Uploader> const& uploader){
+                        qDebug() << "root->create_file() finished";
+                        auto wrapper = std::shared_ptr<Uploader>(
+                            new StorageFrameworkUploader(uploader, this),
+                            [](Uploader* u){u->deleteLater();}
+                        );
+                        QFutureInterface<decltype(wrapper)> qfi(fi);
+                        qfi.reportResult(wrapper);
+                        qfi.reportFinished();
+                    }
+                }
+            );
         }
     });
 

@@ -42,12 +42,14 @@ StorageFrameworkUploader::commit()
 {
     qDebug() << Q_FUNC_INFO << "is committing";
 
-    std::function<void(std::shared_ptr<unity::storage::qt::client::File> const&)> on_finished =
-        [this](std::shared_ptr<unity::storage::qt::client::File> const& /*file*/){
-            bool success = true; // FIXME
-            qDebug() << "commit finished with" << success;
-            Q_EMIT(commit_finished(success));
-        };
-
-    connections_.connect_future(uploader_->finish_upload(), on_finished);
+    connections_.connect_future(
+        uploader_->finish_upload(),
+        std::function<void(std::shared_ptr<unity::storage::qt::client::File> const&)>{
+            [this](std::shared_ptr<unity::storage::qt::client::File> const& /*file*/){
+                bool success = true; // FIXME
+                qDebug() << "commit finished with" << success;
+                Q_EMIT(commit_finished(success));
+            }
+        }
+    );
 }

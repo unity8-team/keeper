@@ -58,17 +58,17 @@ public:
 
         helper_->set_expected_size(n_bytes);
 
-        std::function<void(std::shared_ptr<Uploader> const&)> on_uploader_ready = [this](std::shared_ptr<Uploader> const& uploader){
-            qDebug("calling helper.set_storage_framework_socket(socket=%d)", int(uploader->socket()->socketDescriptor()));
-            qDebug() << "Helper is " <<  static_cast<void*>(helper_.data());
-            auto backup_helper = qSharedPointerDynamicCast<BackupHelper>(helper_);
-            backup_helper->set_uploader(uploader);
-            Q_EMIT(q_ptr->task_socket_ready(backup_helper->get_helper_socket()));
-        };
-
         connections_.connect_future(
             storage_->get_new_uploader(n_bytes),
-            on_uploader_ready
+            std::function<void(std::shared_ptr<Uploader> const&)>{
+                [this](std::shared_ptr<Uploader> const& uploader){
+                    qDebug("calling helper.set_storage_framework_socket(socket=%d)", int(uploader->socket()->socketDescriptor()));
+                    qDebug() << "Helper is " <<  static_cast<void*>(helper_.data());
+                    auto backup_helper = qSharedPointerDynamicCast<BackupHelper>(helper_);
+                    backup_helper->set_uploader(uploader);
+                    Q_EMIT(q_ptr->task_socket_ready(backup_helper->get_helper_socket()));
+                }
+            }
         );
     }
 
