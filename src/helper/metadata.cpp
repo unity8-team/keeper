@@ -52,10 +52,6 @@ Metadata::Metadata(QString const& uuid, QString const& display_name)
 {
 }
 
-Metadata::~Metadata()
-{
-}
-
 bool
 Metadata::get_property(QString const& property_name, QString& setme) const
 {
