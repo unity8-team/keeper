@@ -58,7 +58,7 @@ public:
     bool start();
     QVariantMap state() const;
 
- Q_SIGNALS:
+Q_SIGNALS:
     void task_state_changed(Helper::State state);
     void task_socket_ready(int socket_descriptor);
 
@@ -67,6 +67,5 @@ protected:
     virtual QStringList get_helper_urls() const = 0;
     virtual void init_helper() = 0;
 
-protected:
     QScopedPointer<KeeperTaskPrivate> const d_ptr;
 };
