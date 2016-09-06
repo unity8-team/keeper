@@ -94,19 +94,6 @@ public:
         return state_;
     }
 
-    void on_helper_state_changed(Helper::State state)
-    {
-        qDebug() << "Task State changed";
-        auto& td = task_data_[current_task_];
-        update_task_state(td);
-
-        if (state == Helper::State::COMPLETE)
-        {
-            qDebug() << "STARTING NEXT TASK ---------------------------------------";
-            start_next_task();
-        }
-    }
-
     void ask_for_uploader(quint64 n_bytes)
     {
         qDebug() << "Starting backup";
@@ -122,7 +109,22 @@ public:
             backup_task_->ask_for_uploader(n_bytes);
         }
     }
+
 private:
+
+    void on_helper_state_changed(Helper::State state)
+    {
+        qDebug() << "Task State changed";
+        auto& td = task_data_[current_task_];
+        update_task_state(td);
+
+        if (state == Helper::State::COMPLETE)
+        {
+            qDebug() << "STARTING NEXT TASK ---------------------------------------";
+            start_next_task();
+        }
+    }
+
     /***
     ****  Task Queueing
     ***/
@@ -159,9 +161,8 @@ private:
         );
 
         QObject::connect(task_.data(), &KeeperTask::task_socket_ready,
-                    std::bind(&TaskManager::socket_ready, q_ptr, std::placeholders::_1)
-                );
-
+            std::bind(&TaskManager::socket_ready, q_ptr, std::placeholders::_1)
+        );
 
         return task_->start();
     }
