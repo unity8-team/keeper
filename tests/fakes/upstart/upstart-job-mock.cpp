@@ -146,6 +146,14 @@ bool UpstartJobMock::start_process(QString const & app_id, QString const & path,
     // set the cwd
     new_process->setWorkingDirectory(cwd);
 
+    /* uncomment this line to see keeper-service stdout/stderr in test logs
+       NB: this is useful for manual debugging but not for automated tests
+       because connecting stdout/stderr between processes keeps keeper-service
+       from shutting down properly */
+#if 0
+    new_process->setProcessChannelMode(QProcess::ForwardedChannels);
+#endif
+
     // start the process
     QProcess setVolume;
     new_process->start(path, QStringList());
