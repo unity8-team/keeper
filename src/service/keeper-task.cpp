@@ -18,7 +18,6 @@
  *   Charles Kerr <charles.kerr@canonical.com>
  */
 
-#include "app-const.h" // DEKKO_APP_ID
 #include "helper/metadata.h"
 #include "keeper-task.h"
 
