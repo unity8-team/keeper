@@ -72,37 +72,6 @@ public:
         );
     }
 
-    void on_helper_state_changed(Helper::State state) override
-    {
-        auto new_state = state;
-        switch (state)
-        {
-            case Helper::State::STARTED:
-                qDebug() << "Backup helper started";
-                break;
-
-            case Helper::State::CANCELLED:
-                qDebug() << "Backup helper cancelled";
-                break;
-
-            case Helper::State::FAILED:
-                qDebug() << "Backup helper failed";
-                break;
-
-            case Helper::State::HELPER_FINISHED:
-                qDebug() << "Backup helper process finished... ";
-                break;
-
-            case Helper::State::DATA_COMPLETE:
-                qDebug() << "Backup helper data complete";
-                break;
-
-            default:
-                break;
-        }
-        KeeperTaskPrivate::on_helper_state_changed(new_state);
-    }
-
 private:
     ConnectionHelper connections_;
 };
