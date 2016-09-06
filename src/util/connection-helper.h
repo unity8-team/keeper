@@ -74,6 +74,7 @@ public:
                     connections_.erase(tag);
                 }
             ),
+            tag,
             closure
         );
     }
