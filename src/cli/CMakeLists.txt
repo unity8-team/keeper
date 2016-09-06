@@ -14,8 +14,11 @@ add_executable(
 
 target_link_libraries(
   ${CLI_EXEC}
+  backup-helper
+  storage-framework
   util
   qdbus-stubs
+  ${SERVICE_DEVEL_SF_DEPS_LIBRARIES}
   Qt5::Core
   Qt5::DBus
 )

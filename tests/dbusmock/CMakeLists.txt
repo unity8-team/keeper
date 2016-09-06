@@ -4,18 +4,6 @@ include_directories(
     ${CMAKE_BINARY_DIR}/src
 )
 
-set(
-    LINK_LIBS
-    qdbus-stubs
-    ${TEST_DEPENDENCIES_LDFLAGS}
-    test-utils
-    Qt5::Core
-    Qt5::DBus
-    Qt5::Network
-    ${GTEST_LIBRARIES}
-    ${GMOCK_LIBRARIES}
-)
-
 ###
 ###
 
@@ -36,7 +24,18 @@ set_property(
 
 target_link_libraries(
     ${TEST_NAME}
-    ${LINK_LIBS}
+    test-utils
+    backup-helper
+    storage-framework
+    qdbus-stubs
+    util
+    ${TEST_DEPENDENCIES_LDFLAGS}
+    ${SERVICE_DEVEL_SF_DEPS_LIBRARIES}
+    Qt5::Core
+    Qt5::DBus
+    Qt5::Network
+    ${GTEST_LIBRARIES}
+    ${GMOCK_LIBRARIES}
 )
 
 add_test(

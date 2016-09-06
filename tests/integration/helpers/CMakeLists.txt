@@ -48,9 +48,10 @@ target_link_libraries(
   ${HELPERS_TEST}
   ${HELPERS_TEST_DEPS_LDFLAGS}
   ${INTEGRATION_TEST_LIBRARIES}
-  Qt5::Core
   Qt5::DBus
   Qt5::Test
+  Qt5::Network
+  Qt5::Core
 )
 
 add_test(
@@ -113,9 +114,10 @@ target_link_libraries(
   ${HELPERS_TEST_FAILURE}
   ${HELPERS_TEST_DEPS_LDFLAGS}
   ${INTEGRATION_TEST_LIBRARIES}
-  Qt5::Core
   Qt5::DBus
   Qt5::Test
+  Qt5::Network
+  Qt5::Core
 )
 
 add_test(

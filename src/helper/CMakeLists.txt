@@ -66,6 +66,8 @@ set_target_properties(
 
 target_link_libraries(
   ${HELPER_LIB}
+  util
+  storage-framework
   ${BACKUP_HELPER_DEPENDENCIES_LIBRARIES}
   Qt5::Core
   Qt5::DBus
