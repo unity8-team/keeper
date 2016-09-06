@@ -33,5 +33,4 @@ public:
 
     void record_data_transferred(qint64 n) {Helper::record_data_transferred(n);}
     void set_expected_size(qint64 n) {Helper::set_expected_size(n);}
-    void on_helper_process_stopped() override {set_state(Helper::State::COMPLETE);};
 };
