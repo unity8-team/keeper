@@ -28,6 +28,20 @@
 #include <QString>
 #include <QTemporaryFile>
 
+namespace
+{
+    QString createDummyString()
+    {
+        // NB we want to exercise long filenames, but this cutoff length is arbitrary
+        static constexpr int MAX_BASENAME_LEN {200};
+        auto const filename_len = std::max(10, qrand() % MAX_BASENAME_LEN);
+        QString str;
+        for (int i=0; i<filename_len; ++i)
+            str += ('a' + char(qrand() % ('z'-'a')));
+        return str;
+    }
+}
+
 FileUtils::Info
 FileUtils::createDummyFile(const QDir& dir, qint64 filesize)
 {
@@ -35,13 +49,8 @@ FileUtils::createDummyFile(const QDir& dir, qint64 filesize)
     info.info = QFileInfo();
     info.checksum = QByteArray();
 
-    // NB we want to exercise long filenames, but this cutoff length is arbitrary
-    static constexpr int MAX_BASENAME_LEN {200};
-    int filename_len = qrand() % MAX_BASENAME_LEN;
-    QString basename;
-    for (int i=0; i<filename_len; ++i)
-        basename += ('a' + char(qrand() % ('z'-'a')));
-    basename += QStringLiteral("-XXXXXX");
+    // get a filename
+    auto basename = createDummyString() + QStringLiteral("-XXXXXX");
     auto template_name = dir.absoluteFilePath(basename);
 
     // fill the file with noise
