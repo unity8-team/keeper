@@ -63,7 +63,7 @@ public:
                 if (choice.uuid() == uuid)
                     tasks.push_back(choice);
         if (!tasks.empty()) {
-            task_manager_->start_tasks(tasks, KeeperTask::TaskType::BACKUP);
+            task_manager_->start_backup(tasks);
             tasks.clear();
         }
 
@@ -72,7 +72,7 @@ public:
                 if (choice.uuid() == uuid)
                     tasks.push_back(choice);
         if (!tasks.empty()) {
-            task_manager_->start_tasks(tasks, KeeperTask::TaskType::RESTORE);
+            task_manager_->start_restore(tasks);
             tasks.clear();
         }
     }

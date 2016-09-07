@@ -45,7 +45,8 @@ public:
 
     Q_DISABLE_COPY(TaskManager)
 
-    void start_tasks(QVector<Metadata> const& tasks, KeeperTask::TaskType type);
+    void start_backup(QVector<Metadata> const& tasks);
+    void start_restore(QVector<Metadata> const& tasks);
 
     QVariantDictMap get_state() const;
 

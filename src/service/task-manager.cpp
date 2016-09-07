@@ -38,40 +38,14 @@ public:
 
     ~TaskManagerPrivate() = default;
 
-    /***
-    ****  Task Queueing public
-    ***/
-
-    void start_tasks(QVector<Metadata> const& tasks, KeeperTask::TaskType type)
+    void start_backup(QVector<Metadata> const& tasks)
     {
-        if (!remaining_tasks_.isEmpty())
-        {
-            // FIXME: return a dbus error here
-            qWarning() << "keeper is already active";
-            return;
-        }
+        start_tasks(tasks, Mode::BACKUP);
+    }
 
-        // rebuild the state variables
-        state_.clear();
-        task_data_.clear();
-        current_task_.clear();
-        remaining_tasks_.clear();
-
-        for(auto const& metadata : tasks)
-        {
-            auto const uuid = metadata.uuid();
-
-            remaining_tasks_ << uuid;
-
-            auto& td = task_data_[uuid];
-            td.metadata = metadata;
-            td.type = type;
-            td.action = QStringLiteral("queued"); // TODO i18n
-
-//            update_task_state(td);
-        }
-
-        start_next_task();
+    void start_restore(QVector<Metadata> const& tasks)
+    {
+        start_tasks(tasks, Mode::RESTORE);
     }
 
     /***
@@ -100,6 +74,41 @@ public:
     }
 
 private:
+
+    enum class Mode { IDLE, BACKUP, RESTORE };
+
+    void start_tasks(QVector<Metadata> const& tasks, Mode mode)
+    {
+        if (!remaining_tasks_.isEmpty())
+        {
+            // FIXME: return a dbus error here
+            qWarning() << "keeper is already active";
+            return;
+        }
+
+        // rebuild the state variables
+        state_.clear();
+        task_data_.clear();
+        current_task_.clear();
+        remaining_tasks_.clear();
+
+        mode_ = mode;
+
+        for(auto const& metadata : tasks)
+        {
+            auto const uuid = metadata.uuid();
+
+            remaining_tasks_ << uuid;
+
+            auto& td = task_data_[uuid];
+            td.metadata = metadata;
+            td.action = QStringLiteral("queued"); // TODO i18n
+
+//            update_task_state(td);
+        }
+
+        start_next_task();
+    }
 
     void on_helper_state_changed(Helper::State state)
     {
@@ -236,6 +245,7 @@ private:
     ***/
 
     TaskManager * const q_ptr;
+    Mode mode_ {Mode::IDLE};
     QSharedPointer<HelperRegistry> helper_registry_;
     QSharedPointer<StorageFrameworkClient> storage_;
 
@@ -263,11 +273,19 @@ TaskManager::TaskManager(QSharedPointer<HelperRegistry> const & helper_registry,
 TaskManager::~TaskManager() = default;
 
 void
-TaskManager::start_tasks(QVector<Metadata> const& tasks, KeeperTask::TaskType type)
+TaskManager::start_backup(QVector<Metadata> const& tasks)
 {
     Q_D(TaskManager);
 
-    d->start_tasks(tasks, type);
+    d->start_backup(tasks);
+}
+
+void
+TaskManager::start_restore(QVector<Metadata> const& tasks)
+{
+    Q_D(TaskManager);
+
+    d->start_restore(tasks);
 }
 
 QVariantDictMap TaskManager::get_state() const
