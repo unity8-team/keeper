@@ -110,7 +110,7 @@ bool recursiveFillDirectory(QString const & dirPath, int max_filesize, int & j, 
         if (max_dirs && qrand() % 100 < 25)
         {
             QDir dir(dirPath);
-            auto newDirName = QString("Directory_%1").arg(j);
+            auto newDirName = createDummyString();
             if (!dir.mkdir(newDirName))
             {
                 qWarning() << "Error creating temporary directory" << newDirName << "under" << dirPath;
