@@ -38,14 +38,14 @@ public:
 
     ~TaskManagerPrivate() = default;
 
-    void start_backup(QVector<Metadata> const& tasks)
+    bool start_backup(QVector<Metadata> const& tasks)
     {
-        start_tasks(tasks, Mode::BACKUP);
+        return start_tasks(tasks, Mode::BACKUP);
     }
 
-    void start_restore(QVector<Metadata> const& tasks)
+    bool start_restore(QVector<Metadata> const& tasks)
     {
-        start_tasks(tasks, Mode::RESTORE);
+        return start_tasks(tasks, Mode::RESTORE);
     }
 
     /***
@@ -77,37 +77,43 @@ private:
 
     enum class Mode { IDLE, BACKUP, RESTORE };
 
-    void start_tasks(QVector<Metadata> const& tasks, Mode mode)
+    bool start_tasks(QVector<Metadata> const& tasks, Mode mode)
     {
+        bool success = true;
+
         if (!remaining_tasks_.isEmpty())
         {
             // FIXME: return a dbus error here
             qWarning() << "keeper is already active";
-            return;
+            success = false;
         }
-
-        // rebuild the state variables
-        state_.clear();
-        task_data_.clear();
-        current_task_.clear();
-        remaining_tasks_.clear();
-
-        mode_ = mode;
-
-        for(auto const& metadata : tasks)
+        else
         {
-            auto const uuid = metadata.uuid();
+            // rebuild the state variables
+            state_.clear();
+            task_data_.clear();
+            current_task_.clear();
+            remaining_tasks_.clear();
 
-            remaining_tasks_ << uuid;
+            mode_ = mode;
 
-            auto& td = task_data_[uuid];
-            td.metadata = metadata;
-            td.action = QStringLiteral("queued"); // TODO i18n
+            for(auto const& metadata : tasks)
+            {
+                auto const uuid = metadata.uuid();
 
-//            update_task_state(td);
+                remaining_tasks_ << uuid;
+
+                auto& td = task_data_[uuid];
+                td.metadata = metadata;
+                td.action = QStringLiteral("queued"); // TODO i18n
+
+    //            update_task_state(td);
+            }
+
+            start_next_task();
         }
 
-        start_next_task();
+        return success;
     }
 
     void on_helper_state_changed(Helper::State state)
@@ -272,7 +278,7 @@ TaskManager::TaskManager(QSharedPointer<HelperRegistry> const & helper_registry,
 
 TaskManager::~TaskManager() = default;
 
-void
+bool
 TaskManager::start_backup(QVector<Metadata> const& tasks)
 {
     Q_D(TaskManager);
@@ -280,7 +286,7 @@ TaskManager::start_backup(QVector<Metadata> const& tasks)
     d->start_backup(tasks);
 }
 
-void
+bool
 TaskManager::start_restore(QVector<Metadata> const& tasks)
 {
     Q_D(TaskManager);
