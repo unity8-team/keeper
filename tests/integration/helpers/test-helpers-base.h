@@ -22,6 +22,7 @@
 
 #include <helper/backup-helper.h>
 #include <qdbus-stubs/dbus-types.h>
+#include "DBusPropertiesInterface.h"
 #include "qdbus-stubs/keeper_user_interface.h"
 
 #include "tests/fakes/fake-backup-helper.h"
@@ -73,6 +74,7 @@ protected:
     QtDBusMock::DBusMock dbus_mock;
     QSharedPointer<QtDBusTest::QProcessDBusService> keeper_service;
     QSharedPointer<QtDBusTest::QProcessDBusService> upstart_service;
+    QScopedPointer<QProcess> dbus_monitor_process;
 
 protected:
     void start_tasks();
@@ -93,11 +95,15 @@ protected:
 
     QString get_last_storage_framework_file();
 
-    bool wait_for_all_tasks_have_action_state(QStringList const & uuids, QString const & action_state, QSharedPointer<DBusInterfaceKeeperUser> const & keeper_user_iface, int max_timeout = 15000);
+    bool wait_for_all_tasks_have_action_state(QStringList const & uuids, QString const & action_state, QSharedPointer<DBusInterfaceKeeperUser> const & keeper_user_iface, int max_timeout_msec = 15000);
 
     bool check_task_has_action_state(QVariantDictMap const & state, QString const & uuid, QString const & action_state);
 
+    bool capture_and_check_state_until_all_tasks_complete(QSignalSpy & spy, QStringList const & uuids, QString const & action_state, int max_timeout_msec = 15000);
+
     QString get_uuid_for_xdg_folder_path(QString const &path, QVariantDictMap const & choices) const;
+
+    bool start_dbus_monitor();
 };
 
 #define EXPECT_ENV(expected, envvars, key) EXPECT_EQ(expected, get_env(envvars, key)) << "for key " << key

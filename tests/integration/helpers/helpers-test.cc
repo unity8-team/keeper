@@ -104,12 +104,26 @@ TEST_F(TestHelpers, StartFullTest)
     ASSERT_FALSE(user_folder_uuid_2.isEmpty());
     qDebug() << "User folder 2 UUID is:" << user_folder_uuid_2;
 
+    QSharedPointer<DBusPropertiesInterface> properties_interface(new DBusPropertiesInterface(
+                                                            DBusTypes::KEEPER_SERVICE,
+                                                            DBusTypes::KEEPER_USER_PATH,
+                                                            dbus_test_runner.sessionConnection()
+                                                        ) );
+
+    ASSERT_TRUE(properties_interface->isValid()) << qPrintable(QDBusConnection::sessionBus().lastError().message());
+
+    QSignalSpy spy(properties_interface.data(),&DBusPropertiesInterface::PropertiesChanged);
 
     // Now we know the music folder uuid, let's start the backup for it.
     QDBusReply<void> backup_reply = user_iface->call("StartBackup", QStringList{user_folder_uuid, user_folder_uuid_2});
     ASSERT_TRUE(backup_reply.isValid()) << qPrintable(dbus_test_runner.sessionConnection().lastError().message());
 
+    // waits until all tasks are complete, recording PropertiesChanged signals
+    // and checks all the recorded values
+    EXPECT_TRUE(capture_and_check_state_until_all_tasks_complete(spy, {user_folder_uuid, user_folder_uuid_2}, "complete"));
+
     // wait until all the tasks have the action state "complete"
+    // this one uses pooling so it should just call Get once
     EXPECT_TRUE(wait_for_all_tasks_have_action_state({user_folder_uuid, user_folder_uuid_2}, "complete", user_iface));
 
     // check that the content of the file is the expected
