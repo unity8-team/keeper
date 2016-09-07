@@ -100,12 +100,6 @@ void TestHelpersBase::TearDown()
 
     // if the test passed, clean up the xdg_data_home_dir temp too
     xdg_data_home_dir.setAutoRemove(passed);
-
-    // TODO investigate why the service gets to an state that does not listen to SIGTEM signals
-    // If we don't make the following call at main.cpp handler.setupUnixSignalHandlers();
-    // it exists fine.
-    if (keeper_service)
-        kill(keeper_service->pid(), SIGKILL);
 }
 
 bool TestHelpersBase::init_helper_registry(QString const& registry)
