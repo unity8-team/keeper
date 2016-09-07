@@ -46,7 +46,7 @@ public:
     ****  Task Queueing public
     ***/
 
-    void start_tasks(QStringList const & task_uuids)
+    void start_tasks(QVector<Metadata> const& tasks, KeeperTask::TaskType type)
     {
         if (!remaining_tasks_.isEmpty())
         {
@@ -61,21 +61,14 @@ public:
         current_task_.clear();
         remaining_tasks_.clear();
 
-        for(auto const& uuid : task_uuids)
+        for(auto const& metadata : tasks)
         {
-            Metadata m;
-            KeeperTask::TaskType type;
-            if (!find_task_metadata(uuid, m, type))
-            {
-                // TODO Report error to user
-                qCritical() << "uuid" << uuid << "not found; skipping";
-                continue;
-            }
+            auto const uuid = metadata.uuid();
 
             remaining_tasks_ << uuid;
 
             auto& td = task_data_[uuid];
-            td.metadata = m;
+            td.metadata = metadata;
             td.type = type;
             td.action = QStringLiteral("queued"); // TODO i18n
 
@@ -246,27 +239,6 @@ private:
     ****  Misc
     ***/
 
-    bool find_task_metadata(QString const& uuid, Metadata& setme_task, KeeperTask::TaskType & type) const
-    {
-        for (const auto& c : backup_metadata_)
-        {
-            if (c.uuid() == uuid) {
-                setme_task = c;
-                type = KeeperTask::TaskType::BACKUP;
-                return true;
-            }
-        }
-        for (const auto& c : restore_metadata_)
-        {
-            if (c.uuid() == uuid) {
-                setme_task = c;
-                type = KeeperTask::TaskType::RESTORE;
-                return true;
-            }
-        }
-        return false;
-    }
-
     TaskManager * const q_ptr;
     QSharedPointer<HelperRegistry> helper_registry_;
     QVector<Metadata> backup_metadata_;
@@ -298,11 +270,12 @@ TaskManager::TaskManager(QSharedPointer<HelperRegistry> const & helper_registry,
 
 TaskManager::~TaskManager() = default;
 
-void TaskManager::start_tasks(QStringList const & task_uuids)
+void
+TaskManager::start_tasks(QVector<Metadata> const& tasks, KeeperTask::TaskType type)
 {
     Q_D(TaskManager);
 
-    d->start_tasks(task_uuids);
+    d->start_tasks(tasks, type);
 }
 
 QVariantDictMap TaskManager::get_state() const

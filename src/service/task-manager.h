@@ -20,11 +20,12 @@
 
 #pragma once
 
+#include "qdbus-stubs/dbus-types.h"
 #include "helper/metadata.h"
 #include "keeper-task.h"
-#include "qdbus-stubs/dbus-types.h"
 
 #include <QObject>
+#include <QVector>
 
 class HelperRegistry;
 class TaskManagerPrivate;
@@ -46,7 +47,7 @@ public:
 
     Q_DISABLE_COPY(TaskManager)
 
-    void start_tasks(QStringList const & task_uuids);
+    void start_tasks(QVector<Metadata> const& tasks, KeeperTask::TaskType type);
 
     QVariantDictMap get_state() const;
 

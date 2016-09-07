@@ -31,6 +31,8 @@
 #include <QSharedPointer>
 #include <QVector>
 
+#include <algorithm> // std::find_if
+
 class KeeperPrivate
 {
 public:
@@ -55,7 +57,24 @@ public:
 
     void start_tasks(QStringList const& uuids)
     {
-        task_manager_->start_tasks(uuids);
+        QVector<Metadata> tasks;
+        for (auto const& uuid : uuids)
+            for (auto const& choice : get_backup_choices())
+                if (choice.uuid() == uuid)
+                    tasks.push_back(choice);
+        if (!tasks.empty()) {
+            task_manager_->start_tasks(tasks, KeeperTask::TaskType::BACKUP);
+            tasks.clear();
+        }
+
+        for (auto const& uuid : uuids)
+            for (auto const& choice : get_restore_choices())
+                if (choice.uuid() == uuid)
+                    tasks.push_back(choice);
+        if (!tasks.empty()) {
+            task_manager_->start_tasks(tasks, KeeperTask::TaskType::RESTORE);
+            tasks.clear();
+        }
     }
 
     QVector<Metadata> get_backup_choices() const
