@@ -142,7 +142,7 @@ private:
         // initialize a new task
 
         task_.data()->disconnect();
-        if (td.type == KeeperTask::TaskType::BACKUP)
+        if (mode_ == Mode::BACKUP)
         {
             task_.reset(new KeeperTaskBackup(td, helper_registry_, storage_));
         }
