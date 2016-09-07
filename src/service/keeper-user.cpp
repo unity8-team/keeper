@@ -67,7 +67,15 @@ KeeperUser::StartBackup (const QStringList& keys)
 {
     Q_ASSERT(calledFromDBus());
 
-    keeper_.start_tasks(connection(), message(), keys);
+    auto const unhandled = keeper_.start_tasks(keys);
+
+    if (!unhandled.empty())
+    {
+        QString text = QStringLiteral("unhandled uuids:");
+        for (auto const& uuid : unhandled)
+            text += ' ' + uuid;
+        connection().send(message().createErrorReply(QDBusError::InvalidArgs, text));
+    }
 }
 
 void

@@ -25,6 +25,7 @@
 #include <QDBusContext>
 #include <QDBusUnixFileDescriptor>
 #include <QObject>
+#include <QSet>
 #include <QScopedPointer>
 #include <QSharedPointer>
 #include <QString>
@@ -59,9 +60,7 @@ public:
                                         QDBusMessage const & message,
                                         quint64 nbytes);
 
-    void start_tasks(QDBusConnection,
-                     QDBusMessage const &,
-                     QStringList const & uuids);
+    QStringList start_tasks(QStringList const & uuids);
 
     QVariantDictMap get_state() const;
 

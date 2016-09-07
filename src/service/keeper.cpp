@@ -54,9 +54,7 @@ public:
 
     Q_DISABLE_COPY(KeeperPrivate)
 
-    void start_tasks(QDBusConnection bus,
-                     QDBusMessage const & msg,
-                     QStringList const & uuids)
+    QStringList start_tasks(QStringList const & uuids)
     {
         auto unhandled = QSet<QString>::fromList(uuids);
 
@@ -84,14 +82,9 @@ public:
         }
 
         if (!unhandled.empty())
-        {
             qWarning() << "skipped tasks" << unhandled;
 
-            QString text = QStringLiteral("unhandled uuids:");
-            for (auto const& uuid : unhandled)
-                text += ' ' + uuid;
-            bus.send(msg.createErrorReply(QDBusError::InvalidArgs, text));
-        }
+        return QStringList::fromSet(unhandled);
     }
 
     QVector<Metadata> get_backup_choices() const
@@ -167,18 +160,18 @@ Keeper::Keeper(const QSharedPointer<HelperRegistry>& helper_registry,
 
 Keeper::~Keeper() = default;
 
-void
-Keeper::start_tasks(QDBusConnection bus,
-                    QDBusMessage const & msg,
-                    QStringList const & uuids)
+QStringList
+Keeper::start_tasks(QStringList const & uuids)
 {
     Q_D(Keeper);
 
-    d->start_tasks(bus, msg, uuids);
+    return d->start_tasks(uuids);
 }
 
 QDBusUnixFileDescriptor
-Keeper::StartBackup(QDBusConnection bus, const QDBusMessage& msg, quint64 n_bytes)
+Keeper::StartBackup(QDBusConnection bus,
+                    QDBusMessage const & msg,
+                    quint64 n_bytes)
 {
     Q_D(Keeper);
 
