@@ -54,19 +54,18 @@ public:
 
     Q_DISABLE_COPY(KeeperPrivate)
 
-    void start_tasks(QStringList const& uuids)
+    void start_tasks(QDBusConnection bus,
+                     QDBusMessage const & msg,
+                     QStringList const & uuids)
     {
         auto unhandled = QSet<QString>::fromList(uuids);
 
         auto get_tasks = [](const QVector<Metadata>& pool, QStringList const& keys){
             QMap<QString,Metadata> tasks;
             for (auto const& key : keys) {
-                for (auto const& task : pool) {
-                    if (task.uuid() == key) {
-                        tasks[key] = task;
-                        continue;
-                    }
-                }
+                auto it = std::find_if(pool.begin(), pool.end(), [key](Metadata const & m){return m.uuid()==key;});
+                if (it != pool.end())
+                    tasks[key] = *it;
             }
             return tasks;
         };
@@ -85,7 +84,14 @@ public:
         }
 
         if (!unhandled.empty())
+        {
             qWarning() << "skipped tasks" << unhandled;
+
+            QString text = QStringLiteral("unhandled uuids:");
+            for (auto const& uuid : unhandled)
+                text += ' ' + uuid;
+            bus.send(msg.createErrorReply(QDBusError::InvalidArgs, text));
+        }
     }
 
     QVector<Metadata> get_backup_choices() const
@@ -109,9 +115,10 @@ public:
         return task_manager_.get_state();
     }
 
-    QDBusUnixFileDescriptor start_backup(QDBusConnection bus, const QDBusMessage& msg, quint64 n_bytes)
+    QDBusUnixFileDescriptor start_backup(QDBusConnection bus,
+                                         QDBusMessage const & msg,
+                                         quint64 n_bytes)
     {
-
         qDebug("Keeper::StartBackup(n_bytes=%zu)", size_t(n_bytes));
 
         connections_.connect_oneshot(
@@ -160,11 +167,14 @@ Keeper::Keeper(const QSharedPointer<HelperRegistry>& helper_registry,
 
 Keeper::~Keeper() = default;
 
-void Keeper::start_tasks(QStringList const & keys)
+void
+Keeper::start_tasks(QDBusConnection bus,
+                    QDBusMessage const & msg,
+                    QStringList const & uuids)
 {
     Q_D(Keeper);
 
-    d->start_tasks(keys);
+    d->start_tasks(bus, msg, uuids);
 }
 
 QDBusUnixFileDescriptor

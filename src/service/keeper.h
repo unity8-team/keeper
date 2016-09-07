@@ -55,9 +55,14 @@ public:
     QVector<Metadata> get_backup_choices();
     QVector<Metadata> get_restore_choices();
 
-    QDBusUnixFileDescriptor StartBackup(QDBusConnection, const QDBusMessage& message, quint64 nbytes);
+    QDBusUnixFileDescriptor StartBackup(QDBusConnection,
+                                        QDBusMessage const & message,
+                                        quint64 nbytes);
 
-    void start_tasks(QStringList const & keys);
+    void start_tasks(QDBusConnection,
+                     QDBusMessage const &,
+                     QStringList const & uuids);
+
     QVariantDictMap get_state() const;
 
 private:

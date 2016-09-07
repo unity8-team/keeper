@@ -65,10 +65,9 @@ KeeperUser::GetBackupChoices()
 void
 KeeperUser::StartBackup (const QStringList& keys)
 {
-    // FIXME: writeme
+    Q_ASSERT(calledFromDBus());
 
-    qDebug() << keys;
-    keeper_.start_tasks(keys);
+    keeper_.start_tasks(connection(), message(), keys);
 }
 
 void
