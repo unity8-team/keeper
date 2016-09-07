@@ -297,7 +297,7 @@ TaskManager::start_backup(QList<Metadata> const& tasks)
 {
     Q_D(TaskManager);
 
-    d->start_backup(tasks);
+    return d->start_backup(tasks);
 }
 
 bool
@@ -305,7 +305,7 @@ TaskManager::start_restore(QList<Metadata> const& tasks)
 {
     Q_D(TaskManager);
 
-    d->start_restore(tasks);
+    return d->start_restore(tasks);
 }
 
 QVariantDictMap TaskManager::get_state() const
