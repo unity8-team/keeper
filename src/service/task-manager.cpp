@@ -38,12 +38,12 @@ public:
 
     ~TaskManagerPrivate() = default;
 
-    bool start_backup(QVector<Metadata> const& tasks)
+    bool start_backup(QList<Metadata> const& tasks)
     {
         return start_tasks(tasks, Mode::BACKUP);
     }
 
-    bool start_restore(QVector<Metadata> const& tasks)
+    bool start_restore(QList<Metadata> const& tasks)
     {
         return start_tasks(tasks, Mode::RESTORE);
     }
@@ -77,7 +77,7 @@ private:
 
     enum class Mode { IDLE, BACKUP, RESTORE };
 
-    bool start_tasks(QVector<Metadata> const& tasks, Mode mode)
+    bool start_tasks(QList<Metadata> const& tasks, Mode mode)
     {
         bool success = true;
 
@@ -279,7 +279,7 @@ TaskManager::TaskManager(QSharedPointer<HelperRegistry> const & helper_registry,
 TaskManager::~TaskManager() = default;
 
 bool
-TaskManager::start_backup(QVector<Metadata> const& tasks)
+TaskManager::start_backup(QList<Metadata> const& tasks)
 {
     Q_D(TaskManager);
 
@@ -287,7 +287,7 @@ TaskManager::start_backup(QVector<Metadata> const& tasks)
 }
 
 bool
-TaskManager::start_restore(QVector<Metadata> const& tasks)
+TaskManager::start_restore(QList<Metadata> const& tasks)
 {
     Q_D(TaskManager);
 

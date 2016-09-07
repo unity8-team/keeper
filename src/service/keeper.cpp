@@ -56,15 +56,14 @@ public:
 
     void start_tasks(QStringList const& uuids)
     {
-        QStringList unhandled {uuids};
+        auto unhandled = QSet<QString>::fromList(uuids);
 
-        auto add_tasks_from_pool = [&uuids, &unhandled](const QVector<Metadata>& pool){
-            QVector<Metadata> tasks;
-            for (auto const& uuid : uuids) {
+        auto get_tasks = [](const QVector<Metadata>& pool, QStringList const& keys){
+            QMap<QString,Metadata> tasks;
+            for (auto const& key : keys) {
                 for (auto const& task : pool) {
-                    if (task.uuid() == uuid) {
-                        tasks.push_back(task);
-                        unhandled.removeAll(uuid);
+                    if (task.uuid() == key) {
+                        tasks[key] = task;
                         continue;
                     }
                 }
@@ -72,16 +71,17 @@ public:
             return tasks;
         };
 
-        auto tasks = add_tasks_from_pool(get_backup_choices());
+        auto tasks = get_tasks(get_backup_choices(), uuids);
         if (!tasks.empty())
         {
-            task_manager_.start_backup(tasks);
+            if (task_manager_.start_backup(tasks.values()))
+                unhandled.subtract(QSet<QString>::fromList(tasks.keys()));
         }
         else
         {
-            tasks = add_tasks_from_pool(get_restore_choices());
-            if (!tasks.empty())
-                task_manager_.start_restore(tasks);
+            tasks = get_tasks(get_restore_choices(), uuids);
+            if (!tasks.empty() && task_manager_.start_restore(tasks.values()))
+                unhandled.subtract(QSet<QString>::fromList(tasks.keys()));
         }
 
         if (!unhandled.empty())

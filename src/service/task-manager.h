@@ -25,7 +25,7 @@
 #include "keeper-task.h"
 
 #include <QObject>
-#include <QVector>
+#include <QList>
 
 class HelperRegistry;
 class TaskManagerPrivate;
@@ -45,8 +45,8 @@ public:
 
     Q_DISABLE_COPY(TaskManager)
 
-    bool start_backup(QVector<Metadata> const& tasks);
-    bool start_restore(QVector<Metadata> const& tasks);
+    bool start_backup(QList<Metadata> const& tasks);
+    bool start_restore(QList<Metadata> const& tasks);
 
     QVariantDictMap get_state() const;
 
