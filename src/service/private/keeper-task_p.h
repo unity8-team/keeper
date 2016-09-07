@@ -36,6 +36,8 @@ public:
     QVariantMap state() const;
     void ask_for_storage_framework_socket(quint64 n_bytes);
 
+    static QVariantMap get_initial_state(KeeperTask::TaskData const &td);
+
 protected:
     void set_current_task_action(QString const& action);
     void on_helper_percent_done_changed(float percent_done);
