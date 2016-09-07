@@ -29,13 +29,9 @@ class TaskManagerPrivate
 public:
     TaskManagerPrivate(TaskManager * manager,
                        QSharedPointer<HelperRegistry> const & helper_registry,
-                       QSharedPointer<StorageFrameworkClient> const & storage,
-                       QVector<Metadata> const & backup_metadata,
-                       QVector<Metadata> const & restore_metadata)
+                       QSharedPointer<StorageFrameworkClient> const & storage)
         : q_ptr(manager)
         , helper_registry_(helper_registry)
-        , backup_metadata_(backup_metadata)
-        , restore_metadata_(restore_metadata)
         , storage_(storage)
     {
     }
@@ -241,8 +237,6 @@ private:
 
     TaskManager * const q_ptr;
     QSharedPointer<HelperRegistry> helper_registry_;
-    QVector<Metadata> backup_metadata_;
-    QVector<Metadata> restore_metadata_;
     QSharedPointer<StorageFrameworkClient> storage_;
 
     QStringList remaining_tasks_;
@@ -260,11 +254,9 @@ private:
 
 TaskManager::TaskManager(QSharedPointer<HelperRegistry> const & helper_registry,
                          QSharedPointer<StorageFrameworkClient> const & storage,
-                         QVector<Metadata> const & backup_metadata,
-                         QVector<Metadata> const & restore_metadata,
                          QObject *parent)
     : QObject(parent)
-    , d_ptr(new TaskManagerPrivate(this, helper_registry, storage, backup_metadata, restore_metadata))
+    , d_ptr(new TaskManagerPrivate(this, helper_registry, storage))
 {
 }
 

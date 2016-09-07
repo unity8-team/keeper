@@ -48,7 +48,7 @@ public:
         , backup_choices_(backup_choices)
         , restore_choices_(restore_choices)
     {
-        task_manager_.reset(new TaskManager(helper_registry, storage_, get_backup_choices(), get_restore_choices()));
+        task_manager_.reset(new TaskManager(helper_registry, storage_));
     }
 
     ~KeeperPrivate() =default;

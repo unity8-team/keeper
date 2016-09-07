@@ -39,8 +39,6 @@ public:
 
     TaskManager(QSharedPointer<HelperRegistry> const & helper_registry,
                 QSharedPointer<StorageFrameworkClient> const & storage,
-                QVector<Metadata> const & backup_metadata,
-                QVector<Metadata> const & restore_metadata,
                 QObject *parent = nullptr);
 
     virtual ~TaskManager();
