@@ -18,11 +18,12 @@
  *     Charles Kerr <charles.kerr@canonical.com>
  */
 
+#include "util/connection-helper.h"
+#include "storage-framework/storage_framework_client.h"
 #include "helper/metadata.h"
 #include "service/metadata-provider.h"
 #include "service/keeper.h"
-#include "storage-framework/storage_framework_client.h"
-#include "task-manager.h"
+#include "service/task-manager.h"
 
 #include <QDebug>
 #include <QDBusMessage>
@@ -83,30 +84,21 @@ public:
 
         qDebug("Keeper::StartBackup(n_bytes=%zu)", size_t(n_bytes));
 
-        // the next time we get a socket from storage-framework, return it to our caller
-        auto tag = new int {};
-        auto on_socket_ready = [bus,msg,n_bytes,tag,this](int backup_reply)
-        {
-            qDebug("BackupManager returned socket %d", backup_reply);
-            auto reply = msg.createReply();
-            reply << QVariant::fromValue(QDBusUnixFileDescriptor(backup_reply));
-            bus.send(reply);
-
-            // one-shot client, so disconnect now
-            disconnect(*tag);
-            delete tag;
-        };
-        // cppcheck-suppress deallocuse
-        *tag = remember_connection(
-            QObject::connect(
-                task_manager_.data(),
-                &TaskManager::socket_ready,
-                on_socket_ready
-            )
+        connections_.connect_oneshot(
+            task_manager_.data(),
+            &TaskManager::socket_ready,
+            std::function<void(int)>{
+                [bus,msg](int fd){
+                    qDebug("BackupManager returned socket %d", fd);
+                    auto reply = msg.createReply();
+                    reply << QVariant::fromValue(QDBusUnixFileDescriptor(fd));
+                    bus.send(reply);
+                }
+            }
         );
 
         qDebug() << "Asking for an storage framework socket to the task manager";
-        task_manager_->ask_for_storage_framework_socket(n_bytes);
+        task_manager_->ask_for_uploader(n_bytes);
 
         // tell the caller that we'll be responding async
         msg.setDelayedReply(true);
@@ -119,29 +111,6 @@ private:
     ****
     ***/
 
-    int remember_connection(QMetaObject::Connection conn)
-    {
-        static int nexttag {1};
-        auto tag = nexttag++;
-        auto sp = std::shared_ptr<QMetaObject::Connection>(
-            new QMetaObject::Connection(conn),
-            [](QMetaObject::Connection *c) {
-                QObject::disconnect(*c);
-            }
-        );
-        connections_.insert(tag, sp);
-        return tag;
-    }
-
-    void disconnect(int tag)
-    {
-        connections_.remove(tag);
-    }
-
-    /***
-    ****
-    ***/
-
     Keeper * const q_ptr;
     QSharedPointer<StorageFrameworkClient> storage_;
     QSharedPointer<HelperRegistry> helper_registry_;
@@ -149,7 +118,7 @@ private:
     QSharedPointer<MetadataProvider> restore_choices_;
     mutable QVector<Metadata> cached_backup_choices_;
     mutable QVector<Metadata> cached_restore_choices_;
-    QMap<int,std::shared_ptr<QMetaObject::Connection>> connections_;
+    ConnectionHelper connections_;
 };
 
 

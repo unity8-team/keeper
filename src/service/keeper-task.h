@@ -14,8 +14,8 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authors:
- *   Xavi Garcia <xavi.garcia.mena@canoincal.com>
- *   Charles Kerr <charles.kerr@canoincal.com>
+ *   Xavi Garcia <xavi.garcia.mena@canonical.com>
+ *   Charles Kerr <charles.kerr@canonical.com>
  */
 
 #pragma once
@@ -45,7 +45,6 @@ public:
         QString error;
         KeeperTask::TaskType type;
         Metadata metadata;
-        float percent_done;
     };
 
     KeeperTask(TaskData const & task_data,
@@ -61,7 +60,7 @@ public:
 
     static QVariantMap get_initial_state(KeeperTask::TaskData const &td);
 
- Q_SIGNALS:
+Q_SIGNALS:
     void task_state_changed(Helper::State state);
     void task_socket_ready(int socket_descriptor);
 
@@ -70,6 +69,5 @@ protected:
     virtual QStringList get_helper_urls() const = 0;
     virtual void init_helper() = 0;
 
-protected:
     QScopedPointer<KeeperTaskPrivate> const d_ptr;
 };

@@ -14,14 +14,18 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authors:
- *   Xavi Garcia <xavi.garcia.mena@canoincal.com>
- *   Charles Kerr <charles.kerr@canoincal.com>
+ *   Xavi Garcia <xavi.garcia.mena@canonical.com>
+ *   Charles Kerr <charles.kerr@canonical.com>
  */
-#include "app-const.h" // DEKKO_APP_ID
+
 #include "helper/metadata.h"
 #include "keeper-task.h"
 
 #include "private/keeper-task_p.h"
+
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QString>
 
 KeeperTaskPrivate::KeeperTaskPrivate(KeeperTask * keeper_task,
                   KeeperTask::TaskData const & task_data,
@@ -88,20 +92,19 @@ void KeeperTaskPrivate::on_helper_state_changed(Helper::State state)
             break;
 
         case Helper::State::CANCELLED:
-            qDebug() << "Helper cancelled... closing the socket.";
+            qDebug() << "Helper cancelled";
             break;
 
         case Helper::State::FAILED:
-            qDebug() << "Helper failed... closing the socket.";
+            qDebug() << "Helper failed";
             break;
 
         case Helper::State::HELPER_FINISHED:
-            qDebug() << "Helper process finished... ";
+            qDebug() << "Helper process finished";
             break;
 
         case Helper::State::DATA_COMPLETE:
-            task_data_.percent_done = 1;
-            qDebug() << "Helper data complete.. closing the socket.";
+            qDebug() << "Helper data complete";
             break;
 
         case Helper::State::COMPLETE:
@@ -127,18 +130,19 @@ QVariantMap KeeperTaskPrivate::calculate_task_state()
 
     ret.insert(QStringLiteral("display-name"), task_data_.metadata.display_name());
 
-    // FIXME: assuming backup_helper_ for now...
-    int32_t speed {};
-    speed = helper_->speed();
-    ret.insert(QStringLiteral("speed"), speed);
+    auto const speed = helper_->speed();
+    ret.insert(QStringLiteral("speed"), int32_t(speed));
 
-    task_data_.percent_done = helper_->percent_done();
-    ret.insert(QStringLiteral("percent-done"), double(task_data_.percent_done));
+    auto const percent_done = helper_->percent_done();
+    ret.insert(QStringLiteral("percent-done"), double(percent_done));
 
     if (task_data_.action == "failed")
         ret.insert(QStringLiteral("error"), task_data_.error);
 
     ret.insert(QStringLiteral("uuid"), uuid);
+
+    QJsonDocument doc(QJsonObject::fromVariantMap(ret));
+    qDebug() << QString(doc.toJson());
 
     return ret;
 }

@@ -15,7 +15,7 @@
  *
  * Authors:
  *     Charles Kerr <charles.kerr@canonical.com>
- *     Xavi Garcia <xavi.garcia.mena@gmail.com>
+ *     Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
 
 #include "tests/utils/file-utils.h"

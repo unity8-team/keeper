@@ -14,8 +14,8 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authors:
- *   Xavi Garcia <xavi.garcia.mena@canoincal.com>
- *   Charles Kerr <charles.kerr@canoincal.com>
+ *   Xavi Garcia <xavi.garcia.mena@canonical.com>
+ *   Charles Kerr <charles.kerr@canonical.com>
  */
 #pragma once
 
@@ -37,7 +37,7 @@ public:
 
     Q_DISABLE_COPY(KeeperTaskBackup)
 
-    void ask_for_storage_framework_socket(quint64 n_bytes);
+    void ask_for_uploader(quint64 n_bytes);
 
 protected:
     QStringList get_helper_urls() const override;

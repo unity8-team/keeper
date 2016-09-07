@@ -19,22 +19,26 @@
 
 #pragma once
 
-#include "service/metadata-provider.h"
+#include <QLocalSocket>
+#include <QObject>
 
-#include <unity/storage/qt/client/client-api.h>
+#include <memory>
 
-#include <QVector>
-
-/**
- * A MetadataProvider that lists the backups that can be restored
- */
-class RestoreChoices: public MetadataProvider
+class Uploader: public QObject
 {
-public:
-    RestoreChoices();
-    virtual ~RestoreChoices();
-    QVector<Metadata> get_backups() const override;
+    Q_OBJECT
 
-private:
-    unity::storage::qt::client::Runtime::SPtr runtime_;
+public:
+
+    Q_DISABLE_COPY(Uploader)
+
+    Uploader(QObject *parent=nullptr): QObject(parent) {}
+    virtual ~Uploader() =default;
+
+    virtual std::shared_ptr<QLocalSocket> socket() =0;
+    virtual void commit() =0;
+
+Q_SIGNALS:
+
+    void commit_finished(bool success);
 };

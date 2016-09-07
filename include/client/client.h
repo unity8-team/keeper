@@ -24,7 +24,7 @@
 #include <QStringList>
 #include <QVariant>
 
-class KeeperClientPrivate;
+struct KeeperClientPrivate;
 
 class Q_DECL_EXPORT KeeperClient : public QObject
 {

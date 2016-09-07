@@ -8,6 +8,9 @@ add_library(
   STATIC
   storage_framework_client.cpp
   storage_framework_client.h
+  uploader.h
+  sf-uploader.cpp
+  sf-uploader.h
 )
 
 set_target_properties(
@@ -17,7 +20,6 @@ set_target_properties(
 )
 target_link_libraries(
   ${LIB_NAME}
-  ${SERVICE_DEPS_LDFLAGS}
   Qt5::Core
   Qt5::Network
 )

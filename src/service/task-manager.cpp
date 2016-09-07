@@ -14,8 +14,8 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authors:
- *   Xavi Garcia <xavi.garcia.mena@canoincal.com>
- *   Charles Kerr <charles.kerr@canoincal.com>
+ *   Xavi Garcia <xavi.garcia.mena@canonical.com>
+ *   Charles Kerr <charles.kerr@canonical.com>
  */
 
 #include "helper/metadata.h"
@@ -96,33 +96,7 @@ public:
         return state_;
     }
 
-    void on_helper_state_changed(Helper::State state)
-    {
-        qDebug() << "Task State changed";
-        auto& td = task_data_[current_task_];
-        update_task_state(td);
-
-        switch (state)
-        {
-            case Helper::State::NOT_STARTED:
-            case Helper::State::STARTED:
-            case Helper::State::CANCELLED:
-            case Helper::State::FAILED:
-            case Helper::State::HELPER_FINISHED:
-                break;
-
-            case Helper::State::DATA_COMPLETE:
-                task_data_[current_task_].percent_done = 1;
-                break;
-
-            case Helper::State::COMPLETE:
-                qDebug() << "STARTING NEXT TASK ---------------------------------------";
-                start_next_task();
-                break;
-        }
-    }
-
-    void ask_for_storage_framework_socket(quint64 n_bytes)
+    void ask_for_uploader(quint64 n_bytes)
     {
         qDebug() << "Starting backup";
         if (task_)
@@ -134,23 +108,39 @@ public:
                 // TODO Mark this as an error at the current task and move to the next task
                 return;
             }
-            backup_task_->ask_for_storage_framework_socket(n_bytes);
+            backup_task_->ask_for_uploader(n_bytes);
         }
     }
+
 private:
+
+    void on_helper_state_changed(Helper::State state)
+    {
+        qDebug() << "Task State changed";
+        auto& td = task_data_[current_task_];
+        update_task_state(td);
+
+        if (state == Helper::State::COMPLETE)
+        {
+            qDebug() << "STARTING NEXT TASK ---------------------------------------";
+            start_next_task();
+        }
+    }
+
     /***
     ****  Task Queueing
     ***/
 
     bool start_task(QString const& uuid)
     {
-        if (!task_data_.contains(uuid))
+        auto it = task_data_.find(uuid);
+        if (it == task_data_.end())
         {
-            qCritical() << "no task data found for" << uuid;
+            qCritical() << "no task data for" << uuid;
             return false;
         }
 
-        auto& td = task_data_[uuid];
+        auto& td = it.value();
 
         qDebug() << "Creating task for uuid = " << uuid;
         // initialize a new task
@@ -174,9 +164,8 @@ private:
         );
 
         QObject::connect(task_.data(), &KeeperTask::task_socket_ready,
-                    std::bind(&TaskManager::socket_ready, q_ptr, std::placeholders::_1)
-                );
-
+            std::bind(&TaskManager::socket_ready, q_ptr, std::placeholders::_1)
+        );
 
         return task_->start();
     }
@@ -337,9 +326,9 @@ QVariantDictMap TaskManager::get_state() const
     return d->get_state();
 }
 
-void TaskManager::ask_for_storage_framework_socket(quint64 n_bytes)
+void TaskManager::ask_for_uploader(quint64 n_bytes)
 {
     Q_D(TaskManager);
 
-    d->ask_for_storage_framework_socket(n_bytes);
+    d->ask_for_uploader(n_bytes);
 }

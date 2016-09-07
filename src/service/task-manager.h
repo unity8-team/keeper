@@ -14,8 +14,8 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authors:
- *   Xavi Garcia <xavi.garcia.mena@canoincal.com>
- *   Charles Kerr <charles.kerr@canoincal.com>
+ *   Xavi Garcia <xavi.garcia.mena@canonical.com>
+ *   Charles Kerr <charles.kerr@canonical.com>
  */
 
 #pragma once
@@ -54,7 +54,7 @@ public:
 
     QVariantDictMap get_state() const;
 
-    void ask_for_storage_framework_socket(quint64 n_bytes);
+    void ask_for_uploader(quint64 n_bytes);
 
 Q_SIGNALS:
     void socket_ready(int reply);

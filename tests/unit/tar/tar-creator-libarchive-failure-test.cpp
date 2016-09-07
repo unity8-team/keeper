@@ -42,11 +42,11 @@
 namespace
 {
     constexpr char const * WARNING_ERROR_MESSAGE {
-        R"(It's probably something to do with..." I look up today's excuse ".. clock speed")"};
+        "It's probably something to do with...\" I look up today's excuse \".. clock speed"};
     constexpr char const * RETRY_ERROR_MESSAGE {
-        R"(ELECTROMAGNETIC RADIATION FROM SATTELLITE DEBRIS)"};
+        "ELECTROMAGNETIC RADIATION FROM SATELLITE DEBRIS"};
     constexpr char const * FATAL_ERROR_MESSAGE {
-        R"(I turn the page on the excuse sheet. "SOLAR FLARES" stares out at me.)"};
+        "I turn the page on the excuse sheet. \"SOLAR FLARES\" stares out at me."};
 
     const std::map<int,std::pair<int,const char*>> nth_call_errors = {
         { 1, std::make_pair(ARCHIVE_WARN, WARNING_ERROR_MESSAGE) },

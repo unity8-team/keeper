@@ -14,7 +14,7 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authors:
- *   Charles Kerr <charles.kerr@canoincal.com>
+ *   Charles Kerr <charles.kerr@canonical.com>
  */
 
 #include "helper/metadata.h"
@@ -49,10 +49,6 @@ Metadata::Metadata(QString const& uuid, QString const& display_name)
     : uuid_(uuid)
     , display_name_(display_name)
     , properties_()
-{
-}
-
-Metadata::~Metadata()
 {
 }
 

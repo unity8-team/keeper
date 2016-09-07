@@ -14,7 +14,7 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authors:
- *   Charles Kerr <charles.kerr@canoincal.com>
+ *   Charles Kerr <charles.kerr@canonical.com>
  */
 
 #pragma once
@@ -31,7 +31,6 @@ public:
 
     Metadata();
     Metadata(QString const& uuid, QString const& display_name);
-    ~Metadata();
 
     // metadata keys
     static QString const TYPE_KEY;

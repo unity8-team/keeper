@@ -15,7 +15,7 @@
  *
  * Authors:
  *     Ted Gould <ted.gould@canonical.com>
- *     Xavi Garcia <xavi.garcia.mena@gmail.com>
+ *     Xavi Garcia <xavi.garcia.mena@canonical.com>
  *     Charles Kerr <charles.kerr@canonical.com>
  */
 
@@ -54,7 +54,7 @@ TEST_F(TestHelpers, StartHelper)
     arguments = spy.takeFirst();
     EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::HELPER_FINISHED);
     arguments = spy.takeFirst();
-    EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::DATA_COMPLETE);
+    EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::COMPLETE);
 }
 
 TEST_F(TestHelpers, StartFullTest)

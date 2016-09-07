@@ -42,10 +42,10 @@ link_directories(
 
 set(
   SERVICE_STATIC_LIBS
+  backup-helper
+  storage-framework
   util
   qdbus-stubs
-  storage-framework
-  backup-helper
 )
 
 target_link_libraries(

@@ -14,15 +14,17 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authors:
- *   Xavi Garcia <xavi.garcia.mena@canoincal.com>
- *   Charles Kerr <charles.kerr@canoincal.com>
+ *   Xavi Garcia <xavi.garcia.mena@canonical.com>
+ *   Charles Kerr <charles.kerr@canonical.com>
  */
-#include "app-const.h" // DEKKO_APP_ID
-#include "helper/backup-helper.h"
-#include "keeper-task-backup.h"
-#include "keeper-task.h"
-#include "private/keeper-task_p.h"
+
+#include "util/connection-helper.h"
 #include "storage-framework/storage_framework_client.h"
+#include "helper/backup-helper.h"
+#include "service/app-const.h" // DEKKO_APP_ID
+#include "service/keeper-task-backup.h"
+#include "service/keeper-task.h"
+#include "service/private/keeper-task_p.h"
 
 class KeeperTaskBackupPrivate : public KeeperTaskPrivate
 {
@@ -34,17 +36,6 @@ public:
                             QSharedPointer<StorageFrameworkClient> const & storage)
         : KeeperTaskPrivate(keeper_task, task_data, helper_registry, storage)
     {
-        storage_framework_socket_connection_ready_.reset(
-                  new QMetaObject::Connection(
-                       QObject::connect(
-                               storage_.data(), &StorageFrameworkClient::socketReady,
-                           std::bind(&KeeperTaskBackupPrivate::on_backup_socket_ready, this, std::placeholders::_1)
-                       )
-                   ),
-                    [](QMetaObject::Connection* c){
-                        QObject::disconnect(*c);
-                    }
-        );
     }
 
     ~KeeperTaskBackupPrivate() = default;
@@ -57,97 +48,32 @@ public:
     void init_helper()
     {
         qDebug() << "Initializing a backup helper";
-        helper_.reset(new BackupHelper(DEKKO_APP_ID));
+        helper_.reset(new BackupHelper(DEKKO_APP_ID), [](Helper *h){h->deleteLater();});
         qDebug() << "Helper " <<  static_cast<void*>(helper_.data()) << " was created";
-
-        auto backup_helper = qSharedPointerDynamicCast<BackupHelper>(helper_);
-        if (backup_helper)
-        {
-            // listen for the storage framework to finish
-            storage_framework_socket_connection_finished_.reset(
-                      new QMetaObject::Connection(
-                           QObject::connect(
-                                   storage_.data(), &StorageFrameworkClient::finished,
-                               std::bind(&BackupHelper::on_storage_framework_finished, backup_helper.data())
-                           )
-                       ),
-                        [](QMetaObject::Connection* c){
-                            QObject::disconnect(*c);
-                        }
-            );
-        }
     }
 
-    void on_backup_socket_ready(std::shared_ptr<QLocalSocket> const &  sf_socket)
-    {
-        qDebug("calling helper.set_storage_framework_socket(socket=%d)", int(sf_socket->socketDescriptor()));
-        qDebug() << "Helper is " <<  static_cast<void*>(helper_.data());
-        auto backup_helper = qSharedPointerDynamicCast<BackupHelper>(helper_);
-        if (!backup_helper)
-        {
-            qWarning() << "Only backup tasks are allowed to ask for storage framework sockets";
-            helper_->stop();
-            return;
-        }
-        backup_helper->set_storage_framework_socket(sf_socket);
-        Q_EMIT(q_ptr->task_socket_ready(backup_helper->get_helper_socket()));
-    }
-
-    void ask_for_storage_framework_socket(quint64 n_bytes)
+    void ask_for_uploader(quint64 n_bytes)
     {
         qDebug() << "asking storage framework for a socket";
-        storage_->getNewFileForBackup(n_bytes);
+
         helper_->set_expected_size(n_bytes);
-    }
 
-    void on_helper_state_changed(Helper::State state) override
-    {
-        auto new_state = state;
-        switch (state)
-        {
-            case Helper::State::NOT_STARTED:
-                break;
-
-            case Helper::State::STARTED:
-                qDebug() << "Backup helper started";
-                break;
-
-            case Helper::State::CANCELLED:
-                qDebug() << "Backup helper cancelled... closing the socket.";
-                storage_->finish(false);
-                break;
-
-            case Helper::State::FAILED:
-                qDebug() << "Backup helper failed... closing the socket.";
-                storage_->finish(false);
-                break;
-
-            case Helper::State::HELPER_FINISHED:
-                qDebug() << "Backup helper process finished... ";
-                break;
-
-            case Helper::State::DATA_COMPLETE:
-                task_data_.percent_done = 1;
-                qDebug() << "Backup helper finished... closing the socket.";
-                try
-                {
-                    storage_->finish(true);
+        connections_.connect_future(
+            storage_->get_new_uploader(n_bytes),
+            std::function<void(std::shared_ptr<Uploader> const&)>{
+                [this](std::shared_ptr<Uploader> const& uploader){
+                    qDebug("calling helper.set_storage_framework_socket(socket=%d)", int(uploader->socket()->socketDescriptor()));
+                    qDebug() << "Helper is " <<  static_cast<void*>(helper_.data());
+                    auto backup_helper = qSharedPointerDynamicCast<BackupHelper>(helper_);
+                    backup_helper->set_uploader(uploader);
+                    Q_EMIT(q_ptr->task_socket_ready(backup_helper->get_helper_socket()));
                 }
-                catch (std::exception & e)
-                {
-                    qDebug() << "Failed finishing sf... setting the state to failed";
-                    new_state = Helper::State::FAILED;
-                }
-                break;
-            case Helper::State::COMPLETE:
-                break;
-        }
-        KeeperTaskPrivate::on_helper_state_changed(new_state);
+            }
+        );
     }
 
 private:
-    std::shared_ptr<QMetaObject::Connection> storage_framework_socket_connection_ready_;
-    std::shared_ptr<QMetaObject::Connection> storage_framework_socket_connection_finished_;
+    ConnectionHelper connections_;
 };
 
 KeeperTaskBackup::KeeperTaskBackup(TaskData const & task_data,
@@ -172,8 +98,8 @@ void KeeperTaskBackup::init_helper()
     d->init_helper();
 }
 
-void KeeperTaskBackup::ask_for_storage_framework_socket(quint64 n_bytes)
+void KeeperTaskBackup::ask_for_uploader(quint64 n_bytes)
 {
     Q_D(KeeperTaskBackup);
-    d->ask_for_storage_framework_socket(n_bytes);
+    d->ask_for_uploader(n_bytes);
 }
