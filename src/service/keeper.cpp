@@ -36,7 +36,6 @@
 class KeeperPrivate
 {
 public:
-    QScopedPointer<TaskManager> task_manager_;
 
     KeeperPrivate(Keeper* keeper,
                   const QSharedPointer<HelperRegistry>& helper_registry,
@@ -47,8 +46,8 @@ public:
         , helper_registry_(helper_registry)
         , backup_choices_(backup_choices)
         , restore_choices_(restore_choices)
+        , task_manager_{helper_registry, storage_}
     {
-        task_manager_.reset(new TaskManager(helper_registry, storage_));
     }
 
     ~KeeperPrivate() =default;
@@ -63,7 +62,7 @@ public:
                 if (choice.uuid() == uuid)
                     tasks.push_back(choice);
         if (!tasks.empty()) {
-            task_manager_->start_backup(tasks);
+            task_manager_.start_backup(tasks);
             tasks.clear();
         }
 
@@ -72,7 +71,7 @@ public:
                 if (choice.uuid() == uuid)
                     tasks.push_back(choice);
         if (!tasks.empty()) {
-            task_manager_->start_restore(tasks);
+            task_manager_.start_restore(tasks);
             tasks.clear();
         }
     }
@@ -95,7 +94,7 @@ public:
 
     QVariantDictMap get_state() const
     {
-        return task_manager_->get_state();
+        return task_manager_.get_state();
     }
 
     QDBusUnixFileDescriptor start_backup(QDBusConnection bus, const QDBusMessage& msg, quint64 n_bytes)
@@ -104,7 +103,7 @@ public:
         qDebug("Keeper::StartBackup(n_bytes=%zu)", size_t(n_bytes));
 
         connections_.connect_oneshot(
-            task_manager_.data(),
+            &task_manager_,
             &TaskManager::socket_ready,
             std::function<void(int)>{
                 [bus,msg](int fd){
@@ -117,7 +116,7 @@ public:
         );
 
         qDebug() << "Asking for an storage framework socket to the task manager";
-        task_manager_->ask_for_uploader(n_bytes);
+        task_manager_.ask_for_uploader(n_bytes);
 
         // tell the caller that we'll be responding async
         msg.setDelayedReply(true);
@@ -137,6 +136,7 @@ private:
     QSharedPointer<MetadataProvider> restore_choices_;
     mutable QVector<Metadata> cached_backup_choices_;
     mutable QVector<Metadata> cached_restore_choices_;
+    TaskManager task_manager_;
     ConnectionHelper connections_;
 };
 
