@@ -56,24 +56,36 @@ public:
 
     void start_tasks(QStringList const& uuids)
     {
-        QVector<Metadata> tasks;
-        for (auto const& uuid : uuids)
-            for (auto const& choice : get_backup_choices())
-                if (choice.uuid() == uuid)
-                    tasks.push_back(choice);
-        if (!tasks.empty()) {
+        QStringList unhandled {uuids};
+
+        auto add_tasks_from_pool = [&uuids, &unhandled](const QVector<Metadata>& pool){
+            QVector<Metadata> tasks;
+            for (auto const& uuid : uuids) {
+                for (auto const& task : pool) {
+                    if (task.uuid() == uuid) {
+                        tasks.push_back(task);
+                        unhandled.removeAll(uuid);
+                        continue;
+                    }
+                }
+            }
+            return tasks;
+        };
+
+        auto tasks = add_tasks_from_pool(get_backup_choices());
+        if (!tasks.empty())
+        {
             task_manager_.start_backup(tasks);
-            tasks.clear();
+        }
+        else
+        {
+            tasks = add_tasks_from_pool(get_restore_choices());
+            if (!tasks.empty())
+                task_manager_.start_restore(tasks);
         }
 
-        for (auto const& uuid : uuids)
-            for (auto const& choice : get_restore_choices())
-                if (choice.uuid() == uuid)
-                    tasks.push_back(choice);
-        if (!tasks.empty()) {
-            task_manager_.start_restore(tasks);
-            tasks.clear();
-        }
+        if (!unhandled.empty())
+            qWarning() << "skipped tasks" << unhandled;
     }
 
     QVector<Metadata> get_backup_choices() const
@@ -124,10 +136,6 @@ public:
     }
 
 private:
-
-    /***
-    ****
-    ***/
 
     Keeper * const q_ptr;
     QSharedPointer<StorageFrameworkClient> storage_;
