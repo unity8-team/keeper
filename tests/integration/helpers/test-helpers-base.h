@@ -93,7 +93,7 @@ protected:
 
     bool extract_tar_contents(QString const & tar_path, QString const & destination, bool compression=false);
 
-    QString get_last_storage_framework_file();
+    QFileInfoList get_storage_framework_files();
 
     bool wait_for_all_tasks_have_action_state(QStringList const & uuids, QString const & action_state, QSharedPointer<DBusInterfaceKeeperUser> const & keeper_user_iface, int max_timeout_msec = 15000);
 

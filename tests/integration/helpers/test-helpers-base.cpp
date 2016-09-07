@@ -369,25 +369,32 @@ bool TestHelpersBase::init_helper_registry(QString const& registry)
 
 bool TestHelpersBase::check_storage_framework_files(QStringList const & source_dirs, bool compression)
 {
-    QStringList dirs = source_dirs;
+    bool success {true};
 
-    while (dirs.size() > 0)
+    auto const backups = get_storage_framework_files();
+
+    for (auto const& source : source_dirs)
     {
-        auto dir = dirs.takeLast();
-        QString last_file = get_last_storage_framework_file();
-        if (last_file.isEmpty())
+        bool backup_found {false};
+
+        for (auto const& backup : backups)
         {
-            qWarning() << "Did not found enough storage framework files";
-            return false;
+            auto const backup_filename = backup.absoluteFilePath();
+            if ((backup_found = compare_tar_content (backup_filename, source, compression)))
+            {
+                qDebug() << Q_FUNC_INFO << "source" << source << "has match" << backup_filename;
+                break;
+            }
         }
-        if (!compare_tar_content (last_file, dir, compression))
+
+        if (!backup_found)
         {
-            return false;
+            qWarning() << Q_FUNC_INFO << "source" << source << "has no matching backup";
+            success = false;
         }
-        // remove the last file, so next iteration the last one is different
-        QFile::remove(last_file);
     }
-    return true;
+
+    return success;
 }
 
 bool TestHelpersBase::compare_tar_content (QString const & tar_path, QString const & sourceDir, bool compression)
@@ -450,29 +457,14 @@ namespace
     }
 }
 
-QString TestHelpersBase::get_last_storage_framework_file()
+QFileInfoList
+TestHelpersBase::get_storage_framework_files()
 {
-    QString last;
-
     QDir sf_dir;
-    if(find_storage_framework_dir(sf_dir))
-    {
-        QStringList sorted_files;
-        QFileInfoList files = sf_dir.entryInfoList();
-        for(auto& file : sf_dir.entryInfoList())
-            if (file.isFile())
-                sorted_files << file.absoluteFilePath();
 
-        // we detect the last file by name.
-        // the file creation time had not enough precision
-        sorted_files.sort();
-        if (sorted_files.isEmpty())
-            qWarning() << "ERROR: no files in" << sf_dir.path();
-        else
-            last = sorted_files.last();
-    }
-
-    return last;
+    return find_storage_framework_dir(sf_dir)
+        ? sf_dir.entryInfoList(QStringList{}, QDir::Files)
+        : QFileInfoList{};
 }
 
 int TestHelpersBase::check_storage_framework_nb_files()
