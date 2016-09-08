@@ -6,6 +6,7 @@
 
 # Get full logs in tests
 export G_MESSAGES_DEBUG=all
+export CTEST_OUTPUT_ON_FAILURE=1
 
 %:
 	dh $@ --parallel --fail-missing
