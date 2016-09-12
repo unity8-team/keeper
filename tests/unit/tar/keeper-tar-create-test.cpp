@@ -90,7 +90,6 @@ TEST_F(KeeperTarCreateFixture, BackupRun)
         EXPECT_TRUE(untar.waitForFinished()) << qPrintable(untar.errorString());
 
         // after we remove the temporary tarfile, the original and copy dirs should match
-        EXPECT_FALSE(FileUtils::compareDirectories(in.path(), out.path()));
         EXPECT_TRUE(tarfile.remove());
         EXPECT_TRUE(FileUtils::compareDirectories(in.path(), out.path()));
     }

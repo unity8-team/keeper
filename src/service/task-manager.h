@@ -20,11 +20,12 @@
 
 #pragma once
 
+#include "qdbus-stubs/dbus-types.h"
 #include "helper/metadata.h"
 #include "keeper-task.h"
-#include "qdbus-stubs/dbus-types.h"
 
 #include <QObject>
+#include <QList>
 
 class HelperRegistry;
 class TaskManagerPrivate;
@@ -38,8 +39,6 @@ public:
 
     TaskManager(QSharedPointer<HelperRegistry> const & helper_registry,
                 QSharedPointer<StorageFrameworkClient> const & storage,
-                QVector<Metadata> const & backup_metadata,
-                QVector<Metadata> const & restore_metadata,
                 QObject *parent = nullptr);
 
     virtual ~TaskManager();
@@ -50,7 +49,10 @@ public:
                READ get_state
                NOTIFY state_changed)
 
-    void start_tasks(QStringList const & task_uuids);
+
+    bool start_backup(QList<Metadata> const& tasks);
+
+    bool start_restore(QList<Metadata> const& tasks);
 
     QVariantDictMap get_state() const;
 

@@ -37,13 +37,10 @@ class KeeperTask : public QObject
     Q_DECLARE_PRIVATE(KeeperTask)
 public:
 
-    enum class TaskType { BACKUP, RESTORE };
-
     struct TaskData
     {
         QString action;
         QString error;
-        KeeperTask::TaskType type;
         Metadata metadata;
     };
 

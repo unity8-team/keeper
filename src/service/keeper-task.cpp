@@ -142,7 +142,7 @@ QVariantMap KeeperTaskPrivate::calculate_task_state()
     ret.insert(QStringLiteral("uuid"), uuid);
 
     QJsonDocument doc(QJsonObject::fromVariantMap(ret));
-    qDebug() << QString(doc.toJson());
+    qDebug() << QString(doc.toJson(QJsonDocument::Compact));
 
     return ret;
 }

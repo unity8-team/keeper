@@ -31,10 +31,11 @@
 #include <QSharedPointer>
 #include <QVector>
 
+#include <algorithm> // std::find_if
+
 class KeeperPrivate
 {
 public:
-    QScopedPointer<TaskManager> task_manager_;
 
     KeeperPrivate(Keeper* keeper,
                   const QSharedPointer<HelperRegistry>& helper_registry,
@@ -45,17 +46,45 @@ public:
         , helper_registry_(helper_registry)
         , backup_choices_(backup_choices)
         , restore_choices_(restore_choices)
+        , task_manager_{helper_registry, storage_}
     {
-        task_manager_.reset(new TaskManager(helper_registry, storage_, get_backup_choices(), get_restore_choices()));
     }
 
     ~KeeperPrivate() =default;
 
     Q_DISABLE_COPY(KeeperPrivate)
 
-    void start_tasks(QStringList const& uuids)
+    QStringList start_tasks(QStringList const & uuids)
     {
-        task_manager_->start_tasks(uuids);
+        auto unhandled = QSet<QString>::fromList(uuids);
+
+        auto get_tasks = [](const QVector<Metadata>& pool, QStringList const& keys){
+            QMap<QString,Metadata> tasks;
+            for (auto const& key : keys) {
+                auto it = std::find_if(pool.begin(), pool.end(), [key](Metadata const & m){return m.uuid()==key;});
+                if (it != pool.end())
+                    tasks[key] = *it;
+            }
+            return tasks;
+        };
+
+        auto tasks = get_tasks(get_backup_choices(), uuids);
+        if (!tasks.empty())
+        {
+            if (task_manager_.start_backup(tasks.values()))
+                unhandled.subtract(QSet<QString>::fromList(tasks.keys()));
+        }
+        else
+        {
+            tasks = get_tasks(get_restore_choices(), uuids);
+            if (!tasks.empty() && task_manager_.start_restore(tasks.values()))
+                unhandled.subtract(QSet<QString>::fromList(tasks.keys()));
+        }
+
+        if (!unhandled.empty())
+            qWarning() << "skipped tasks" << unhandled;
+
+        return QStringList::fromSet(unhandled);
     }
 
     QVector<Metadata> get_backup_choices() const
@@ -76,16 +105,17 @@ public:
 
     QVariantDictMap get_state() const
     {
-        return task_manager_->get_state();
+        return task_manager_.get_state();
     }
 
-    QDBusUnixFileDescriptor start_backup(QDBusConnection bus, const QDBusMessage& msg, quint64 n_bytes)
+    QDBusUnixFileDescriptor start_backup(QDBusConnection bus,
+                                         QDBusMessage const & msg,
+                                         quint64 n_bytes)
     {
-
         qDebug("Keeper::StartBackup(n_bytes=%zu)", size_t(n_bytes));
 
         connections_.connect_oneshot(
-            task_manager_.data(),
+            &task_manager_,
             &TaskManager::socket_ready,
             std::function<void(int)>{
                 [bus,msg](int fd){
@@ -98,7 +128,7 @@ public:
         );
 
         qDebug() << "Asking for an storage framework socket to the task manager";
-        task_manager_->ask_for_uploader(n_bytes);
+        task_manager_.ask_for_uploader(n_bytes);
 
         // tell the caller that we'll be responding async
         msg.setDelayedReply(true);
@@ -107,10 +137,6 @@ public:
 
 private:
 
-    /***
-    ****
-    ***/
-
     Keeper * const q_ptr;
     QSharedPointer<StorageFrameworkClient> storage_;
     QSharedPointer<HelperRegistry> helper_registry_;
@@ -118,6 +144,7 @@ private:
     QSharedPointer<MetadataProvider> restore_choices_;
     mutable QVector<Metadata> cached_backup_choices_;
     mutable QVector<Metadata> cached_restore_choices_;
+    TaskManager task_manager_;
     ConnectionHelper connections_;
 };
 
@@ -133,15 +160,18 @@ Keeper::Keeper(const QSharedPointer<HelperRegistry>& helper_registry,
 
 Keeper::~Keeper() = default;
 
-void Keeper::start_tasks(QStringList const & keys)
+QStringList
+Keeper::start_tasks(QStringList const & uuids)
 {
     Q_D(Keeper);
 
-    d->start_tasks(keys);
+    return d->start_tasks(uuids);
 }
 
 QDBusUnixFileDescriptor
-Keeper::StartBackup(QDBusConnection bus, const QDBusMessage& msg, quint64 n_bytes)
+Keeper::StartBackup(QDBusConnection bus,
+                    QDBusMessage const & msg,
+                    quint64 n_bytes)
 {
     Q_D(Keeper);
 
