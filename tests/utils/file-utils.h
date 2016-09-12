@@ -20,28 +20,17 @@
 
 #pragma once
 
-#include <QByteArray>
-#include <QDir>
-#include <QFileInfo>
 #include <QString>
 
 namespace FileUtils
 {
-    struct Info
-    {
-        QFileInfo info;
-        QByteArray checksum;
-    };
-
-    Info createDummyFile(const QDir& dir, qint64 filesize);
-
-    bool fillTemporaryDirectory(QString const & dir, int max_files_per_test=100, int max_filesize=1024, int max_dirs=20);
+    void fillTemporaryDirectory(QString const & dir, int min_files_per_test=1, int max_files_per_test=100, int max_filesize=1024, int max_dirs=20);
 
     bool compareFiles(QString const & filePath1, QString const & filePath2);
 
     bool compareDirectories(QString const & dir1Path, QString const & dir2Path);
 
-    bool checkPathIsDir(QString const &dirPath);
+    bool checkPathIsDir(QString const & dirPath);
 
     QStringList getFilesRecursively(QString const & dirPath);
 };

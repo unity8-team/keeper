@@ -57,7 +57,7 @@ TEST_F(TestHelpers, BackupHelperWritesTooMuch)
     qDebug() << "USER DIR:" << user_dir;
 
     // fill something in the music dir
-    ASSERT_TRUE(FileUtils::fillTemporaryDirectory(user_dir, qrand() % 1000));
+    FileUtils::fillTemporaryDirectory(user_dir, qrand() % 1000);
 
     // search for the user folder uuid
     auto user_folder_uuid = get_uuid_for_xdg_folder_path(user_dir, choices.value());

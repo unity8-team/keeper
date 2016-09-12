@@ -83,7 +83,7 @@ TEST_F(TestHelpers, StartFullTest)
     qDebug() << "USER DIR:" << user_dir;
 
     // fill something in the music dir
-    ASSERT_TRUE(FileUtils::fillTemporaryDirectory(user_dir, qrand() % 1000));
+    FileUtils::fillTemporaryDirectory(user_dir, qrand() % 1000);
 
     // search for the user folder uuid
     auto user_folder_uuid = get_uuid_for_xdg_folder_path(user_dir, choices.value());
@@ -97,7 +97,7 @@ TEST_F(TestHelpers, StartFullTest)
     qDebug() << "USER DIR 2:" << user_dir_2;
 
     // fill something in the music dir
-    ASSERT_TRUE(FileUtils::fillTemporaryDirectory(user_dir_2, qrand() % 1000));
+    FileUtils::fillTemporaryDirectory(user_dir_2, qrand() % 1000);
 
     // search for the user folder uuid
     auto user_folder_uuid_2 = get_uuid_for_xdg_folder_path(user_dir_2, choices.value());
