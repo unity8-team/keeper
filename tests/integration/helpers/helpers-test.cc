@@ -43,16 +43,13 @@ TEST_F(TestHelpers, StartHelper)
 
     helper.start({"/bin/ls","/tmp"});
 
-    // wait for 3 signals.
+    // wait for 2 signals.
     // One for started, another one when the helper stops
-    // and another change state to data complete (we expect 0 bytes, so it matches)
-    WAIT_FOR_SIGNALS(spy, 3, 15000);
+    WAIT_FOR_SIGNALS(spy, 2, 15000);
 
-    ASSERT_EQ(spy.count(), 3);
+    ASSERT_EQ(spy.count(), 2);
     QList<QVariant> arguments = spy.takeFirst();
     EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::STARTED);
-    arguments = spy.takeFirst();
-    EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::HELPER_FINISHED);
     arguments = spy.takeFirst();
     EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::COMPLETE);
 }
@@ -182,13 +179,11 @@ TEST_F(TestHelpers, Inactivity)
     // the inactive helper sleeps for 100 seconds so
     // if we get the 2 signals it means it was stopped due to inactivity
     // We can also check at the end for the state, which should be CANCELLED
-    WAIT_FOR_SIGNALS(spy, 3, 15000);
+    WAIT_FOR_SIGNALS(spy, 2, 15000);
 
-    ASSERT_EQ(spy.count(), 3);
+    ASSERT_EQ(spy.count(), 2);
     QList<QVariant> arguments = spy.takeFirst();
     EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::STARTED);
-    arguments = spy.takeFirst();
-    EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::HELPER_FINISHED);
     arguments = spy.takeFirst();
     EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::CANCELLED);
 }

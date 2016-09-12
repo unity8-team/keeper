@@ -99,10 +99,6 @@ void KeeperTaskPrivate::on_helper_state_changed(Helper::State state)
             qDebug() << "Helper failed";
             break;
 
-        case Helper::State::HELPER_FINISHED:
-            qDebug() << "Helper process finished";
-            break;
-
         case Helper::State::DATA_COMPLETE:
             qDebug() << "Helper data complete";
             break;
