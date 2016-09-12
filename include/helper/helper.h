@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <util/attributes.h>
+
 #include <QObject>
 #include <QScopedPointer>
 
@@ -35,19 +37,21 @@ public:
     Q_DISABLE_COPY(Helper)
 
     Q_ENUMS(State)
-    enum class State {NOT_STARTED, STARTED, CANCELLED, FAILED, COMPLETE};
+    enum class State {NOT_STARTED, STARTED, CANCELLED, FAILED, DATA_COMPLETE, HELPER_FINISHED, COMPLETE};
 
     Q_PROPERTY(Helper::State state READ state NOTIFY state_changed)
-    State state() const;
+    State state() const __pure;
+
+    virtual QString to_string(Helper::State state) const;
 
     // NB: range is [0.0 .. 1.0]
     Q_PROPERTY(float percent_done READ percent_done NOTIFY percent_done_changed)
-    float percent_done() const;
+    float percent_done() const __pure;
 
     // NB: units is bytes_per_second
-    int speed() const;
+    int speed() const __pure;
 
-    qint64 expected_size() const;
+    qint64 expected_size() const __pure;
     void set_expected_size(qint64 n_bytes);
 
     static void registerMetaTypes();
@@ -60,15 +64,16 @@ public:
     virtual void start(QStringList const& urls);
     virtual void stop();
 
+    static constexpr int MAX_UAL_WAIT_TIME = 1000;
+
 Q_SIGNALS:
     void state_changed(Helper::State);
     void percent_done_changed(float);
 
 protected:
     Helper(QString const & appid, const clock_func& clock=default_clock, QObject *parent=nullptr);
-    void set_state(State);
+    virtual void set_state(State);
     void record_data_transferred(qint64 n_bytes);
-    virtual void on_helper_process_stopped();
 
 private:
 

@@ -15,7 +15,7 @@
  *
  * Authors:
  *     Ted Gould <ted.gould@canonical.com>
- *     Xavi Garcia <xavi.garcia.mena@gmail.com>
+ *     Xavi Garcia <xavi.garcia.mena@canonical.com>
  *     Charles Kerr <charles.kerr@canonical.com>
  */
 #include "test-helpers-base.h"
@@ -23,223 +23,314 @@
 #include <sys/types.h>
 #include <signal.h>
 
-void TestHelpersBase::focus_cb(const gchar* appid, gpointer user_data)
+using namespace QtDBusTest;
+using namespace QtDBusMock;
+
+///
+/// State helpers
+//
+
+bool qvariant_to_map(QVariant const& variant, QVariantMap& map)
 {
-    g_debug("Focus Callback: %s", appid);
-    auto _this = static_cast<TestHelpersBase*>(user_data);
-    _this->last_focus_appid = appid;
+    if (variant.type() == QMetaType::QVariantMap)
+    {
+        map = variant.toMap();
+        return true;
+    }
+    qWarning() << Q_FUNC_INFO << ": Could not convert variant to QVariantMap. Variant received has type " << variant.typeName();
+
+    return false;
 }
 
-void TestHelpersBase::resume_cb(const gchar* appid, gpointer user_data)
+bool qdbus_argument_to_variant_dict_map(QVariant const& variant, QVariantDictMap& map)
 {
-    g_debug("Resume Callback: %s", appid);
-    auto _this = static_cast<TestHelpersBase*>(user_data);
-    _this->last_resume_appid = appid;
-
-    if (_this->resume_timeout > 0)
+    if (variant.canConvert<QDBusArgument>())
     {
-        _this->pause(_this->resume_timeout);
+        QDBusArgument value(variant.value<QDBusArgument>());
+        if (value.currentType() == QDBusArgument::MapType)
+        {
+            value >> map;
+            return true;
+        }
+        else
+        {
+            qWarning() << Q_FUNC_INFO << ": Could not convert variant to QVariantDictMap. Variant received has type " << value.currentType();
+        }
+    }
+    else
+    {
+        qWarning() << Q_FUNC_INFO << ": Could not convert variant to QDBusArgument.";
+    }
+    return false;
+}
+
+bool get_property_qvariant_dict_map(QString const & property, QVariant const &variant, QVariantDictMap & map)
+{
+    QVariantMap properties_map;
+    if (!qvariant_to_map(variant, properties_map))
+    {
+        qWarning() << Q_FUNC_INFO << ": Error converting variant in PropertiesChanged signal to QVariantMap";
+        return false;
+    }
+
+    auto iter = properties_map.find(property);
+    if (iter == properties_map.end())
+    {
+        qWarning() << Q_FUNC_INFO << ": Property [" << property << "] was not found in PropertiesChanged";
+        return false;
+    }
+
+    if(!qdbus_argument_to_variant_dict_map((*iter), map))
+    {
+        qWarning() << Q_FUNC_INFO << ": Error converting property [" << property << "] to QVariantDictMap";
+        return false;
+    }
+
+    return true;
+}
+
+bool all_tasks_has_state(QMap<QString, QString> const & tasks_state, QString const & state)
+{
+    for (auto iter = tasks_state.begin(); iter != tasks_state.end(); ++iter )
+    {
+        if ((*iter) != state)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool get_task_property(QString const &property, QVariantMap const &values, QVariant &value)
+{
+    auto iter = values.find(property);
+    if (iter == values.end())
+    {
+        qWarning() << Q_FUNC_INFO << ": Property [" << property << "] was not found.";
+        return false;
+    }
+    value = (*iter);
+    return true;
+}
+
+bool analyze_task_percentage_values(QString const & uuid, QList<QVariantMap> const & recorded_values)
+{
+    double previous_percentage = -1.0;
+    for (auto iter = recorded_values.begin(); iter != recorded_values.end(); ++iter)
+    {
+        QVariant percentage;
+        if (!get_task_property("percent-done", (*iter), percentage))
+        {
+            qWarning() << Q_FUNC_INFO << ": Percentage was not found for task: " << uuid;
+            return false;
+        }
+        bool ok_double;
+        auto percentage_double = percentage.toDouble(&ok_double);
+        if (!ok_double)
+        {
+            qWarning() << Q_FUNC_INFO << ": Error converting percent-done to double for uuid: " << uuid << ". State: " << (*iter);
+            return false;
+        }
+        if (percentage_double < previous_percentage)
+        {
+            qWarning() << Q_FUNC_INFO << ": Eror, current percentage is less than previous: current=" << percentage_double << ", previous=" << previous_percentage;
+            return false;
+        }
+        previous_percentage = percentage_double;
+    }
+    return true;
+}
+
+bool check_valid_action_state_step(QString const &previous, QString const &current)
+{
+    if (current == "queued")
+    {
+        return previous == "none" || previous == "queued";
+    }
+    else if (current == "saving")
+    {
+        return previous == "saving" || previous == "queued";
+    }
+    else if (current == "finishing")
+    {
+        return previous == "finishing" || previous == "saving";
+    }
+    else if (current == "complete")
+    {
+        // we may pass from "saving" to "complete" if we don't have enough time
+        // to emit the "finishing" state change
+        return previous == "complete" || previous == "finishing" || previous == "saving";
+    }
+    else if (current == "failed")
+    {
+        // we can get to failed from any state except complete
+        return previous != "complete";
+    }
+    else
+    {
+        // for possible new states, please add your code here
+        qWarning() << "Unhandled state: " << current;
+        return false;
     }
 }
 
-void TestHelpersBase::debugConnection()
+bool analyze_task_action_values(QString const & uuid, QList<QVariantMap> const & recorded_values)
 {
-    if (true)
+    QString previous_action = "none";
+    for (auto iter = recorded_values.begin(); iter != recorded_values.end(); ++iter)
     {
-        return;
+        QVariant action;
+        if (!get_task_property("action", (*iter), action))
+        {
+            qWarning() << Q_FUNC_INFO << ": Action was not found for task: " << uuid;
+            return false;
+        }
+        auto current_action = action.toString();
+
+        if (!check_valid_action_state_step(previous_action, action.toString()))
+        {
+            qWarning() << Q_FUNC_INFO << ": Bad action state step: previous state=" << previous_action << ", current=" << action.toString();
+            return false;
+        }
+        previous_action = action.toString();
     }
-
-    DbusTestBustle* bustle = dbus_test_bustle_new("test.bustle");
-    dbus_test_service_add_task(service, DBUS_TEST_TASK(bustle));
-    g_object_unref(bustle);
-
-    DbusTestProcess* monitor = dbus_test_process_new("dbus-monitor");
-    dbus_test_service_add_task(service, DBUS_TEST_TASK(monitor));
-    g_object_unref(monitor);
+    return true;
 }
 
-void TestHelpersBase::startTasks()
+bool analyze_task_display_name_values(QString const & uuid, QList<QVariantMap> const & recorded_values)
 {
-    dbus_test_service_start_tasks(service);
+    QString previous_name;
+    // check that the display name never changes between recorded states
+    for (auto iter = recorded_values.begin(); iter != recorded_values.end(); ++iter)
+    {
+        QVariant name;
+        if (!get_task_property("display-name", (*iter), name))
+        {
+            qWarning() << Q_FUNC_INFO << ": display-name was not found for task: " << uuid;
+            return false;
+        }
+        auto current_name = name.toString();
 
-    bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
-    g_dbus_connection_set_exit_on_close(bus, FALSE);
-    g_object_add_weak_pointer(G_OBJECT(bus), (gpointer*)&bus);
+        if (previous_name.isEmpty())
+        {
+            previous_name = name.toString();
+        }
+        else if(name.toString() != previous_name)
+        {
+            qWarning() << Q_FUNC_INFO << "ERROR: display-name for uuid: " << uuid << " changed from " << previous_name << " to " << name.toString();
+            return false;
+        }
+    }
+    return true;
+}
 
-    /* Make sure we pretend the CG manager is just on our bus */
-    g_setenv("UBUNTU_APP_LAUNCH_CG_MANAGER_SESSION_BUS", "YES", TRUE);
+bool analyze_tasks_values(QMap<QString, QList<QVariantMap>> const &uuids_state)
+{
+    for (auto iter = uuids_state.begin(); iter != uuids_state.end(); ++iter)
+    {
+        if(!analyze_task_display_name_values(iter.key(), (*iter)))
+            return false;
+        if(!analyze_task_action_values(iter.key(), (*iter)))
+            return false;
+        if(!analyze_task_percentage_values(iter.key(), (*iter)))
+            return false;
+    }
+    return true;
+}
 
-    ASSERT_TRUE(ubuntu_app_launch_observer_add_app_focus(focus_cb, this));
-    ASSERT_TRUE(ubuntu_app_launch_observer_add_app_resume(resume_cb, this));
+bool verify_signal_interface_and_invalidated_properties(QVariant const &interface,
+                                                        QVariant const &invalidated_properties,
+                                                        QString const & expected_interface,
+                                                        QString const & expected_property)
+{
+    auto props_list = invalidated_properties.toStringList();
+    if (!props_list.contains(expected_property))
+    {
+        qWarning() << Q_FUNC_INFO << "ERROR: PropertiesChanged signal did not include the property: " << expected_property << " as the ones invalidated";
+        return false;
+    }
 
-    registry = std::make_shared<ubuntu::app_launch::Registry>();
+    if (interface.toString() != expected_interface)
+    {
+        qWarning() << Q_FUNC_INFO << "ERROR: Interface: [" << interface.toString() << "] is not valid. Expecting: [" << expected_interface << "]";
+        return false;
+    }
+    return true;
+}
+
+///
+///
+///
+
+TestHelpersBase::TestHelpersBase()
+    :dbus_mock(dbus_test_runner)
+{
+}
+
+void TestHelpersBase::start_tasks()
+{
+    try
+    {
+        keeper_service.reset(
+                new QProcessDBusService(DBusTypes::KEEPER_SERVICE,
+                                        QDBusConnection::SessionBus,
+                                        KEEPER_SERVICE_BIN,
+                                        QStringList()));
+        keeper_service->start(dbus_test_runner.sessionConnection());
+    }
+    catch (std::exception const& e)
+    {
+        qWarning() << "Error starting keeper service " << e.what();
+        throw;
+    }
+
+    try
+    {
+        upstart_service.reset(
+                new QProcessDBusService(UPSTART_SERVICE,
+                                        QDBusConnection::SessionBus,
+                                        UPSTART_MOCK_BIN,
+                                        QStringList()));
+        upstart_service->start(dbus_test_runner.sessionConnection());
+    }
+    catch (std::exception const& e)
+    {
+        qWarning() << "Error starting upstart service " << e.what();
+        throw;
+    }
+
+#if 0
+    // Enable this to get extra dbus information.
+    if (!start_dbus_monitor())
+    {
+        throw std::logic_error("Error starting dbus-monitor process.");
+    }
+#endif
 }
 
 void TestHelpersBase::SetUp()
 {
     Helper::registerMetaTypes();
 
-    /* Click DB test mode */
-    g_setenv("TEST_CLICK_DB", "click-db-dir", TRUE);
-    g_setenv("TEST_CLICK_USER", "test-user", TRUE);
-
-    gchar* linkfarmpath = g_build_filename(CMAKE_SOURCE_DIR, "link-farm", NULL);
-    g_setenv("UBUNTU_APP_LAUNCH_LINK_FARM", linkfarmpath, TRUE);
-    g_free(linkfarmpath);
-
-    g_setenv("XDG_DATA_DIRS", CMAKE_SOURCE_DIR, TRUE);
-    g_setenv("XDG_CACHE_HOME", CMAKE_SOURCE_DIR "/libertine-data", TRUE);
-    g_setenv("XDG_DATA_HOME", xdg_data_home_dir.path().toLatin1().data(), TRUE);
+    g_setenv("XDG_DATA_DIRS", CMAKE_SOURCE_DIR, true);
+    g_setenv("XDG_CACHE_HOME", CMAKE_SOURCE_DIR "/libertine-data", true);
+    g_setenv("XDG_DATA_HOME", xdg_data_home_dir.path().toLatin1().data(), true);
 
     qDebug() << "XDG_DATA_HOME ON SETUP is:" << xdg_data_home_dir.path();
 
-    service = dbus_test_service_new(NULL);
+    g_setenv("DBUS_SYSTEM_BUS_ADDRESS", dbus_test_runner.systemBus().toStdString().c_str(), true);
+    g_setenv("DBUS_SESSION_BUS_ADDRESS", dbus_test_runner.sessionBus().toStdString().c_str(), true);
 
-    keeper_process = dbus_test_process_new(KEEPER_SERVICE_BIN);
-    dbus_test_task_set_name(DBUS_TEST_TASK(keeper_process), "Keeper");
-    dbus_test_service_add_task(service, DBUS_TEST_TASK(keeper_process));
-    g_object_unref(keeper_process);
-
-    debugConnection();
-
-    mock = dbus_test_dbus_mock_new("com.ubuntu.Upstart");
-
-    DbusTestDbusMockObject* obj =
-        dbus_test_dbus_mock_get_object(mock, UPSTART_PATH, UPSTART_INTERFACE, NULL);
-
-    dbus_test_dbus_mock_object_add_method(mock, obj, "EmitEvent", G_VARIANT_TYPE("(sasb)"), NULL, "", NULL);
-
-    dbus_test_dbus_mock_object_add_method(mock, obj, "GetJobByName", G_VARIANT_TYPE("s"), G_VARIANT_TYPE("o"),
-                                          "if args[0] == 'application-click':\n"
-                                          "	ret = dbus.ObjectPath('/com/test/application_click')\n"
-                                          "elif args[0] == 'application-legacy':\n"
-                                          "	ret = dbus.ObjectPath('/com/test/application_legacy')\n"
-                                          "elif args[0] == 'untrusted-helper':\n"
-                                          "	ret = dbus.ObjectPath('/com/test/untrusted/helper')\n",
-                                          NULL);
-
-    dbus_test_dbus_mock_object_add_method(mock, obj, "SetEnv", G_VARIANT_TYPE("(assb)"), NULL, "", NULL);
-
-    /* Click App */
-    DbusTestDbusMockObject* jobobj =
-        dbus_test_dbus_mock_get_object(mock, "/com/test/application_click", UPSTART_JOB, NULL);
-
-    dbus_test_dbus_mock_object_add_method(
-        mock, jobobj, "Start", G_VARIANT_TYPE("(asb)"), NULL,
-        "if args[0][0] == 'APP_ID=com.test.good_application_1.2.3':"
-        "    raise dbus.exceptions.DBusException('Foo running', name='com.ubuntu.Upstart0_6.Error.AlreadyStarted')",
-        NULL);
-
-    dbus_test_dbus_mock_object_add_method(mock, jobobj, "Stop", G_VARIANT_TYPE("(asb)"), NULL, "", NULL);
-
-    dbus_test_dbus_mock_object_add_method(mock, jobobj, "GetAllInstances", NULL, G_VARIANT_TYPE("ao"),
-                                          "ret = [ dbus.ObjectPath('/com/test/app_instance') ]", NULL);
-
-    DbusTestDbusMockObject* instobj =
-        dbus_test_dbus_mock_get_object(mock, "/com/test/app_instance", UPSTART_INSTANCE, NULL);
-    dbus_test_dbus_mock_object_add_property(mock, instobj, "name", G_VARIANT_TYPE_STRING,
-                                            g_variant_new_string("com.test.good_application_1.2.3"), NULL);
-    gchar* process_var = g_strdup_printf("[('main', %d)]", getpid());
-    dbus_test_dbus_mock_object_add_property(mock, instobj, "processes", G_VARIANT_TYPE("a(si)"),
-                                            g_variant_new_parsed(process_var), NULL);
-    g_free(process_var);
-
-    /*  Legacy App */
-    DbusTestDbusMockObject* ljobobj =
-        dbus_test_dbus_mock_get_object(mock, "/com/test/application_legacy", UPSTART_JOB, NULL);
-
-    dbus_test_dbus_mock_object_add_method(mock, ljobobj, "Start", G_VARIANT_TYPE("(asb)"), NULL, "", NULL);
-
-    dbus_test_dbus_mock_object_add_method(mock, ljobobj, "Stop", G_VARIANT_TYPE("(asb)"), NULL, "", NULL);
-
-    dbus_test_dbus_mock_object_add_method(mock, ljobobj, "GetAllInstances", NULL, G_VARIANT_TYPE("ao"),
-                                          "ret = [ dbus.ObjectPath('/com/test/legacy_app_instance') ]", NULL);
-
-    DbusTestDbusMockObject* linstobj = dbus_test_dbus_mock_get_object(mock, "/com/test/legacy_app_instance",
-                                                                      UPSTART_INSTANCE, NULL);
-    dbus_test_dbus_mock_object_add_property(mock, linstobj, "name", G_VARIANT_TYPE_STRING,
-                                            g_variant_new_string("multiple-2342345"), NULL);
-    dbus_test_dbus_mock_object_add_property(mock, linstobj, "processes", G_VARIANT_TYPE("a(si)"),
-                                            g_variant_new_parsed("[('main', 5678)]"), NULL);
-
-    /*  Untrusted Helper */
-    DbusTestDbusMockObject* uhelperobj =
-        dbus_test_dbus_mock_get_object(mock, UNTRUSTED_HELPER_PATH, UPSTART_JOB, NULL);
-
-    dbus_test_dbus_mock_object_add_method(mock, uhelperobj, "Start", G_VARIANT_TYPE("(asb)"), NULL,
-                        "import os\n"
-                        "import sys\n"
-                        "import subprocess\n"
-                        "target = open(\"/tmp/testHelper\", 'w')\n"
-                        "exec_app=\"\"\n"
-                        "for item in args[0]:\n"
-                        "    keyVal = str(item)\n"
-                        "    keyVal = keyVal.split(\"=\")\n"
-                        "    if len(keyVal) == 2:\n"
-                        "        os.environ[keyVal[0]] = keyVal[1]\n"
-                        "        if keyVal[0] == \"APP_URIS\":\n"
-                        "            exec_app = keyVal[1].replace(\"'\", '')\n"
-                        "            target.write(exec_app)\n"
-                        "            params = exec_app.split()\n"
-                        "            if len(params) > 1:\n"
-                        "                os.chdir(params[1])\n"
-                        "                proc = subprocess.Popen(params[0], shell=True, stdout=subprocess.PIPE)\n"
-                        "target.close\n"
-                        , NULL);
-
-    dbus_test_dbus_mock_object_add_method(mock, uhelperobj, "Stop", G_VARIANT_TYPE("(asb)"), NULL, "", NULL);
-
-    dbus_test_dbus_mock_object_add_method(mock, uhelperobj, "GetAllInstances", NULL, G_VARIANT_TYPE("ao"),
-                                          "ret = [ dbus.ObjectPath('/com/test/untrusted/helper/instance'), "
-                                          "dbus.ObjectPath('/com/test/untrusted/helper/multi_instance') ]",
-                                          NULL);
-
-    DbusTestDbusMockObject* uhelperinstance = dbus_test_dbus_mock_get_object(
-        mock, "/com/test/untrusted/helper/instance", UPSTART_INSTANCE, NULL);
-    dbus_test_dbus_mock_object_add_property(mock, uhelperinstance, "name", G_VARIANT_TYPE_STRING,
-                                            g_variant_new_string("untrusted-type::com.foo_bar_43.23.12"), NULL);
-
-    DbusTestDbusMockObject* unhelpermulti = dbus_test_dbus_mock_get_object(
-        mock, "/com/test/untrusted/helper/multi_instance", UPSTART_INSTANCE, NULL);
-    dbus_test_dbus_mock_object_add_property(
-        mock, unhelpermulti, "name", G_VARIANT_TYPE_STRING,
-        g_variant_new_string("backup-helper:24034582324132:com.bar_foo_8432.13.1"), NULL);
-
-    /* Create the cgroup manager mock */
-    cgmock = dbus_test_dbus_mock_new("org.test.cgmock");
-    g_setenv("UBUNTU_APP_LAUNCH_CG_MANAGER_NAME", "org.test.cgmock", TRUE);
-
-    DbusTestDbusMockObject* cgobject = dbus_test_dbus_mock_get_object(cgmock, "/org/linuxcontainers/cgmanager",
-                                                                      "org.linuxcontainers.cgmanager0_0", NULL);
-    dbus_test_dbus_mock_object_add_method(cgmock, cgobject, "GetTasksRecursive", G_VARIANT_TYPE("(ss)"),
-                                          G_VARIANT_TYPE("ai"), "ret = [100, 200, 300]", NULL);
-
-    /* Put it together */
-    dbus_test_service_add_task(service, DBUS_TEST_TASK(mock));
-    dbus_test_service_add_task(service, DBUS_TEST_TASK(cgmock));
+    dbus_test_runner.startServices();
 }
 
 void TestHelpersBase::TearDown()
 {
-    kill(dbus_test_process_get_pid(keeper_process), SIGTERM);
-
-    registry.reset();
-
-    ubuntu_app_launch_observer_delete_app_focus(focus_cb, this);
-    ubuntu_app_launch_observer_delete_app_resume(resume_cb, this);
-
-    g_clear_object(&mock);
-    g_clear_object(&cgmock);
-    g_clear_object(&service);
-
-    g_object_unref(bus);
-
-    unsigned int cleartry = 0;
-    while (bus != NULL && cleartry < 100)
-    {
-        pause(100);
-        cleartry++;
-    }
+    g_unsetenv("XDG_DATA_DIRS");
+    g_unsetenv("XDG_CACHE_HOME");
+    g_unsetenv("XDG_DATA_HOME");
+    g_unsetenv("DBUS_SYSTEM_BUS_ADDRESS");
+    g_unsetenv("DBUS_SESSION_BUS_ADDRESS");
 
     // if the test failed, keep the artifacts so devs can examine them
     QDir data_home_dir(CMAKE_SOURCE_DIR "/libertine-home");
@@ -249,13 +340,8 @@ void TestHelpersBase::TearDown()
     else
         qDebug("test failed; leaving '%s'", data_home_dir.path().toUtf8().constData());
 
-    ASSERT_EQ(nullptr, bus);
-
     // if the test passed, clean up the xdg_data_home_dir temp too
     xdg_data_home_dir.setAutoRemove(passed);
-
-    // let's leave things clean
-    EXPECT_TRUE(removeHelperMarkBeforeStarting());
 }
 
 bool TestHelpersBase::init_helper_registry(QString const& registry)
@@ -275,66 +361,73 @@ bool TestHelpersBase::init_helper_registry(QString const& registry)
     return copied;
 }
 
-bool TestHelpersBase::checkStorageFrameworkFiles(QStringList const & sourceDirs, bool compression)
+bool TestHelpersBase::check_storage_framework_files(QStringList const & source_dirs, bool compression)
 {
-    QStringList dirs = sourceDirs;
+    bool success {true};
 
-    while (dirs.size() > 0)
+    auto const backups = get_storage_framework_files();
+
+    for (auto const& source : source_dirs)
     {
-        auto dir = dirs.takeLast();
-        QString lastFile = getLastStorageFrameworkFile();
-        if (lastFile.isEmpty())
+        bool backup_found {false};
+
+        for (auto const& backup : backups)
         {
-            qWarning() << "Did not found enough storage framework files";
-            return false;
+            auto const backup_filename = backup.absoluteFilePath();
+            if ((backup_found = compare_tar_content (backup_filename, source, compression)))
+            {
+                qDebug() << Q_FUNC_INFO << "source" << source << "has match" << backup_filename;
+                break;
+            }
         }
-        if (!compareTarContent (lastFile, dir, compression))
+
+        if (!backup_found)
         {
-            return false;
+            qWarning() << Q_FUNC_INFO << "source" << source << "has no matching backup";
+            success = false;
         }
-        // remove the last file, so next iteration the last one is different
-        QFile::remove(lastFile);
     }
-    return true;
+
+    return success;
 }
 
-bool TestHelpersBase::compareTarContent (QString const & tarPath, QString const & sourceDir, bool compression)
+bool TestHelpersBase::compare_tar_content (QString const & tar_path, QString const & sourceDir, bool compression)
 {
-    QTemporaryDir tempDir;
+    QTemporaryDir temp_dir;
 
-    qDebug() << "Comparing tar content for dir:" << sourceDir << "with tar:" << tarPath;
+    qDebug() << "Comparing tar content for dir:" << sourceDir << "with tar:" << tar_path;
 
-    QFileInfo checkFile(tarPath);
-    if (!checkFile.exists())
+    QFileInfo check_file(tar_path);
+    if (!check_file.exists())
     {
-        qWarning() << "File:" << tarPath << "does not exist";
+        qWarning() << "File:" << tar_path << "does not exist";
         return false;
     }
-    if (!checkFile.isFile())
+    if (!check_file.isFile())
     {
-        qWarning() << "Item:" << tarPath << "is not a file";
+        qWarning() << "Item:" << tar_path << "is not a file";
         return false;
     }
-    if (!tempDir.isValid())
+    if (!temp_dir.isValid())
     {
-        qWarning() << "Temporary directory:" << tempDir.path() << "is not valid";
+        qWarning() << "Temporary directory:" << temp_dir.path() << "is not valid";
         return false;
     }
 
-    if( !extractTarContents(tarPath, tempDir.path()))
+    if( !extract_tar_contents(tar_path, temp_dir.path()))
     {
         return false;
     }
-    return FileUtils::compareDirectories(sourceDir, tempDir.path());
+    return FileUtils::compareDirectories(sourceDir, temp_dir.path());
 }
 
-bool TestHelpersBase::extractTarContents(QString const & tarPath, QString const & destination, bool compression)
+bool TestHelpersBase::extract_tar_contents(QString const & tar_path, QString const & destination, bool compression)
 {
-    QProcess tarProcess;
-    QString tarParams = compression ? QString("-xzvf") : QString("-xvf");
+    QProcess tar_process;
+    QString tar_params = compression ? QString("-xzf") : QString("-xf");
     qDebug() << "Starting the process...";
-    QString tarCmd = QString("tar -C %1 %2 %3").arg(destination).arg(tarParams).arg(tarPath);
-    system(tarCmd.toStdString().c_str());
+    QString tar_cmd = QString("tar -C %1 %2 %3").arg(destination).arg(tar_params).arg(tar_path);
+    system(tar_cmd.toStdString().c_str());
     return true;
 }
 
@@ -358,32 +451,17 @@ namespace
     }
 }
 
-QString TestHelpersBase::getLastStorageFrameworkFile()
+QFileInfoList
+TestHelpersBase::get_storage_framework_files()
 {
-    QString last;
-
     QDir sf_dir;
-    if(find_storage_framework_dir(sf_dir))
-    {
-        QStringList sortedFiles;
-        QFileInfoList files = sf_dir.entryInfoList();
-        for(auto& file : sf_dir.entryInfoList())
-            if (file.isFile())
-                sortedFiles << file.absoluteFilePath();
 
-        // we detect the last file by name.
-        // the file creation time had not enough precision
-        sortedFiles.sort();
-        if (sortedFiles.isEmpty())
-            qWarning() << "ERROR: no files in" << sf_dir.path();
-        else
-            last = sortedFiles.last();
-    }
-
-    return last;
+    return find_storage_framework_dir(sf_dir)
+        ? sf_dir.entryInfoList(QStringList{}, QDir::Files)
+        : QFileInfoList{};
 }
 
-int TestHelpersBase::checkStorageFrameworkNbFiles()
+int TestHelpersBase::check_storage_framework_nb_files()
 {
     QDir sf_dir;
     auto exists = find_storage_framework_dir(sf_dir);
@@ -393,68 +471,134 @@ int TestHelpersBase::checkStorageFrameworkNbFiles()
         : -1;
 }
 
-bool TestHelpersBase::removeHelperMarkBeforeStarting()
+bool TestHelpersBase::wait_for_all_tasks_have_action_state(QStringList const & uuids, QString const & action_state, QSharedPointer<DBusInterfaceKeeperUser> const & keeper_user_iface, int max_timeout_msec)
 {
-    QFile helper_mark(SIMPLE_HELPER_MARK_FILE_PATH);
-    if (helper_mark.exists())
-    {
-        return helper_mark.remove();
-    }
-    return true;
-}
-
-
-
-bool TestHelpersBase::waitUntilHelperFinishes(QString const & app_id, int maxTimeout, int times)
-{
-    // TODO create a new mock for upstart that controls the lifecycle of the
-    // helper process so we can do this in a cleaner way.
-    QFile helper_mark(SIMPLE_HELPER_MARK_FILE_PATH);
     QElapsedTimer timer;
     timer.start();
-    auto times_to_wait = times;
     bool finished = false;
-    while (!timer.hasExpired(maxTimeout) && !finished)
+    while (!timer.hasExpired(max_timeout_msec) && !finished)
     {
-        if (helper_mark.exists())
+        auto state = keeper_user_iface->state();
+        auto all_helpers_finished = true;
+        for (auto uuid : uuids)
         {
-            if (--times_to_wait)
+            if (!check_task_has_action_state(state, uuid, action_state))
             {
-                helper_mark.remove();
-                timer.restart();
-                qDebug() << "HELPER FINISHED, WAITING FOR" << times_to_wait << "MORE";
+                all_helpers_finished = false;
+                break;
             }
-            else
-            {
-                qDebug() << "ALL HELPERS FINISHED";
-                finished = true;
-            }
-            sendUpstartHelperTermination(app_id);
         }
+        finished = all_helpers_finished;
     }
     return finished;
 }
 
-void TestHelpersBase::sendUpstartHelperTermination(QString const &app_id)
+bool TestHelpersBase::check_task_has_action_state(QVariantDictMap const & state, QString const & uuid, QString const & action_state)
 {
-    // send the upstart signal so keeper-service is aware of the helper termination
-    DbusTestDbusMockObject* objUpstart =
-        dbus_test_dbus_mock_get_object(mock, UPSTART_PATH, UPSTART_INTERFACE, NULL);
+    auto iter = state.find(uuid);
+    if (iter == state.end())
+        return false;
 
-    QString eventInfoStr = QString("('stopped', ['JOB=untrusted-helper', 'INSTANCE=backup-helper::%1'])").arg(app_id.toStdString().c_str());
-    dbus_test_dbus_mock_object_emit_signal(
-        mock, objUpstart, "EventEmitted", G_VARIANT_TYPE("(sas)"),
-        g_variant_new_parsed(
-                eventInfoStr.toLocal8Bit().data()),
-        NULL);
-    g_usleep(100000);
-    while (g_main_pending())
-    {
-        g_main_iteration(TRUE);
-    }
+    auto iter_props = (*iter).find("action");
+    if (iter_props == (*iter).end())
+        return false;
+
+    return (*iter_props).toString() == action_state;
 }
 
-QString TestHelpersBase::getUUIDforXdgFolderPath(QString const &path, QVariantDictMap const & choices) const
+bool TestHelpersBase::capture_and_check_state_until_all_tasks_complete(QSignalSpy & spy, QStringList const & uuids, QString const & action_state, int max_timeout_msec)
+{
+    QMap<QString, QList<QVariantMap>> uuids_state;
+    QMap<QString, QString> uuids_current_state;
+
+    // initialize the current state map to wait for all expected uuids
+    for (auto const& uuid : uuids)
+    {
+        uuids_current_state[uuid] = "none";
+        uuids_state[uuid] = QList<QVariantMap>();
+    }
+
+    QElapsedTimer timer;
+    timer.start();
+    bool finished = false;
+    while (!timer.hasExpired(max_timeout_msec) && !finished)
+    {
+        spy.wait();
+
+        qDebug() << "PropertiesChanged SIGNALS RECEIVED:  " << spy.count();
+        while (spy.count())
+        {
+            auto arguments = spy.takeFirst();
+
+            if (arguments.size() != 3)
+            {
+                qWarning() << "Bad number of arguments in PropertiesChanged signal";
+                return false;
+            }
+
+            // verify interface and invalidated_properties arguments
+            if(!verify_signal_interface_and_invalidated_properties(arguments.at(0), arguments.at(2), DBusTypes::KEEPER_USER_INTERFACE, "State"))
+            {
+                return false;
+            }
+            QVariantDictMap keeper_state;
+            if (!get_property_qvariant_dict_map("State", arguments.at(1), keeper_state))
+            {
+                return false;
+            }
+            for (auto iter = keeper_state.begin(); iter != keeper_state.end(); ++iter )
+            {
+                // check for unexpected uuids
+                if (!uuids.contains(iter.key()))
+                {
+                    qWarning() << "State contains unexpected uuid: " << iter.key();
+                    return false;
+                }
+
+                QVariantMap task_state;
+                if (!qvariant_to_map((*iter), task_state))
+                {
+                    qWarning() << "Error converting second argument in PropertiesChanged signal to QVariantMap for uuid: " << iter.key();
+                    return false;
+                }
+                qDebug() << "State for uuid: " << iter.key() << " : " << task_state;
+
+                QVariant action;
+                if (get_task_property("action", task_state, action))
+                {
+                    if (action.type() != QVariant::String)
+                    {
+                        qWarning() << "Property [action] is not a string";
+                        return false;
+                    }
+                    // store the current action state
+                    uuids_current_state[iter.key()] = action.toString();
+
+                    bool store = true;
+                    if (action.toString() == action_state)
+                    {
+                        // check if it worths storing this new event
+                        store = uuids_state[iter.key()].last() != task_state;
+                    }
+                    if (store)
+                    {
+                        // store the current state for later inspection
+                        uuids_state[iter.key()].push_back(task_state);
+                    }
+                }
+            }
+        }
+        finished = all_tasks_has_state(uuids_current_state, action_state);
+        if (finished)
+        {
+            qDebug() << "ALL TASKS FINISHED =========================================";
+        }
+    }
+    // check for the recorded values
+    return analyze_tasks_values(uuids_state);
+}
+
+QString TestHelpersBase::get_uuid_for_xdg_folder_path(QString const &path, QVariantDictMap const & choices) const
 {
     for(auto iter = choices.begin(); iter != choices.end(); ++iter)
     {
@@ -473,92 +617,25 @@ QString TestHelpersBase::getUUIDforXdgFolderPath(QString const &path, QVariantDi
     return QString();
 }
 
-GVariant* TestHelpersBase::find_env(GVariant* env_array, const gchar* var)
+bool TestHelpersBase::start_dbus_monitor()
 {
-    GVariant* retval = nullptr;
-
-    for (int i=0, n=g_variant_n_children(env_array); i<n; i++)
+    if (!dbus_monitor_process)
     {
-        GVariant* child = g_variant_get_child_value(env_array, i);
-        const gchar* envvar = g_variant_get_string(child, nullptr);
+        dbus_monitor_process.reset(new QProcess());
 
-        if (g_str_has_prefix(envvar, var))
-        {
-            if (retval != nullptr)
-            {
-                g_warning("Found the env var more than once!");
-                g_variant_unref(retval);
-                return nullptr;
-            }
+        dbus_monitor_process->setProcessChannelMode(QProcess::ForwardedChannels);
 
-            retval = child;
-        }
-        else
+        dbus_monitor_process->start("dbus-monitor", QStringList() << "--session");
+        if (!dbus_monitor_process->waitForStarted())
         {
-            g_variant_unref(child);
+            qWarning() << "Error, starting dbus-monitor: " << dbus_monitor_process->errorString();
+            return false;
         }
     }
-
-    if (!retval)
+    else
     {
-        gchar* envstr = g_variant_print(env_array, FALSE);
-        g_warning("Unable to find '%s' in '%s'", var, envstr);
-        g_free(envstr);
+        qWarning() << "Error, dbus-monitor should be called one time per test.";
+        return false;
     }
-
-    return retval;
-}
-
-std::string TestHelpersBase::get_env(GVariant* env_array, const gchar* key)
-{
-    std::string value;
-
-    GVariant* variant = find_env(env_array, key);
-    if (variant != nullptr)
-    {
-        const char* cstr = g_variant_get_string(variant, nullptr);
-        if (cstr != nullptr)
-        {
-            cstr = strchr(cstr, '=');
-            if (cstr != nullptr)
-                value = cstr + 1;
-        }
-
-        g_clear_pointer(&variant, g_variant_unref);
-    }
-
-    return value;
-}
-
-bool TestHelpersBase::have_env(GVariant* env_array, const gchar* key)
-{
-    GVariant* variant = find_env(env_array, key);
-    bool found = variant != nullptr;
-    g_clear_pointer(&variant, g_variant_unref);
-    return found;
-}
-
-void TestHelpersBase::pause(guint time)
-{
-    if (time > 0)
-    {
-        GMainLoop* mainloop = g_main_loop_new(NULL, FALSE);
-
-        g_timeout_add(time,
-                      [](gpointer pmainloop) -> gboolean
-                      {
-                          g_main_loop_quit(static_cast<GMainLoop*>(pmainloop));
-                          return G_SOURCE_REMOVE;
-                      },
-                      mainloop);
-
-        g_main_loop_run(mainloop);
-
-        g_main_loop_unref(mainloop);
-    }
-
-    while (g_main_pending())
-    {
-        g_main_iteration(TRUE);
-    }
+    return true;
 }

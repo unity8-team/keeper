@@ -3,7 +3,7 @@ add_definitions(
   -DPROJECT_NAME="${CMAKE_PROJECT_NAME}"
   -DHELPER_REGISTRY_FILENAME="${HELPER_REGISTRY_FILENAME}"
 )
-
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 #
 # helpers-test
@@ -23,6 +23,7 @@ include_directories(
   ${UAL_INCLUDE_DIRS}
   ${PROP-CPP_INCLUDE_DIRS}
   ${HELPERS_TEST_DEPS_INCLUDE_DIRS}
+  "${CMAKE_BINARY_DIR}/tests/qdbus-stubs"
 )
 
 set(
@@ -32,9 +33,9 @@ set(
 
 add_executable(
   ${HELPERS_TEST}
+  ${interface_files}
   helpers-test.cc
   test-helpers-base.cpp
-  mir-mock.cpp
 )
 
 set_target_properties(
@@ -48,9 +49,11 @@ target_link_libraries(
   ${HELPERS_TEST}
   ${HELPERS_TEST_DEPS_LDFLAGS}
   ${INTEGRATION_TEST_LIBRARIES}
-  Qt5::Core
+  qdbus-stubs-tests
   Qt5::DBus
   Qt5::Test
+  Qt5::Network
+  Qt5::Core
 )
 
 add_test(
@@ -86,7 +89,6 @@ add_executable(
   ${HELPERS_TEST_FAILURE}
   helpers-test-failure.cpp
   test-helpers-base.cpp
-  mir-mock.cpp
 )
 
 set_target_properties(
@@ -114,9 +116,11 @@ target_link_libraries(
   ${HELPERS_TEST_FAILURE}
   ${HELPERS_TEST_DEPS_LDFLAGS}
   ${INTEGRATION_TEST_LIBRARIES}
-  Qt5::Core
+  qdbus-stubs-tests
   Qt5::DBus
   Qt5::Test
+  Qt5::Network
+  Qt5::Core
 )
 
 add_test(

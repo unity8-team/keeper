@@ -15,7 +15,7 @@
  *
  * Authors:
  *     Charles Kerr <charles.kerr@canonical.com>
- *     Xavi Garcia <xavi.garcia.mena@gmail.com>
+ *     Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
 
 #include "tests/utils/file-utils.h"
@@ -34,16 +34,23 @@
 namespace
 {
 
-QFileInfo
-create_dummy_file(QDir const& dir, qint64 filesize)
+QString
+create_dummy_string()
 {
     // NB we want to exercise long filenames, but this cutoff length is arbitrary
     static constexpr int MAX_BASENAME_LEN {200};
-    int filename_len = qrand() % MAX_BASENAME_LEN;
-    QString basename;
+    auto const filename_len = std::max(10, qrand() % MAX_BASENAME_LEN);
+    QString str;
     for (int i=0; i<filename_len; ++i)
-        basename += ('a' + char(qrand() % ('z'-'a')));
-    basename += QStringLiteral("-XXXXXX");
+        str += ('a' + char(qrand() % ('z'-'a')));
+    return str;
+}
+
+QFileInfo
+create_dummy_file(QDir const& dir, qint64 filesize)
+{
+    // get a filename
+    auto basename = create_dummy_string() + QStringLiteral("-XXXXXX");
     auto template_name = dir.absoluteFilePath(basename);
 
     // fill the file with noise
@@ -73,7 +80,8 @@ create_dummy_file(QDir const& dir, qint64 filesize)
 }
 
 QByteArray
-calculate_checksum(QString const & filePath, QCryptographicHash::Algorithm hashAlgorithm=QCryptographicHash::Sha1)
+calculate_checksum(QString const & filePath,
+                   QCryptographicHash::Algorithm hashAlgorithm=QCryptographicHash::Sha1)
 {
     QFile f(filePath);
     if (f.open(QFile::ReadOnly)) {
@@ -86,10 +94,10 @@ calculate_checksum(QString const & filePath, QCryptographicHash::Algorithm hashA
 }
 
 void
-fill_directory_recusively(QDir const & dir,
-                          int max_filesize,
-                          int & n_files_left,
-                          int & n_subdirs_left)
+fill_directory_recursively(QDir const & dir,
+                           int max_filesize,
+                           int & n_files_left,
+                           int & n_subdirs_left)
 {
     // decide how many items to create in this directory
     const auto n_to_create = (n_files_left > 0)
@@ -102,8 +110,8 @@ fill_directory_recusively(QDir const & dir,
         // we create a directory 25% of the time
         if ((n_subdirs_left > 0) && (qrand() % 100 < 25))
         {
-            // create a new subdirectory
-            auto newDirName = QString("Directory_%1").arg(n_subdirs_left);
+            // create a new directory
+            auto const newDirName = QStringLiteral("Directory_") + create_dummy_string();
             if (!dir.mkdir(newDirName))
             {
                 qWarning() << "Error creating temporary directory" << newDirName << "under" << dir.absolutePath() << std::strerror(errno);
@@ -113,7 +121,7 @@ fill_directory_recusively(QDir const & dir,
             // fill it
             QDir newDir(dir.absoluteFilePath(newDirName));
             --n_subdirs_left;
-            fill_directory_recusively(newDir, max_filesize, n_files_left, n_subdirs_left);
+            fill_directory_recursively(newDir, max_filesize, n_files_left, n_subdirs_left);
         }
         else if (n_files_left > 0)
         {
@@ -128,7 +136,7 @@ fill_directory_recusively(QDir const & dir,
     }
 }
 
-} // namespace
+} // unnamed namespace
 
 /***
 ****
@@ -151,7 +159,7 @@ FileUtils::fillTemporaryDirectory(QString const & dir_path,
     int n_subdirs_left {n_subdirs_wanted};
 
     while (n_files_left > 0)
-        fill_directory_recusively(dir, max_filesize, n_files_left, n_subdirs_left);
+        fill_directory_recursively(dir, max_filesize, n_files_left, n_subdirs_left);
 }
 
 QStringList
@@ -202,63 +210,55 @@ FileUtils::compareFiles(QString const & filePath1, QString const & filePath2)
 bool
 FileUtils::compareDirectories(QString const & dir1Path, QString const & dir2Path)
 {
-    // we only check for files, not directories
-    QDir dir1(dir1Path);
+    bool directories_identical = true;
+
     if (!QDir::isAbsolutePath(dir1Path))
     {
-        qWarning() << "Error comparing directories: path for directories must be absolute";
-        return false;
+        qWarning() << Q_FUNC_INFO << "Error comparing directories: path for directories must be absolute";
+        directories_identical = false;
     }
-
-    if (!checkPathIsDir(dir1Path))
+    else if (!checkPathIsDir(dir1Path))
     {
-        return false;
+        qWarning() << Q_FUNC_INFO << dir1Path << "is not a directory";
+        directories_identical = false;
     }
-    if (!checkPathIsDir(dir2Path))
+    else if (!checkPathIsDir(dir2Path))
     {
-        return false;
+        qWarning() << Q_FUNC_INFO << dir2Path << "is not a directory";
+        directories_identical = false;
     }
-
-    auto filesDir1 = getFilesRecursively(dir1Path);
-    auto filesDir2 = getFilesRecursively(dir2Path);
-    filesDir1.sort();
-    filesDir2.sort();
-
-    if ( filesDir1.size() != filesDir2.size())
+    else
     {
-        qWarning() << "Number of files in directories mismatch, dir \""
-                   << dir1Path
-                   <<  "\" has ["
-                   << filesDir1.size()
-                   << "], dir \""
-                   << dir2Path
-                   << "\" has [" << filesDir2.size() << "]";
+        QDir const dir1 {dir1Path};
+        QDir const dir2 {dir2Path};
 
-        for (int i=0; i<filesDir1.size() || i<filesDir2.size(); ++i)
+        // build a relative list of files under dir1
+        QSet<QString> filesDir1;
+        for (auto const& absolute_path : getFilesRecursively(dir1Path))
+            filesDir1 << dir1.relativeFilePath(absolute_path);
+
+        // build a relative list of files under dir2
+        QSet<QString> filesDir2;
+        for (auto const& absolute_path : getFilesRecursively(dir2Path))
+            filesDir2 << dir2.relativeFilePath(absolute_path);
+
+        for (auto const & relative: filesDir1 + filesDir2)
         {
-            if (i<filesDir1.size())
-                qWarning() << "A" << filesDir1[i];
-            if (i<filesDir2.size())
-                qWarning() << "B" << filesDir2[i];
-        }
-
-        return false;
-    }
-    for (auto file: filesDir1)
-    {
-        auto filePath2 = file;
-        filePath2.remove(0, dir1Path.length());
-        filePath2 = dir2Path + filePath2;
-        if (!compareFiles(file, filePath2))
-        {
-            qWarning() << "File [" << file << "] and file [" << filePath2 << "] are not equal";
-            return false;
+            auto const abs1 = dir1.absoluteFilePath(relative);
+            auto const abs2 = dir2.absoluteFilePath(relative);
+            if (!compareFiles(abs1, abs2))
+            {
+                qWarning() << Q_FUNC_INFO << "files" << abs1 << "and" << abs2 << "are not equal";
+                directories_identical = false;
+            }
         }
     }
-    return true;
+
+    return directories_identical;
 }
 
-bool FileUtils::checkPathIsDir(QString const &dirPath)
+bool
+FileUtils::checkPathIsDir(QString const &dirPath)
 {
     QFileInfo dirInfo = QFileInfo(dirPath);
     if (!dirInfo.isDir())

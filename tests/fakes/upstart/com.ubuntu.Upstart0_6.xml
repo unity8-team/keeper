@@ -1,0 +1,18 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node>
+  <interface name="com.ubuntu.Upstart0_6">
+    <method name="EmitEvent">
+      <arg direction="in" type="s" name="name" />
+      <arg direction="in" type="as" name="env" />
+      <arg direction="in" type="b" name="wait" />
+    </method>
+    <method name="GetJobByName">
+      <arg direction="in" type="s" name="name" />
+      <arg direction="out" type="o" name="path" />
+    </method>
+    <signal name="EventEmitted">
+      <arg type="s" name="name"/>
+      <arg type="as" name="env"/>
+    </signal>
+  </interface>
+</node>

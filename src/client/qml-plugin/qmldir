@@ -1,0 +1,2 @@
+module Ubuntu.Keeper
+plugin keeper-qml

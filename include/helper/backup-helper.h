@@ -20,18 +20,18 @@
 
 #pragma once
 
-#include <helper/helper.h> // parent class
-#include <helper/registry.h>
+#include "storage-framework/uploader.h"
+#include "helper/helper.h" // parent class
+#include "helper/registry.h"
 
 #include <QObject>
 #include <QScopedPointer>
-#include <QLocalSocket>
 #include <QString>
 
 #include <memory>
 
 class BackupHelperPrivate;
-class BackupHelper : public Helper
+class BackupHelper final: public Helper
 {
     Q_OBJECT
     Q_DECLARE_PRIVATE(BackupHelper)
@@ -47,11 +47,12 @@ public:
 
     static constexpr int MAX_INACTIVITY_TIME = 10000;
 
-    void set_storage_framework_socket(std::shared_ptr<QLocalSocket> const& sf_socket);
+    void set_uploader(std::shared_ptr<Uploader> const& uploader);
     void start(QStringList const& urls) override;
     void stop() override;
-    void on_helper_process_stopped() override;
     int get_helper_socket() const;
+    QString to_string(Helper::State state) const override;
+    void set_state(State) override;
 
 private:
     QScopedPointer<BackupHelperPrivate> const d_ptr;

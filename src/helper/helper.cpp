@@ -21,11 +21,10 @@
 
 #include <ubuntu-app-launch/registry.h>
 #include <service/app-const.h>
-extern "C" {
-    #include <ubuntu-app-launch.h>
-}
+#include <ubuntu-app-launch.h>
 
 #include <QDebug>
+#include <QTimer>
 
 #include <cmath> // std::fabs()
 #include <sys/time.h> // gettimeofday()
@@ -153,6 +152,9 @@ public:
         , registry_(new ubuntu::app_launch::Registry())
     {
         ual_init();
+        QObject::connect(&timer_wait_ual_, &QTimer::timeout,
+            std::bind(&HelperPrivate::on_max_time_waiting_for_ual_started, this)
+        );
     }
 
     ~HelperPrivate()
@@ -166,7 +168,7 @@ public:
     {
         if (state_ != state)
         {
-            qDebug() << "changing state of helper" << static_cast<void*>(this) << "from" << toString(state_) << "to" << toString(state);
+            qDebug() << "changing state of helper" << static_cast<void*>(this) << "from" << q_ptr->to_string(state_) << "to" << q_ptr->to_string(state);
             state_ = state;
             q_ptr->state_changed(state);
         }
@@ -196,7 +198,7 @@ public:
         size_ += n_bytes;
         sized_ += double(n_bytes);
 
-        history_.add(clock_(), n_bytes);
+        history_.add(clock_(), size_t(n_bytes));
 
         update_percent_done();
     }
@@ -221,9 +223,22 @@ public:
         ual_stop();
     }
 
-    void on_helper_process_stopped()
+    QString to_string(Helper::State state) const
     {
-        q_ptr->set_state(Helper::State::COMPLETE);
+        auto ret = QStringLiteral("bug");
+
+        switch (state)
+        {
+            case State::NOT_STARTED:     ret = QStringLiteral("not-started"); break;
+            case State::STARTED:         ret = QStringLiteral("started");     break;
+            case State::CANCELLED:       ret = QStringLiteral("cancelled");   break;
+            case State::FAILED:          ret = QStringLiteral("failed");      break;
+            case State::DATA_COMPLETE:   ret = QStringLiteral("finishing");   break;
+            case State::HELPER_FINISHED: ret = QStringLiteral("finishing");   break;
+            case State::COMPLETE:        ret = QStringLiteral("complete");    break;
+        }
+
+        return ret;
     }
 
 private:
@@ -261,6 +276,7 @@ private:
         auto appid = ubuntu::app_launch::AppID::parse(appid_.toStdString());
         auto helper = ubuntu::app_launch::Helper::create(backupType, appid, registry_);
 
+        reset_wait_for_ual_timer();
         helper->launch(urls);
     }
 
@@ -285,6 +301,7 @@ private:
     {
         qDebug() << "HELPER STARTED +++++++++++++++++++++++++++++++++++++" << appid;
         auto self = static_cast<HelperPrivate*>(vself);
+        self->stop_wait_for_ual_timer();
         self->q_ptr->set_state(Helper::State::STARTED);
     }
 
@@ -292,7 +309,7 @@ private:
     {
         qDebug() << "HELPER STOPPED +++++++++++++++++++++++++++++++++++++" << appid;
         auto self = static_cast<HelperPrivate*>(vself);
-        self->q_ptr->on_helper_process_stopped();
+        self->q_ptr->set_state(Helper::State::HELPER_FINISHED);
     }
 
     void update_percent_done()
@@ -311,20 +328,22 @@ private:
         }
     }
 
-    QString toString(Helper::State state)
+    void reset_wait_for_ual_timer()
     {
-        auto ret = QStringLiteral("bug");
+        static constexpr int MAX_TIME_WAITING_FOR_DATA {Helper::MAX_UAL_WAIT_TIME};
+        timer_wait_ual_.start(MAX_TIME_WAITING_FOR_DATA);
+    }
 
-        switch (state)
-        {
-            case State::NOT_STARTED: ret = QStringLiteral("not-started"); break;
-            case State::STARTED:     ret = QStringLiteral("started");     break;
-            case State::CANCELLED:   ret = QStringLiteral("cancelled");   break;
-            case State::FAILED:      ret = QStringLiteral("failed");      break;
-            case State::COMPLETE:    ret = QStringLiteral("complete");    break;
-        }
+    void stop_wait_for_ual_timer()
+    {
+        timer_wait_ual_.stop();
+    }
 
-        return ret;
+    void on_max_time_waiting_for_ual_started()
+    {
+        qDebug() << "Max time reached waiting for UAL to start";
+        q_ptr->set_state(Helper::State::FAILED);
+        stop_wait_for_ual_timer();
     }
 
     Helper * const q_ptr;
@@ -338,6 +357,7 @@ private:
     float percent_done_ {};
     float last_notified_percent_done_ {};
     std::shared_ptr<ubuntu::app_launch::Registry> registry_;
+    QTimer timer_wait_ual_;
 };
 
 /***
@@ -358,6 +378,14 @@ Helper::state() const
     Q_D(const Helper);
 
     return d->state();
+}
+
+QString
+Helper::to_string(Helper::State state) const
+{
+    Q_D(const Helper);
+
+    return d->to_string(state);
 }
 
 int
@@ -437,12 +465,4 @@ Helper::stop()
     Q_D(Helper);
 
     d->stop();
-}
-
-void
-Helper::on_helper_process_stopped()
-{
-    Q_D(Helper);
-
-    d->on_helper_process_stopped();
 }

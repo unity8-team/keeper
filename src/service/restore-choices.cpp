@@ -14,7 +14,7 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authors:
- *   Charles Kerr <charles.kerr@canoincal.com>
+ *   Charles Kerr <charles.kerr@canonical.com>
  */
 
 #include "service/restore-choices.h"
@@ -89,7 +89,7 @@ RestoreChoices::RestoreChoices()
 RestoreChoices::~RestoreChoices() =default;
 
 QVector<Metadata>
-RestoreChoices::get_backups()
+RestoreChoices::get_backups() const
 {
     QVector<Metadata> ret;
 

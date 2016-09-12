@@ -65,10 +65,17 @@ KeeperUser::GetBackupChoices()
 void
 KeeperUser::StartBackup (const QStringList& keys)
 {
-    // FIXME: writeme
+    Q_ASSERT(calledFromDBus());
 
-    qDebug() << keys;
-    keeper_.start_tasks(keys);
+    auto const unhandled = keeper_.start_tasks(keys);
+
+    if (!unhandled.empty())
+    {
+        QString text = QStringLiteral("unhandled uuids:");
+        for (auto const& uuid : unhandled)
+            text += ' ' + uuid;
+        connection().send(message().createErrorReply(QDBusError::InvalidArgs, text));
+    }
 }
 
 void

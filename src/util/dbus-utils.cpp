@@ -65,7 +65,12 @@ void flushPropertyChanges()
         signal << it.key().second;
         // Changed properties (name, value)
         signal << it.value().second;
-        signal << QStringList();
+        QStringList properties_changed;
+        for (auto iter_props = it.value().second.begin(); iter_props != it.value().second.end(); ++iter_props)
+        {
+            properties_changed << iter_props.key();
+        }
+        signal << properties_changed;
         // Connection
         it.value().first.send(signal);
     }

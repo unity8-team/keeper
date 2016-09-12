@@ -30,6 +30,8 @@
 #include <QProcessEnvironment>
 #include <QLocalSocket>
 
+#include <unistd.h>
+
 int
 main(int argc, char **argv)
 {
@@ -71,10 +73,9 @@ main(int argc, char **argv)
     const auto ufd = fd_reply.value();
 
     // write the blob
-    QLocalSocket sock;
-    sock.setSocketDescriptor(ufd.fileDescriptor());
-    qDebug() << "wrote" << sock.write(blob) << "bytes";
-    sock.flush();
+    const auto fd = ufd.fileDescriptor();
+    const auto n_written_in = write(fd, blob.constData(), blob.size());
+    qDebug() << "wrote" << n_written_in << "bytes";
 
     // create the mark file so we can check when it finished without upstart
     QFile markFile(SIMPLE_HELPER_MARK_FILE_PATH);

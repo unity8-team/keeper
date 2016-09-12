@@ -15,7 +15,7 @@
  *
  * Authors:
  *     Ted Gould <ted.gould@canonical.com>
- *     Xavi Garcia <xavi.garcia.mena@gmail.com>
+ *     Xavi Garcia <xavi.garcia.mena@canonical.com>
  *     Charles Kerr <charles.kerr@canonical.com>
  */
 #include "test-helpers-base.h"
@@ -31,21 +31,20 @@ class TestHelpers: public TestHelpersBase
     }
 };
 
-TEST_F(TestHelpers, StartFullTest)
+TEST_F(TestHelpers, BackupHelperWritesTooMuch)
 {
     XdgUserDirsSandbox tmp_dir;
 
     // starts the services, including keeper-service
-    startTasks();
+    start_tasks();
 
-    QDBusConnection connection = QDBusConnection::sessionBus();
-    QScopedPointer<DBusInterfaceKeeperUser> user_iface(new DBusInterfaceKeeperUser(
+    QSharedPointer<DBusInterfaceKeeperUser> user_iface(new DBusInterfaceKeeperUser(
                                                             DBusTypes::KEEPER_SERVICE,
                                                             DBusTypes::KEEPER_USER_PATH,
-                                                            connection
+                                                            dbus_test_runner.sessionConnection()
                                                         ) );
 
-    ASSERT_TRUE(user_iface->isValid()) << qPrintable(QDBusConnection::sessionBus().lastError().message());
+    ASSERT_TRUE(user_iface->isValid()) << qPrintable(dbus_test_runner.sessionConnection().lastError().message());
 
     // ask for a list of backup choices
     QDBusReply<QVariantDictMap> choices = user_iface->call("GetBackupChoices");
@@ -61,19 +60,37 @@ TEST_F(TestHelpers, StartFullTest)
     FileUtils::fillTemporaryDirectory(user_dir, qrand() % 1000);
 
     // search for the user folder uuid
-    auto user_folder_uuid = getUUIDforXdgFolderPath(user_dir, choices.value());
+    auto user_folder_uuid = get_uuid_for_xdg_folder_path(user_dir, choices.value());
     ASSERT_FALSE(user_folder_uuid.isEmpty());
     qDebug() << "User folder UUID is:" << user_folder_uuid;
 
+    QFile helper_mark(SIMPLE_HELPER_MARK_FILE_PATH);
+    qDebug() << "Helper mark exists before calling StartBackup..." << helper_mark.exists();
+
+    QSharedPointer<DBusPropertiesInterface> properties_interface(new DBusPropertiesInterface(
+                                                            DBusTypes::KEEPER_SERVICE,
+                                                            DBusTypes::KEEPER_USER_PATH,
+                                                            dbus_test_runner.sessionConnection()
+                                                        ) );
+
+    ASSERT_TRUE(properties_interface->isValid()) << qPrintable(QDBusConnection::sessionBus().lastError().message());
+
+    QSignalSpy spy(properties_interface.data(),&DBusPropertiesInterface::PropertiesChanged);
+
     // Now we know the music folder uuid, let's start the backup for it.
     QDBusReply<void> backup_reply = user_iface->call("StartBackup", QStringList{user_folder_uuid});
-    ASSERT_TRUE(backup_reply.isValid()) << qPrintable(QDBusConnection::sessionBus().lastError().message());
+    ASSERT_TRUE(backup_reply.isValid()) << qPrintable(dbus_test_runner.sessionConnection().lastError().message());
 
-    // Wait until the helper finishes
-    EXPECT_TRUE(waitUntilHelperFinishes(DEKKO_APP_ID, 15000, 1));
+    // waits until all tasks are complete, recording PropertiesChanged signals
+    // and checks all the recorded values
+    EXPECT_TRUE(capture_and_check_state_until_all_tasks_complete(spy, {user_folder_uuid}, "failed"));
+
+    // wait until all the tasks have the action state "complete"
+    // this one uses pooling so it should just call Get once
+    EXPECT_TRUE(wait_for_all_tasks_have_action_state({user_folder_uuid}, "failed", user_iface));
 
     // check that the content of the file is the expected
-    EXPECT_EQ(0, checkStorageFrameworkNbFiles());
+    EXPECT_EQ(0, check_storage_framework_nb_files());
 
     // check that the state is failed
     QVariantDictMap state = user_iface->state();
@@ -83,11 +100,8 @@ TEST_F(TestHelpers, StartFullTest)
     EXPECT_TRUE(iter != state.end());
     auto state_values = state[user_folder_uuid];
 
-    EXPECT_EQ(state_values["action"].toString(), QStringLiteral("failed"));
-    EXPECT_EQ(state_values["display-name"].toString(), QStringLiteral("Music"));
+    EXPECT_EQ(std::string{"failed"}, state_values["action"].toString().toStdString());
+    EXPECT_EQ(std::string{"Music"}, state_values["display-name"].toString().toStdString());
     // sent 1 byte more than the expected, so percentage has to be greater than 1.0
-    EXPECT_TRUE(state_values["percent-done"].toFloat() > 1.0);
-
-    // let's leave things clean
-    EXPECT_TRUE(removeHelperMarkBeforeStarting());
+    EXPECT_GT(state_values["percent-done"].toFloat(), 1.0);
 }

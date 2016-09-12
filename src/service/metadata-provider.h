@@ -14,7 +14,7 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authors:
- *   Charles Kerr <charles.kerr@canoincal.com>
+ *   Charles Kerr <charles.kerr@canonical.com>
  */
 
 #pragma once
@@ -27,7 +27,7 @@ class MetadataProvider
 {
 public:
     virtual ~MetadataProvider() =0;
-    virtual QVector<Metadata> get_backups() =0;
+    virtual QVector<Metadata> get_backups() const =0;
 
 protected:
     MetadataProvider() =default;

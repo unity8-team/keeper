@@ -21,7 +21,7 @@
 #include <dbus-types.h>
 #include <util/logging.h>
 
-#include "keeper_user_interface.h"
+#include <keeper_user_interface.h>
 
 #include <QCoreApplication>
 #include <QDBusConnection>
@@ -75,7 +75,6 @@ main(int argc, char **argv)
             {
                 if (iter_values.value().toString() == "folder")
                 {
-                    // got it
                     qDebug() << "Adding uuid" << iter.key() << "with type:" << "folder";
                     uuids << iter.key();
                 }

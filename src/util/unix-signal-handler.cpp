@@ -54,14 +54,14 @@ void
 UnixSignalHandler::intSignalHandler(int)
 {
     char a = 1;
-    ::write(sigintFd[0], &a, sizeof(a));
+    (void) ::write(sigintFd[0], &a, sizeof(a));
 }
 
 void
 UnixSignalHandler::termSignalHandler(int)
 {
     char a = 1;
-    ::write(sigtermFd[0], &a, sizeof(a));
+    (void) ::write(sigtermFd[0], &a, sizeof(a));
 }
 
 int
@@ -92,7 +92,7 @@ UnixSignalHandler::handleSigTerm()
 {
     m_socketNotifierTerm->setEnabled(false);
     char tmp;
-    ::read(sigtermFd[1], &tmp, sizeof(tmp));
+    (void) ::read(sigtermFd[1], &tmp, sizeof(tmp));
 
     m_func();
 
@@ -104,7 +104,7 @@ UnixSignalHandler::handleSigInt()
 {
     m_socketNotifierInt->setEnabled(false);
     char tmp;
-    ::read(sigintFd[1], &tmp, sizeof(tmp));
+    (void) ::read(sigintFd[1], &tmp, sizeof(tmp));
 
     m_func();
 

@@ -13,98 +13,122 @@
  * You should have received a copy of the GNU General Public License along
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * Author: Xavi Garcia <xavi.garcia.mena@canonical.com>
+ * Authors:
+ *   Xavi Garcia <xavi.garcia.mena@canonical.com>
+ *   Charles Kerr <charles.kerr@canonical.com>
  */
-#include <QLocalSocket>
-#include "storage_framework_client.h"
 
+#include "storage-framework/storage_framework_client.h"
+#include "storage-framework/sf-uploader.h"
 
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#include <sys/types.h>
-#include <time.h>
+#include <QDateTime>
+#include <QVector>
+#include <QString>
 
-using namespace unity::storage::qt::client;
+namespace sf = unity::storage::qt::client;
+
+/***
+****
+***/
 
 StorageFrameworkClient::StorageFrameworkClient(QObject *parent)
     : QObject(parent)
-    , runtime_(Runtime::create())
-    , uploader_ready_watcher_(parent)
-    , uploader_closed_watcher_(parent)
-    , uploader_()
+    , runtime_(sf::Runtime::create())
 {
-    QObject::connect(&uploader_ready_watcher_,&QFutureWatcher<std::shared_ptr<Uploader>>::finished, this, &StorageFrameworkClient::uploaderReady);
-    QObject::connect(&uploader_closed_watcher_,&QFutureWatcher<std::shared_ptr<unity::storage::qt::client::File>>::finished, this, &StorageFrameworkClient::onUploaderClosed);
 }
 
+StorageFrameworkClient::~StorageFrameworkClient() =default;
 
-void StorageFrameworkClient::getNewFileForBackup(quint64 n_bytes)
+/***
+****
+***/
+
+sf::Account::SPtr
+StorageFrameworkClient::choose(QVector<sf::Account::SPtr> const& choices) const
 {
-    // Get the acccounts. (There is only one account for the local client implementation.)
-    // We do this synchronously for simplicity.
-    try {
-        auto accounts = runtime_->accounts().result();
-        Root::SPtr root = accounts[0]->roots().result()[0];
-        qDebug() << "id:" << root->native_identity();
-        qDebug() << "time:" << root->last_modified_time();
+    sf::Account::SPtr ret;
 
-
-        // XGM ADD A new file to the root
-        QFutureWatcher<std::shared_ptr<Uploader>> new_file_watcher;
-
-        // get the current date and time to create the new file
-        QDateTime now = QDateTime::currentDateTime();
-        QString new_file_name = QString("Backup_%1").arg(now.toString("dd.MM.yyyy-hh:mm:ss.zzz"));
-
-        uploader_ready_watcher_.setFuture(root->create_file(new_file_name, n_bytes));
-    }
-    catch (std::exception & e)
+    qDebug() << "choosing from" << choices.size() << "accounts";
+    if (choices.empty())
     {
-        qDebug() << "ERROR: StorageFrameworkClient::getNewFileForBackup():" << e.what();
-        throw;
+        qWarning() << "no storage-framework accounts to pick from";
     }
+    else // for now just pick the first one. FIXME
+    {
+        ret = choices.front();
+    }
+
+    return ret;
 }
 
-void StorageFrameworkClient::finish(bool do_commit)
+sf::Root::SPtr
+StorageFrameworkClient::choose(QVector<sf::Root::SPtr> const& choices) const
 {
+    sf::Root::SPtr ret;
 
-    if (!uploader_ || !do_commit)
+    qDebug() << "choosing from" << choices.size() << "roots";
+    if (choices.empty())
     {
-        qDebug() << "StorageFrameworkClient::finish() is throwing away the file";
-        uploader_.reset();
-        Q_EMIT(finished());
+        qWarning() << "no storage-framework roots to pick from";
     }
-    else try
+    else // for now just pick the first one. FIXME
     {
-        qDebug() << "StorageFrameworkClient::finish() is committing";
-        uploader_closed_watcher_.setFuture(uploader_->finish_upload());
+        ret = choices.front();
     }
-    catch (std::exception & e)
-    {
-        qDebug() << "ERROR: StorageFrameworkClient::closeUploader():" << e.what();
-        throw;
-    }
+
+    return ret;
 }
 
-void StorageFrameworkClient::onUploaderClosed()
+/***
+****
+***/
+
+void
+StorageFrameworkClient::add_accounts_task(std::function<void(QVector<sf::Account::SPtr> const&)> task)
 {
-    auto file = uploader_closed_watcher_.result();
-    qDebug() << "Uploader for file" << file->name() << "was closed";
-    qDebug() << "Uploader was closed";
-    uploader_->socket()->disconnectFromServer();
-    uploader_.reset();
-    Q_EMIT(finished());
+    connection_helper_.connect_future(runtime_->accounts(), task);
 }
 
-void StorageFrameworkClient::uploaderReady()
+void
+StorageFrameworkClient::add_roots_task(std::function<void(QVector<sf::Root::SPtr> const&)> task)
 {
-    uploader_ = uploader_ready_watcher_.result();
+    add_accounts_task([this, task](QVector<sf::Account::SPtr> const& accounts)
+    {
+        auto account = choose(accounts);
+        if (account)
+            connection_helper_.connect_future(account->roots(), task);
+    });
+}
 
-    Q_EMIT (socketReady(uploader_->socket()));
+QFuture<std::shared_ptr<Uploader>>
+StorageFrameworkClient::get_new_uploader(int64_t n_bytes)
+{
+    QFutureInterface<std::shared_ptr<Uploader>> fi;
+
+    add_roots_task([this, fi, n_bytes](QVector<sf::Root::SPtr> const& roots)
+    {
+        auto root = choose(roots);
+        if (root)
+        {
+            auto const now = QDateTime::currentDateTime();
+            auto const filename = QStringLiteral("Backup_%1").arg(now.toString("dd.MM.yyyy-hh.mm.ss.zzz"));
+            connection_helper_.connect_future(
+                root->create_file(filename, n_bytes),
+                std::function<void(std::shared_ptr<sf::Uploader> const&)>{
+                    [this, fi](std::shared_ptr<sf::Uploader> const& uploader){
+                        qDebug() << "root->create_file() finished";
+                        auto wrapper = std::shared_ptr<Uploader>(
+                            new StorageFrameworkUploader(uploader, this),
+                            [](Uploader* u){u->deleteLater();}
+                        );
+                        QFutureInterface<decltype(wrapper)> qfi(fi);
+                        qfi.reportResult(wrapper);
+                        qfi.reportFinished();
+                    }
+                }
+            );
+        }
+    });
+
+    return fi.future();
 }
