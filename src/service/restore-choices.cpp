@@ -94,18 +94,18 @@ RestoreChoices::get_backups() const
     QVector<Metadata> ret;
 
     // FIXME: blocking
-    auto accounts = runtime_->accounts().result();
+//    auto accounts = runtime_->accounts().result();
 
     // FIXME: blocking
-    auto tops = get_backups_folder(accounts.front()).results();
-    qDebug() << "tops.results().size()" << tops.size();
+//    auto tops = get_backups_folder(accounts.front()).results();
+//    qDebug() << "tops.results().size()" << tops.size();
 
-    if (!tops.empty())
-    {
-        auto top = tops.front();
-        qDebug() << "top id:" << top->native_identity();
-        qDebug() << "top time:" << top->last_modified_time();
-    }
+//    if (!tops.empty())
+//    {
+//        auto top = tops.front();
+//        qDebug() << "top id:" << top->native_identity();
+//        qDebug() << "top time:" << top->last_modified_time();
+//    }
 
     // TODO: walk the directory's children
 

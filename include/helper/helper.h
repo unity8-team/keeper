@@ -37,7 +37,7 @@ public:
     Q_DISABLE_COPY(Helper)
 
     Q_ENUMS(State)
-    enum class State {NOT_STARTED, STARTED, CANCELLED, FAILED, DATA_COMPLETE, HELPER_FINISHED, COMPLETE};
+    enum class State {NOT_STARTED, STARTED, CANCELLED, FAILED, DATA_COMPLETE, COMPLETE};
 
     Q_PROPERTY(Helper::State state READ state NOTIFY state_changed)
     State state() const __pure;
@@ -64,7 +64,7 @@ public:
     virtual void start(QStringList const& urls);
     virtual void stop();
 
-    static constexpr int MAX_UAL_WAIT_TIME = 1000;
+    static constexpr int MAX_UAL_WAIT_TIME = 10000;
 
 Q_SIGNALS:
     void state_changed(Helper::State);
@@ -73,6 +73,9 @@ Q_SIGNALS:
 protected:
     Helper(QString const & appid, const clock_func& clock=default_clock, QObject *parent=nullptr);
     virtual void set_state(State);
+    virtual void on_helper_started();
+    virtual void on_helper_finished();
+    bool is_helper_running() const;
     void record_data_transferred(qint64 n_bytes);
 
 private:

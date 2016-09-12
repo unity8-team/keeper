@@ -80,8 +80,12 @@ main(int argc, char **argv)
                 }
             }
         }
-
-        QDBusReply<void> backup_reply = user_iface->call("StartBackup", uuids);
+	QStringList uuids_only_first;
+	if (uuids.size())
+	{
+		uuids_only_first << uuids.at(0);
+	}
+        QDBusReply<void> backup_reply = user_iface->call("StartBackup", uuids_only_first);
 
         if (!backup_reply.isValid())
         {

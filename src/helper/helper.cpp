@@ -234,11 +234,27 @@ public:
             case State::CANCELLED:       ret = QStringLiteral("cancelled");   break;
             case State::FAILED:          ret = QStringLiteral("failed");      break;
             case State::DATA_COMPLETE:   ret = QStringLiteral("finishing");   break;
-            case State::HELPER_FINISHED: ret = QStringLiteral("finishing");   break;
             case State::COMPLETE:        ret = QStringLiteral("complete");    break;
         }
 
         return ret;
+    }
+
+    void on_helper_started()
+    {
+        stop_wait_for_ual_timer();
+        q_ptr->set_state(Helper::State::STARTED);
+        is_helper_running_ = true;
+    }
+
+    void on_helper_finished()
+    {
+        is_helper_running_ = false;
+    }
+
+    bool is_helper_running() const
+    {
+        return is_helper_running_;
     }
 
 private:
@@ -301,15 +317,16 @@ private:
     {
         qDebug() << "HELPER STARTED +++++++++++++++++++++++++++++++++++++" << appid;
         auto self = static_cast<HelperPrivate*>(vself);
-        self->stop_wait_for_ual_timer();
-        self->q_ptr->set_state(Helper::State::STARTED);
+        self->q_ptr->on_helper_started();
     }
 
     static void on_helper_stopped(const char* appid, const char* /*instance*/, const char* /*type*/, void* vself)
     {
         qDebug() << "HELPER STOPPED +++++++++++++++++++++++++++++++++++++" << appid;
         auto self = static_cast<HelperPrivate*>(vself);
-        self->q_ptr->set_state(Helper::State::HELPER_FINISHED);
+        if (self->q_ptr->state() != Helper::State::FAILED && self->q_ptr->state() != Helper::State::CANCELLED)
+//            self->q_ptr->set_state(Helper::State::HELPER_FINISHED);
+            self->q_ptr->on_helper_finished();
     }
 
     void update_percent_done()
@@ -358,6 +375,7 @@ private:
     float last_notified_percent_done_ {};
     std::shared_ptr<ubuntu::app_launch::Registry> registry_;
     QTimer timer_wait_ual_;
+    bool is_helper_running_ = false;
 };
 
 /***
@@ -465,4 +483,26 @@ Helper::stop()
     Q_D(Helper);
 
     d->stop();
+}
+
+void
+Helper::on_helper_started()
+{
+    Q_D(Helper);
+    d->on_helper_started();
+}
+
+void
+Helper::on_helper_finished()
+{
+    Q_D(Helper);
+    d->on_helper_finished();
+}
+
+bool
+Helper::is_helper_running() const
+{
+    Q_D(const Helper);
+    return d->is_helper_running();
+
 }

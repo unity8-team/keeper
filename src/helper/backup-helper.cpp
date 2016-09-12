@@ -99,7 +99,7 @@ public:
         ));
 
         // TODO xavi is going to remove this line
-        q_ptr->set_state(Helper::State::STARTED);
+        q_ptr->Helper::on_helper_started();
 
         reset_inactivity_timer();
     }
@@ -124,14 +124,9 @@ public:
 
     void on_state_changed(Helper::State state)
     {
+        qDebug() << "On State changed state = " << to_string(state);
         switch (state)
         {
-            case Helper::State::HELPER_FINISHED:
-                qDebug() << "helper finished";
-                check_for_done();
-                stop_inactivity_timer();
-                break;
-
             case Helper::State::CANCELLED:
             case Helper::State::FAILED:
                 qDebug() << "cancelled/failed, calling uploader_.reset()";
@@ -160,6 +155,13 @@ public:
             default:
                 break;
         }
+    }
+
+
+    void on_helper_finished()
+    {
+        stop_inactivity_timer();
+        check_for_done();
     }
 
 private:
@@ -243,19 +245,24 @@ private:
 
     void check_for_done()
     {
+        qDebug() << "Checking for done..............";
         if (cancelled_)
         {
             q_ptr->set_state(Helper::State::CANCELLED);
         }
         else if (read_error_ || write_error_ || n_uploaded_ > q_ptr->expected_size())
         {
-            q_ptr->set_state(Helper::State::FAILED);
+            if (!q_ptr->is_helper_running())
+            {
+                q_ptr->set_state(Helper::State::FAILED);
+            }
         }
         else if (n_uploaded_ == q_ptr->expected_size())
         {
+            qDebug() << "Checking for done.............==.";
             if (uploader_)
             {
-                if (q_ptr->state() == Helper::State::HELPER_FINISHED)
+                if (!q_ptr->is_helper_running())
                 {
                     // only in the case that the helper process finished we move to the next state
                     // this is to prevent to start the next task too early
@@ -349,7 +356,14 @@ BackupHelper::set_state(Helper::State state)
 {
     Q_D(BackupHelper);
 
-    Helper::set_state(state);
     qDebug() << Q_FUNC_INFO;
     d->on_state_changed(state);
+    Helper::set_state(state);
+}
+
+void BackupHelper::on_helper_finished()
+{
+    Q_D(BackupHelper);
+    Helper::on_helper_finished();
+    d->on_helper_finished();
 }

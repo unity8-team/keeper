@@ -32,30 +32,30 @@ class TestHelpers: public TestHelpersBase
     }
 };
 
-TEST_F(TestHelpers, StartHelper)
-{
-    // starts the services, including keeper-service
-    start_tasks();
-
-    BackupHelper helper("com.test.multiple_first_1.2.3");
-
-    QSignalSpy spy(&helper, &BackupHelper::state_changed);
-
-    helper.start({"/bin/ls","/tmp"});
-
-    // wait for 3 signals.
-    // One for started, another one when the helper stops
-    // and another change state to data complete (we expect 0 bytes, so it matches)
-    WAIT_FOR_SIGNALS(spy, 3, 15000);
-
-    ASSERT_EQ(spy.count(), 3);
-    QList<QVariant> arguments = spy.takeFirst();
-    EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::STARTED);
-    arguments = spy.takeFirst();
-    EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::HELPER_FINISHED);
-    arguments = spy.takeFirst();
-    EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::COMPLETE);
-}
+//TEST_F(TestHelpers, StartHelper)
+//{
+//    // starts the services, including keeper-service
+//    start_tasks();
+//
+//    BackupHelper helper("com.test.multiple_first_1.2.3");
+//
+//    QSignalSpy spy(&helper, &BackupHelper::state_changed);
+//
+//    helper.start({"/bin/ls","/tmp"});
+//
+//    // wait for 3 signals.
+//    // One for started, another one when the helper stops
+//    // and another change state to data complete (we expect 0 bytes, so it matches)
+//    WAIT_FOR_SIGNALS(spy, 3, 15000);
+//
+//    ASSERT_EQ(spy.count(), 3);
+//    QList<QVariant> arguments = spy.takeFirst();
+//    EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::STARTED);
+//    arguments = spy.takeFirst();
+//    EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::HELPER_FINISHED);
+//    arguments = spy.takeFirst();
+//    EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::COMPLETE);
+//}
 
 TEST_F(TestHelpers, StartFullTest)
 {
@@ -130,65 +130,65 @@ TEST_F(TestHelpers, StartFullTest)
     EXPECT_TRUE(check_storage_framework_files(QStringList{user_dir, user_dir_2}));
 }
 
-TEST_F(TestHelpers, SimplyCheckThatTheSecondDBusInterfaceIsFine)
-{
-    XdgUserDirsSandbox tmp_dir;
-
-    // starts the services, including keeper-service
-    start_tasks();
-
-    QSharedPointer<DBusInterfaceKeeperUser> user_iface(new DBusInterfaceKeeperUser(
-                                                            DBusTypes::KEEPER_SERVICE,
-                                                            DBusTypes::KEEPER_USER_PATH,
-                                                            dbus_test_runner.sessionConnection()
-                                                        ) );
-
-    ASSERT_TRUE(user_iface->isValid()) << qPrintable(dbus_test_runner.sessionConnection().lastError().message());
-
-}
-
-TEST_F(TestHelpers, BadHelperPath)
-{
-    // starts the services, including keeper-service
-    start_tasks();
-
-    BackupHelper helper("com.bar_foo_8432.13.1");
-
-    QSignalSpy spy(&helper, &BackupHelper::state_changed);
-    QStringList urls;
-    urls << "blah" << "/tmp";
-    helper.start(urls);
-
-    WAIT_FOR_SIGNALS(spy, 1, 5000);
-
-    ASSERT_EQ(spy.count(), 1);
-    QList<QVariant> arguments = spy.takeFirst();
-    EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::FAILED);
-}
-
-TEST_F(TestHelpers, Inactivity)
-{
-    // starts the services, including keeper-service
-    start_tasks();
-
-    BackupHelper helper("com.bar_foo_8432.13.1");
-
-    QSignalSpy spy(&helper, &BackupHelper::state_changed);
-    QStringList urls;
-    urls << TEST_INACTIVE_HELPER << "/tmp";
-    helper.start(urls);
-
-    // wait 15 seconds at most.
-    // the inactive helper sleeps for 100 seconds so
-    // if we get the 2 signals it means it was stopped due to inactivity
-    // We can also check at the end for the state, which should be CANCELLED
-    WAIT_FOR_SIGNALS(spy, 3, 15000);
-
-    ASSERT_EQ(spy.count(), 3);
-    QList<QVariant> arguments = spy.takeFirst();
-    EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::STARTED);
-    arguments = spy.takeFirst();
-    EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::HELPER_FINISHED);
-    arguments = spy.takeFirst();
-    EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::CANCELLED);
-}
+//TEST_F(TestHelpers, SimplyCheckThatTheSecondDBusInterfaceIsFine)
+//{
+//    XdgUserDirsSandbox tmp_dir;
+//
+//    // starts the services, including keeper-service
+//    start_tasks();
+//
+//    QSharedPointer<DBusInterfaceKeeperUser> user_iface(new DBusInterfaceKeeperUser(
+//                                                            DBusTypes::KEEPER_SERVICE,
+//                                                            DBusTypes::KEEPER_USER_PATH,
+//                                                            dbus_test_runner.sessionConnection()
+//                                                        ) );
+//
+//    ASSERT_TRUE(user_iface->isValid()) << qPrintable(dbus_test_runner.sessionConnection().lastError().message());
+//
+//}
+//
+//TEST_F(TestHelpers, BadHelperPath)
+//{
+//    // starts the services, including keeper-service
+//    start_tasks();
+//
+//    BackupHelper helper("com.bar_foo_8432.13.1");
+//
+//    QSignalSpy spy(&helper, &BackupHelper::state_changed);
+//    QStringList urls;
+//    urls << "blah" << "/tmp";
+//    helper.start(urls);
+//
+//    WAIT_FOR_SIGNALS(spy, 1, 5000);
+//
+//    ASSERT_EQ(spy.count(), 1);
+//    QList<QVariant> arguments = spy.takeFirst();
+//    EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::FAILED);
+//}
+//
+//TEST_F(TestHelpers, Inactivity)
+//{
+//    // starts the services, including keeper-service
+//    start_tasks();
+//
+//    BackupHelper helper("com.bar_foo_8432.13.1");
+//
+//    QSignalSpy spy(&helper, &BackupHelper::state_changed);
+//    QStringList urls;
+//    urls << TEST_INACTIVE_HELPER << "/tmp";
+//    helper.start(urls);
+//
+//    // wait 15 seconds at most.
+//    // the inactive helper sleeps for 100 seconds so
+//    // if we get the 2 signals it means it was stopped due to inactivity
+//    // We can also check at the end for the state, which should be CANCELLED
+//    WAIT_FOR_SIGNALS(spy, 3, 15000);
+//
+//    ASSERT_EQ(spy.count(), 3);
+//    QList<QVariant> arguments = spy.takeFirst();
+//    EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::STARTED);
+//    arguments = spy.takeFirst();
+//    EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::HELPER_FINISHED);
+//    arguments = spy.takeFirst();
+//    EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::CANCELLED);
+//}

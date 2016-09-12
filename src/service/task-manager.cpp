@@ -120,7 +120,7 @@ private:
         auto& td = task_data_[current_task_];
         update_task_state(td);
 
-        if (state == Helper::State::COMPLETE)
+        if (state == Helper::State::COMPLETE || state == Helper::State::FAILED)
         {
             qDebug() << "STARTING NEXT TASK ---------------------------------------";
             start_next_task();
