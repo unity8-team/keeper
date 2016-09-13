@@ -114,10 +114,10 @@ public:
             else if (n < 0) // read error
             {
                 success = false;
-                auto errstr = QStringLiteral("read()ing %1 returned %2 (%3)")
-                                  .arg(step_file_->fileName())
-                                  .arg(n)
-                                  .arg(step_file_->errorString());
+                auto const errstr = QStringLiteral("read()ing %1 returned %2 (%3)")
+                    .arg(step_file_->fileName())
+                    .arg(n)
+                    .arg(step_file_->errorString());
                 qWarning() << errstr;
                 throw std::runtime_error(errstr.toStdString());
             }
@@ -188,7 +188,7 @@ private:
                 .arg(source)
                 .arg(archive_error_string(archive))
                 .arg(err);
-                qWarning() << qPrintable(errstr);
+            qWarning() << qPrintable(errstr);
             if (err == ARCHIVE_WARN)
                 break;
 
@@ -206,7 +206,7 @@ private:
 
         while (bufsize > 0)
         {
-            auto n_written = archive_write_data(archive, buf, size_t(bufsize));
+            auto const n_written = archive_write_data(archive, buf, size_t(bufsize));
 
             if (n_written != -1)
             {
@@ -215,11 +215,11 @@ private:
                 continue;
             }
 
-            const auto err = archive_errno(archive);
+            auto const err = archive_errno(archive);
             if (err == ARCHIVE_RETRY)
                 continue;
 
-            auto errstr = QString::fromUtf8("Error adding data for '%1': %2 (%3)")
+            auto const errstr = QString::fromUtf8("Error adding data for '%1': %2 (%3)")
                 .arg(source)
                 .arg(archive_error_string(archive))
                 .arg(err);
@@ -242,7 +242,7 @@ private:
             if (err == ARCHIVE_RETRY)
                 continue;
 
-            auto errstr = QString::fromUtf8("Error calling archive_write_close(): %1 (%2)")
+            auto const errstr = QString::fromUtf8("Error calling archive_write_close(): %1 (%2)")
                 .arg(archive_error_string(archive))
                 .arg(err);
             qWarning() << qPrintable(errstr);
