@@ -66,6 +66,8 @@ public:
         {
             step_archive_.reset(archive_write_new(), [](struct archive* a){archive_write_free(a);});
             archive_write_set_format_pax(step_archive_.get());
+            archive_write_set_bytes_per_block(step_archive_.get(), 0);
+
             if (compress_)
                 archive_write_add_filter_xz(step_archive_.get());
             archive_write_open(step_archive_.get(), &step_buf_, nullptr, append_bytes_write_cb, nullptr);
@@ -200,6 +202,7 @@ private:
 
         auto a = archive_write_new();
         archive_write_set_format_pax(a);
+        archive_write_set_bytes_per_block(a, 0);
         archive_write_open(a, &archive_size, nullptr, count_bytes_write_cb, nullptr);
 
         for (const auto& filename : filenames_)
@@ -221,6 +224,7 @@ private:
 
         auto a = archive_write_new();
         archive_write_set_format_pax(a);
+        archive_write_set_bytes_per_block(a, 0);
         archive_write_add_filter_xz(a);
         archive_write_open(a, &archive_size, nullptr, count_bytes_write_cb, nullptr);
 
