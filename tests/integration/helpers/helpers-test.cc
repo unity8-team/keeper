@@ -156,7 +156,7 @@ TEST_F(TestHelpers, BadHelperPath)
     urls << "blah" << "/tmp";
     helper.start(urls);
 
-    WAIT_FOR_SIGNALS(spy, 1, 5000);
+    WAIT_FOR_SIGNALS(spy, 1, 6000);
 
     ASSERT_EQ(spy.count(), 1);
     QList<QVariant> arguments = spy.takeFirst();
