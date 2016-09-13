@@ -108,20 +108,8 @@ public:
             const auto n = step_file_->read(inbuf, sizeof(inbuf));
             if (n > 0) // got data
             {
-                for(;;) {
-                    if (archive_write_data(step_archive_.get(), inbuf, size_t(n)) != -1)
-                        break;
-                    const auto err = archive_errno(step_archive_.get());
-                    if (err == ARCHIVE_RETRY)
-                        continue;
-                    auto errstr = QString::fromUtf8("Error adding data for '%1': %2 (%3)")
-                        .arg(step_file_->fileName())
-                        .arg(archive_error_string(step_archive_.get()))
-                        .arg(err);
-                    qWarning() << qPrintable(errstr);
-                    if (err != ARCHIVE_WARN)
-                        throw std::runtime_error(errstr.toStdString());
-                }
+                wrapped_archive_write_data(step_archive_.get(), inbuf, size_t(n), step_file_->fileName());
+                break;
             }
             else if (n < 0) // read error
             {
