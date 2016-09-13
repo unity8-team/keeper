@@ -131,7 +131,7 @@ protected:
         }
     }
 
-    bool wait_for_tasks_to_finish()
+    bool wait_for_tasks_to_finish(qint64 timeout_msec=10000)
     {
         auto tasks_exist = [this]{
             return !user_iface_->state().isEmpty();
@@ -149,7 +149,7 @@ protected:
             return all_done;
         };
 
-        return wait_for(tasks_exist) && wait_for(all_tasks_finished,5000);
+        return wait_for(tasks_exist) && wait_for(all_tasks_finished,timeout_msec);
     }
 
     QString add_backup_choice(const QMap<QString,QVariant>& properties)
