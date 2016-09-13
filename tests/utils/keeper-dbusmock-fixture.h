@@ -131,7 +131,7 @@ protected:
         }
     }
 
-    bool wait_for_tasks_to_finish(qint64 timeout_msec=5000)
+    bool wait_for_tasks_to_finish(qint64 timeout_msec=10000)
     {
         auto tasks_exist = [this]{
             return !user_iface_->state().isEmpty();
