@@ -48,10 +48,6 @@ public:
     Impl(const QStringList& filenames, bool compress)
         : filenames_(filenames)
         , compress_(compress)
-        , step_archive_()
-        , step_filenum_(-1)
-        , step_file_()
-        , step_buf_()
     {
     }
 
@@ -262,10 +258,10 @@ private:
     const QStringList filenames_;
     const bool compress_ {};
 
+    std::vector<char> step_buf_;
     std::shared_ptr<struct archive> step_archive_;
     int step_filenum_ {-1};
     QSharedPointer<QFile> step_file_;
-    std::vector<char> step_buf_;
 };
 
 /**
