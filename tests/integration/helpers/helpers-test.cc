@@ -156,7 +156,7 @@ TEST_F(TestHelpers, BadHelperPath)
     urls << "blah" << "/tmp";
     helper.start(urls);
 
-    WAIT_FOR_SIGNALS(spy, 1, 6000);
+    WAIT_FOR_SIGNALS(spy, 1, Helper::MAX_UAL_WAIT_TIME + 1000);
 
     ASSERT_EQ(spy.count(), 1);
     QList<QVariant> arguments = spy.takeFirst();
@@ -179,7 +179,7 @@ TEST_F(TestHelpers, Inactivity)
     // the inactive helper sleeps for 100 seconds so
     // if we get the 2 signals it means it was stopped due to inactivity
     // We can also check at the end for the state, which should be CANCELLED
-    WAIT_FOR_SIGNALS(spy, 2, 15000);
+    WAIT_FOR_SIGNALS(spy, 2, BackupHelper::MAX_INACTIVITY_TIME + 2000);
 
     ASSERT_EQ(spy.count(), 2);
     QList<QVariant> arguments = spy.takeFirst();
