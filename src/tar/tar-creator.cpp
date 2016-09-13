@@ -167,8 +167,8 @@ private:
         return ssize_t(len);
     }
 
-    static void add_file_header_to_archive(struct archive* archive,
-                                           const QString& filename)
+    static void add_file_header_to_archive(struct archive * archive,
+                                           QString const  & filename)
     {
         struct stat st;
         const auto filename_utf8 = filename.toUtf8();
@@ -178,22 +178,34 @@ private:
         archive_entry_copy_stat(entry, &st);
         archive_entry_set_pathname(entry, filename_utf8.constData());
 
-        int ret;
-        do {
-            ret = archive_write_header(archive, entry);
-            if ((ret==ARCHIVE_WARN) || (ret==ARCHIVE_FAILED) || (ret==ARCHIVE_FATAL))
-            {
-                auto errstr = QString::fromUtf8("Error adding header for '%1': %2 (%3)")
-                                .arg(filename)
-                                .arg(archive_error_string(archive))
-                                .arg(ret);
-                qWarning() << qPrintable(errstr);
-                if ((ret==ARCHIVE_FATAL) || (ret==ARCHIVE_FAILED))
-                    throw std::runtime_error(errstr.toStdString());
-            }
-        } while (ret == ARCHIVE_RETRY);
+        wrapped_archive_write_header(archive, entry, filename);
 
         archive_entry_free(entry);
+    }
+
+    static void wrapped_archive_write_header(struct archive       * archive,
+                                             struct archive_entry * entry,
+                                             QString const        & source)
+    {
+        for (;;)
+        {
+            auto const err = archive_write_header(archive, entry);
+            if (err == ARCHIVE_OK)
+                break;
+
+            if (err == ARCHIVE_RETRY)
+                continue;
+
+            auto const errstr = QString::fromUtf8("Error adding header for '%1': %2 (%3)")
+                .arg(source)
+                .arg(archive_error_string(archive))
+                .arg(err);
+                qWarning() << qPrintable(errstr);
+            if (err == ARCHIVE_WARN)
+                break;
+
+            throw std::runtime_error(errstr.toStdString());
+        }
     }
 
     static void wrapped_archive_write_data(struct archive * archive,
@@ -230,6 +242,7 @@ private:
             throw std::runtime_error(errstr.toStdString());
         }
     }
+
     static void wrapped_archive_write_close(struct archive* archive)
     {
         for (;;)
