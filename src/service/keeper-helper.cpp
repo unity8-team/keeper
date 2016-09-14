@@ -35,11 +35,27 @@ KeeperHelper::~KeeperHelper() = default;
 
 QDBusUnixFileDescriptor KeeperHelper::StartBackup(quint64 n_bytes)
 {
-    // pass it back to Keeper to do the work
     Q_ASSERT(calledFromDBus());
+
+    // when Keeper has a socket for us, return it to the caller
     auto bus = connection();
     auto& msg = message();
-    return keeper_.StartBackup(bus, msg, n_bytes);
+    std::function<void(int)> on_socket_ready = [bus, msg](int fd){
+        qDebug("KeeperHelper::StartBackup() got socket %d", fd);
+        QDBusMessage reply;
+        if (fd == -1)
+            reply = msg.createErrorReply(QDBusError::Failed, QStringLiteral("unable to get socket"));
+        else {
+            reply = msg.createReply();
+            reply << QVariant::fromValue(QDBusUnixFileDescriptor(fd));
+        }
+        bus.send(reply);
+    };
+    keeper_.StartBackup(n_bytes, on_socket_ready);
+
+    // tell the caller that we'll be responding async
+    msg.setDelayedReply(true);
+    return QDBusUnixFileDescriptor(0);
 }
 
 QDBusUnixFileDescriptor KeeperHelper::StartRestore()

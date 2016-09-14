@@ -26,8 +26,6 @@
 #include "service/task-manager.h"
 
 #include <QDebug>
-#include <QDBusMessage>
-#include <QDBusConnection>
 #include <QSharedPointer>
 #include <QVector>
 
@@ -108,31 +106,19 @@ public:
         return task_manager_.get_state();
     }
 
-    QDBusUnixFileDescriptor start_backup(QDBusConnection bus,
-                                         QDBusMessage const & msg,
-                                         quint64 n_bytes)
+    void start_backup(quint64 n_bytes,
+                      std::function<void(int)>& on_socket_ready)
     {
         qDebug("Keeper::StartBackup(n_bytes=%zu)", size_t(n_bytes));
 
+        // get an uploader
+        qDebug() << "Asking for an storage framework socket to the task manager";
         connections_.connect_oneshot(
             &task_manager_,
             &TaskManager::socket_ready,
-            std::function<void(int)>{
-                [bus,msg](int fd){
-                    qDebug("BackupManager returned socket %d", fd);
-                    auto reply = msg.createReply();
-                    reply << QVariant::fromValue(QDBusUnixFileDescriptor(fd));
-                    bus.send(reply);
-                }
-            }
+            on_socket_ready
         );
-
-        qDebug() << "Asking for an storage framework socket to the task manager";
         task_manager_.ask_for_uploader(n_bytes);
-
-        // tell the caller that we'll be responding async
-        msg.setDelayedReply(true);
-        return QDBusUnixFileDescriptor(0);
     }
 
 private:
@@ -168,14 +154,13 @@ Keeper::start_tasks(QStringList const & uuids)
     return d->start_tasks(uuids);
 }
 
-QDBusUnixFileDescriptor
-Keeper::StartBackup(QDBusConnection bus,
-                    QDBusMessage const & msg,
-                    quint64 n_bytes)
+void
+Keeper::StartBackup(quint64 n_bytes,
+                    std::function<void(int)>& on_socket_ready)
 {
     Q_D(Keeper);
 
-    return d->start_backup(bus, msg, n_bytes);
+    return d->start_backup(n_bytes, on_socket_ready);
 }
 
 QVector<Metadata>

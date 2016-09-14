@@ -22,14 +22,13 @@
 
 #include <unity/storage/qt/client/client-api.h>
 
-#include <QDBusContext>
-#include <QDBusUnixFileDescriptor>
 #include <QObject>
 #include <QScopedPointer>
 #include <QSharedPointer>
 #include <QString>
 #include <QVector>
 
+#include <functional>
 #include <memory> // sd::shared_ptr
 
 class HelperRegistry;
@@ -55,9 +54,8 @@ public:
     QVector<Metadata> get_backup_choices();
     QVector<Metadata> get_restore_choices();
 
-    QDBusUnixFileDescriptor StartBackup(QDBusConnection,
-                                        QDBusMessage const & message,
-                                        quint64 nbytes);
+    void StartBackup(quint64 nbytes,
+                     std::function<void(int)>& on_socket_ready);
 
     QStringList start_tasks(QStringList const & uuids);
 
