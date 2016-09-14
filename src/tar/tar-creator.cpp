@@ -64,14 +64,8 @@ public:
         // if this is the first step, create an archive
         if (!step_archive_)
         {
-            step_archive_.reset(archive_write_new(), [](struct archive* a){archive_write_free(a);});
-            archive_write_set_format_pax(step_archive_.get());
-#ifdef DISABLE_LIBARCHIVE_BUFFERING
-            archive_write_set_bytes_per_block(step_archive_.get(), 0);
-#endif
-
-            if (compress_)
-                archive_write_add_filter_xz(step_archive_.get());
+qDebug() << "new archive";
+            step_archive_ = wrapped_archive_write_new(compress_);
             archive_write_open(step_archive_.get(), &step_buf_, nullptr, append_bytes_write_cb, nullptr);
 
             step_file_.reset();
@@ -83,21 +77,25 @@ public:
             // if we don't have a file we're working on, then get one
             if (!step_file_)
             {
+qDebug() << "looking for next file";
                 if (step_filenum_ >= filenames_.size()) // tried to read past the end
                 {
                     success = false;
+                    step_archive_.reset();
                     break;
                 }
 
                 // step to next file
                 if (++step_filenum_ == filenames_.size()) // we made it to the end!
                 {
+qDebug() << "finished last file, let's close the archive";
                     wrapped_archive_write_close(step_archive_.get());
                     break;
                 }
 
                 // write the file's header
                 const auto& filename = filenames_[step_filenum_];
+qDebug() << "next file is" << filename;
                 add_file_header_to_archive(step_archive_.get(), filename);
 
                 // prep it for reading
@@ -108,6 +106,7 @@ public:
             static constexpr int BUFSIZE {1024*10};
             char inbuf[BUFSIZE];
             const auto n = step_file_->read(inbuf, sizeof(inbuf));
+qDebug() << "read" << n << "bytes from file";
             if (n > 0) // got data
             {
                 wrapped_archive_write_data(step_archive_.get(), inbuf, size_t(n), step_file_->fileName());
@@ -145,7 +144,6 @@ private:
         auto& target = *static_cast<std::vector<char>*>(vtarget);
         const auto& source = static_cast<const char*>(vsource);
         target.insert(target.end(), source, source+len);
-        qDebug() << Q_FUNC_INFO << len;
         return ssize_t(len);
     }
 
@@ -155,7 +153,6 @@ private:
                                         size_t len)
     {
         *static_cast<ssize_t*>(userdata) += len;
-        qDebug() << Q_FUNC_INFO << len;
         return ssize_t(len);
     }
 
@@ -235,6 +232,16 @@ private:
         }
     }
 
+    static std::shared_ptr<struct archive> wrapped_archive_write_new(bool compress)
+    {
+        auto archive = archive_write_new();
+        archive_write_set_format_pax(archive);
+        archive_write_set_bytes_per_block(archive, 0);
+        if (compress)
+            archive_write_add_filter_xz(archive);
+        return std::shared_ptr<struct archive>(archive, [](struct archive* a){archive_write_free(a);});
+    }
+
     static void wrapped_archive_write_close(struct archive* archive)
     {
         for (;;)
@@ -261,23 +268,18 @@ private:
     {
         ssize_t archive_size {};
 
-        auto a = archive_write_new();
-        archive_write_set_format_pax(a);
-#ifdef DISABLE_LIBARCHIVE_BUFFERING
-        archive_write_set_bytes_per_block(a, 0);
-#endif
-        archive_write_open(a, &archive_size, nullptr, count_bytes_write_cb, nullptr);
+        auto a = wrapped_archive_write_new(false);
+        archive_write_open(a.get(), &archive_size, nullptr, count_bytes_write_cb, nullptr);
 
         for (const auto& filename : filenames_)
         {
-            add_file_header_to_archive(a, filename);
+            add_file_header_to_archive(a.get(), filename);
 
             // libarchive pads any missing data,
             // so we don't need to call archive_write_data()
         }
 
-        wrapped_archive_write_close(a);
-        archive_write_free(a);
+        wrapped_archive_write_close(a.get());
         return archive_size;
     }
 
@@ -285,17 +287,12 @@ private:
     {
         ssize_t archive_size {};
 
-        auto a = archive_write_new();
-        archive_write_set_format_pax(a);
-#ifdef DISABLE_LIBARCHIVE_BUFFERING
-        archive_write_set_bytes_per_block(a, 0);
-#endif
-        archive_write_add_filter_xz(a);
-        archive_write_open(a, &archive_size, nullptr, count_bytes_write_cb, nullptr);
+        auto a = wrapped_archive_write_new(true);
+        archive_write_open(a.get(), &archive_size, nullptr, count_bytes_write_cb, nullptr);
 
         for (const auto& filename : filenames_)
         {
-            add_file_header_to_archive(a, filename);
+            add_file_header_to_archive(a.get(), filename);
 
             // process the file
             QFile file(filename);
@@ -307,7 +304,7 @@ private:
                 if (n_read == 0)
                     break;
                 if (n_read > 0)
-                    wrapped_archive_write_data(a, buf, size_t(n_read), filename);
+                    wrapped_archive_write_data(a.get(), buf, size_t(n_read), filename);
                 if (n_read < 0) {
                     auto errstr = QStringLiteral("Reading '%1' returned %2 (%3)")
                                       .arg(file.fileName())
@@ -319,8 +316,7 @@ private:
             }
         }
 
-        wrapped_archive_write_close(a);
-        archive_write_free(a);
+        wrapped_archive_write_close(a.get());
         return archive_size;
     }
 
