@@ -141,9 +141,9 @@ private:
                                          const void * vsource,
                                          size_t len)
     {
-        auto& target = *static_cast<std::vector<char>*>(vtarget);
-        const auto& source = static_cast<const char*>(vsource);
-        target.insert(target.end(), source, source+len);
+        auto target = static_cast<std::vector<char>*>(vtarget);
+        auto const source = static_cast<const char*>(vsource);
+        target->insert(target->end(), source, source+len);
         return ssize_t(len);
     }
 
@@ -152,8 +152,9 @@ private:
                                         const void *,
                                         size_t len)
     {
-        *static_cast<ssize_t*>(userdata) += len;
-        return ssize_t(len);
+        auto const sslen = ssize_t(len);
+        *static_cast<ssize_t*>(userdata) += sslen;
+        return sslen;
     }
 
     static void add_file_header_to_archive(struct archive * archive,
