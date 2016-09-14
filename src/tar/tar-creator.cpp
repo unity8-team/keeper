@@ -186,7 +186,7 @@ private:
             if (err == ARCHIVE_RETRY)
                 continue;
 
-            auto const errstr = QString::fromUtf8("Error adding header for '%1': %2 (%3)")
+            auto const errstr = QStringLiteral("Error adding header for '%1': %2 (%3)")
                 .arg(source)
                 .arg(archive_error_string(archive))
                 .arg(err);
@@ -221,7 +221,7 @@ private:
             if (err == ARCHIVE_RETRY)
                 continue;
 
-            auto const errstr = QString::fromUtf8("Error adding data for '%1': %2 (%3)")
+            auto const errstr = QStringLiteral("Error adding data for '%1': %2 (%3)")
                 .arg(source)
                 .arg(archive_error_string(archive))
                 .arg(err);
@@ -254,7 +254,7 @@ private:
             if (err == ARCHIVE_RETRY)
                 continue;
 
-            auto const errstr = QString::fromUtf8("Error calling archive_write_close(): %1 (%2)")
+            auto const errstr = QStringLiteral("Error calling archive_write_close(): %1 (%2)")
                 .arg(archive_error_string(archive))
                 .arg(err);
             qWarning() << qPrintable(errstr);
