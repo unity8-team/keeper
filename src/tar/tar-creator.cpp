@@ -208,7 +208,7 @@ private:
 
         while (bufsize > 0)
         {
-            auto const n_written = archive_write_data(archive, buf, size_t(bufsize));
+            auto const n_written = archive_write_data(archive, buf, bufsize);
 
             if (n_written != -1)
             {
