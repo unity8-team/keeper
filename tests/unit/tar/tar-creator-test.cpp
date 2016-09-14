@@ -92,7 +92,7 @@ TEST_F(TarCreatorFixture, Create)
                 contents.insert(contents.end(), step.begin(), step.end());
                 actual_size += step.size();
             }
-            ASSERT_EQ(estimated_size, actual_size);
+            ASSERT_EQ(estimated_size, actual_size) << "compression_enabled" << compression_enabled;
 
             // untar it
             QTemporaryDir out;
