@@ -54,13 +54,72 @@ protected:
 ****
 ***/
 
-TEST_F(TarCreatorFixture, Create)
+TEST_F(TarCreatorFixture, CreateUncompressed)
 {
     static constexpr int n_runs {5};
 
     for (int i=0; i<n_runs; ++i)
     {
-        for (const auto compression_enabled : std::array<bool,2>{false, true})
+        for (const auto compression_enabled : std::array<bool,1>{false})
+        {
+            // build a directory full of random files
+            QTemporaryDir in;
+            QDir indir(in.path());
+            FileUtils::fillTemporaryDirectory(in.path());
+
+            // create the tar creator
+            EXPECT_TRUE(QDir::setCurrent(in.path()));
+            QStringList files;
+            for (auto file : FileUtils::getFilesRecursively(in.path()))
+                files += indir.relativeFilePath(file);
+            TarCreator tar_creator(files, compression_enabled);
+
+            // simple sanity check on its size estimate
+            const auto estimated_size = tar_creator.calculate_size();
+            const auto filesize_sum = std::accumulate(
+                files.begin(),
+                files.end(),
+                0,
+                [](ssize_t sum, QString const& filename){return sum + QFileInfo(filename).size();}
+            );
+            if (!compression_enabled)
+                ASSERT_GT(estimated_size, filesize_sum);
+
+            // does it match the actual size?
+            size_t actual_size {};
+            std::vector<char> contents, step;
+            while (tar_creator.step(step)) {
+                contents.insert(contents.end(), step.begin(), step.end());
+                actual_size += step.size();
+            }
+            ASSERT_EQ(estimated_size, actual_size) << "compression_enabled" << compression_enabled;
+
+            // untar it
+            QTemporaryDir out;
+            QDir outdir(out.path());
+            QFile tarfile(outdir.filePath("tmp.tar"));
+            tarfile.open(QIODevice::WriteOnly);
+            tarfile.write(contents.data(), contents.size());
+            tarfile.close();
+            QProcess untar;
+            untar.setWorkingDirectory(outdir.path());
+            untar.start("tar", QStringList() << "xf" << tarfile.fileName());
+            EXPECT_TRUE(untar.waitForFinished()) << qPrintable(untar.errorString());
+
+            // compare it to the original
+            EXPECT_TRUE(tarfile.remove());
+            EXPECT_TRUE(FileUtils::compareDirectories(in.path(), out.path()));
+        }
+    }
+}
+
+TEST_F(TarCreatorFixture, CreateCompressed)
+{
+    static constexpr int n_runs {5};
+
+    for (int i=0; i<n_runs; ++i)
+    {
+        for (const auto compression_enabled : std::array<bool,1>{true})
         {
             // build a directory full of random files
             QTemporaryDir in;
