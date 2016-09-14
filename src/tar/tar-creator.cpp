@@ -66,7 +66,9 @@ public:
         {
             step_archive_.reset(archive_write_new(), [](struct archive* a){archive_write_free(a);});
             archive_write_set_format_pax(step_archive_.get());
+#ifdef DISABLE_LIBARCHIVE_BUFFERING
             archive_write_set_bytes_per_block(step_archive_.get(), 0);
+#endif
 
             if (compress_)
                 archive_write_add_filter_xz(step_archive_.get());
@@ -143,6 +145,7 @@ private:
         auto& target = *static_cast<std::vector<char>*>(vtarget);
         const auto& source = static_cast<const char*>(vsource);
         target.insert(target.end(), source, source+len);
+        qDebug() << Q_FUNC_INFO << len;
         return ssize_t(len);
     }
 
@@ -152,6 +155,7 @@ private:
                                         size_t len)
     {
         *static_cast<ssize_t*>(userdata) += len;
+        qDebug() << Q_FUNC_INFO << len;
         return ssize_t(len);
     }
 
@@ -259,7 +263,9 @@ private:
 
         auto a = archive_write_new();
         archive_write_set_format_pax(a);
+#ifdef DISABLE_LIBARCHIVE_BUFFERING
         archive_write_set_bytes_per_block(a, 0);
+#endif
         archive_write_open(a, &archive_size, nullptr, count_bytes_write_cb, nullptr);
 
         for (const auto& filename : filenames_)
@@ -281,7 +287,9 @@ private:
 
         auto a = archive_write_new();
         archive_write_set_format_pax(a);
+#ifdef DISABLE_LIBARCHIVE_BUFFERING
         archive_write_set_bytes_per_block(a, 0);
+#endif
         archive_write_add_filter_xz(a);
         archive_write_open(a, &archive_size, nullptr, count_bytes_write_cb, nullptr);
 
