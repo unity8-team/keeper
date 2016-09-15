@@ -39,6 +39,7 @@
 #include <QSharedPointer>
 #include <QString>
 
+#include <fstream>
 #include <memory>
 
 class TarCreator::Impl
@@ -296,16 +297,22 @@ private:
             add_file_header_to_archive(a.get(), filename);
 
             // process the file
-            QFile file(filename);
-            file.open(QIODevice::ReadOnly);
+            std::ifstream file (filename.toStdString().c_str(), std::ios::binary);
             static constexpr int BUFSIZE {4096};
             char buf[BUFSIZE];
+            while(!file.eof()) {
+                file.read(buf, sizeof(buf));
+                auto const n_read = file.gcount();
+                qDebug() << Q_FUNC_INFO << "n_read" << n_read << "eof" << file.eof();
+                if (n_read > 0)
+                    wrapped_archive_write_data(a.get(), buf, size_t(n_read), filename);
+            }
+#if 0
             for(;;) {
                 const auto n_read = file.read(buf, sizeof(buf));
                 if (n_read == 0)
                     break;
                 if (n_read > 0)
-                    wrapped_archive_write_data(a.get(), buf, size_t(n_read), filename);
                 if (n_read < 0) {
                     auto errstr = QStringLiteral("Reading '%1' returned %2 (%3)")
                                       .arg(file.fileName())
@@ -315,6 +322,7 @@ private:
                     throw std::runtime_error(errstr.toStdString());
                 }
             }
+#endif
         }
 
         wrapped_archive_write_close(a.get());
