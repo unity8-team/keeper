@@ -56,10 +56,10 @@ target_link_libraries(
   Qt5::Test
 )
 
-add_test(
-  ${TAR_CREATOR_TEST}
-  ${TAR_CREATOR_TEST}
-)
+#add_test(
+#  ${TAR_CREATOR_TEST}
+#  ${TAR_CREATOR_TEST}
+#)
 
 
 #
