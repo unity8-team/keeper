@@ -240,7 +240,7 @@ private:
         archive_write_set_format_pax(archive);
         archive_write_set_bytes_per_block(archive, 0);
         if (compress)
-            archive_write_add_filter_xz(archive);
+            archive_write_set_compression_xz(archive);
         return std::shared_ptr<struct archive>(archive, [](struct archive* a){archive_write_free(a);});
     }
 
@@ -300,29 +300,13 @@ private:
             std::ifstream file (filename.toStdString().c_str(), std::ios::binary);
             static constexpr int BUFSIZE {4096};
             char buf[BUFSIZE];
-            while(!file.eof()) {
+            while(file && !file.eof()) {
                 file.read(buf, sizeof(buf));
                 auto const n_read = file.gcount();
                 qDebug() << Q_FUNC_INFO << "n_read" << n_read << "eof" << file.eof();
                 if (n_read > 0)
                     wrapped_archive_write_data(a.get(), buf, size_t(n_read), filename);
             }
-#if 0
-            for(;;) {
-                const auto n_read = file.read(buf, sizeof(buf));
-                if (n_read == 0)
-                    break;
-                if (n_read > 0)
-                if (n_read < 0) {
-                    auto errstr = QStringLiteral("Reading '%1' returned %2 (%3)")
-                                      .arg(file.fileName())
-                                      .arg(n_read)
-                                      .arg(file.errorString());
-                    qCritical() << errstr;
-                    throw std::runtime_error(errstr.toStdString());
-                }
-            }
-#endif
         }
 
         wrapped_archive_write_close(a.get());
