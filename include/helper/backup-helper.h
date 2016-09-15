@@ -45,7 +45,7 @@ public:
     virtual ~BackupHelper();
     Q_DISABLE_COPY(BackupHelper)
 
-    static constexpr int MAX_INACTIVITY_TIME = 10000;
+    static constexpr int MAX_INACTIVITY_TIME = 15000;
 
     void set_uploader(std::shared_ptr<Uploader> const& uploader);
     void start(QStringList const& urls) override;

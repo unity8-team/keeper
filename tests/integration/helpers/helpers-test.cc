@@ -80,7 +80,7 @@ TEST_F(TestHelpers, StartFullTest)
     qDebug() << "USER DIR:" << user_dir;
 
     // fill something in the music dir
-    FileUtils::fillTemporaryDirectory(user_dir, qrand() % 1000);
+    FileUtils::fillTemporaryDirectory(user_dir, qrand() % 100);
 
     // search for the user folder uuid
     auto user_folder_uuid = get_uuid_for_xdg_folder_path(user_dir, choices.value());
@@ -94,7 +94,7 @@ TEST_F(TestHelpers, StartFullTest)
     qDebug() << "USER DIR 2:" << user_dir_2;
 
     // fill something in the music dir
-    FileUtils::fillTemporaryDirectory(user_dir_2, qrand() % 1000);
+    FileUtils::fillTemporaryDirectory(user_dir_2, qrand() % 100);
 
     // search for the user folder uuid
     auto user_folder_uuid_2 = get_uuid_for_xdg_folder_path(user_dir_2, choices.value());
@@ -156,7 +156,7 @@ TEST_F(TestHelpers, BadHelperPath)
     urls << "blah" << "/tmp";
     helper.start(urls);
 
-    WAIT_FOR_SIGNALS(spy, 1, 5000);
+    WAIT_FOR_SIGNALS(spy, 1, Helper::MAX_UAL_WAIT_TIME + 1000);
 
     ASSERT_EQ(spy.count(), 1);
     QList<QVariant> arguments = spy.takeFirst();
@@ -179,7 +179,7 @@ TEST_F(TestHelpers, Inactivity)
     // the inactive helper sleeps for 100 seconds so
     // if we get the 2 signals it means it was stopped due to inactivity
     // We can also check at the end for the state, which should be CANCELLED
-    WAIT_FOR_SIGNALS(spy, 2, 15000);
+    WAIT_FOR_SIGNALS(spy, 2, BackupHelper::MAX_INACTIVITY_TIME + 2000);
 
     ASSERT_EQ(spy.count(), 2);
     QList<QVariant> arguments = spy.takeFirst();
