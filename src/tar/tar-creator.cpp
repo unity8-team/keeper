@@ -256,7 +256,7 @@ private:
     {
         auto archive = archive_write_new();
         archive_write_set_format_pax(archive);
-        archive_write_set_bytes_per_block(archive, 0);
+        //archive_write_set_bytes_per_block(archive, 0);
         if (compress)
             archive_write_add_filter_xz(archive);
         return std::shared_ptr<struct archive>(archive, [](struct archive* a){archive_write_free(a);});
