@@ -75,7 +75,7 @@ TEST_F(TarCreatorFixture, CreateUncompressed)
             TarCreator tar_creator(files, compression_enabled);
 
             // simple sanity check on its size estimate
-            const auto estimated_size = tar_creator.calculate_size();
+            const auto calculated_size = tar_creator.calculate_size();
             const auto filesize_sum = std::accumulate(
                 files.begin(),
                 files.end(),
@@ -83,7 +83,7 @@ TEST_F(TarCreatorFixture, CreateUncompressed)
                 [](ssize_t sum, QString const& filename){return sum + QFileInfo(filename).size();}
             );
             if (!compression_enabled)
-                ASSERT_GT(estimated_size, filesize_sum);
+                ASSERT_GT(calculated_size, filesize_sum);
 
             // does it match the actual size?
             size_t actual_size {};
@@ -92,7 +92,7 @@ TEST_F(TarCreatorFixture, CreateUncompressed)
                 contents.insert(contents.end(), step.begin(), step.end());
                 actual_size += step.size();
             }
-            ASSERT_EQ(estimated_size, actual_size) << "compression_enabled" << compression_enabled;
+            ASSERT_EQ(calculated_size, actual_size) << "compression_enabled" << compression_enabled;
 
             // untar it
             QTemporaryDir out;
@@ -133,8 +133,12 @@ TEST_F(TarCreatorFixture, CreateCompressed)
                 files += indir.relativeFilePath(file);
             TarCreator tar_creator(files, compression_enabled);
 
+            // is the size calculation repeatable?
+            const auto calculated_size = tar_creator.calculate_size();
+            for (int j=0; j<10; ++j)
+                EXPECT_EQ(calculated_size, tar_creator.calculate_size());
+
             // simple sanity check on its size estimate
-            const auto estimated_size = tar_creator.calculate_size();
             const auto filesize_sum = std::accumulate(
                 files.begin(),
                 files.end(),
@@ -142,7 +146,7 @@ TEST_F(TarCreatorFixture, CreateCompressed)
                 [](ssize_t sum, QString const& filename){return sum + QFileInfo(filename).size();}
             );
             if (!compression_enabled)
-                ASSERT_GT(estimated_size, filesize_sum);
+                ASSERT_GT(calculated_size, filesize_sum);
 
             // does it match the actual size?
             size_t actual_size {};
@@ -151,7 +155,7 @@ TEST_F(TarCreatorFixture, CreateCompressed)
                 contents.insert(contents.end(), step.begin(), step.end());
                 actual_size += step.size();
             }
-            ASSERT_EQ(estimated_size, actual_size) << "compression_enabled" << compression_enabled;
+            ASSERT_EQ(calculated_size, actual_size) << "compression_enabled" << compression_enabled;
 
             // untar it
             QTemporaryDir out;
