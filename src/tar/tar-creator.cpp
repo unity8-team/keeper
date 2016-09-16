@@ -154,9 +154,9 @@ private:
                                          const void * vsource,
                                          size_t len)
     {
-        auto& target = *static_cast<std::vector<char>*>(vtarget);
-        const auto& source = static_cast<const char*>(vsource);
-        target.insert(target.end(), source, source+len);
+        auto target = static_cast<std::vector<char>*>(vtarget);
+        auto const source = static_cast<const char*>(vsource);
+        target->insert(target->end(), source, source+len);
         return ssize_t(len);
     }
 
@@ -165,8 +165,9 @@ private:
                                         const void *,
                                         size_t len)
     {
-        *static_cast<ssize_t*>(userdata) += len;
-        return ssize_t(len);
+        auto const sslen = ssize_t(len);
+        *static_cast<ssize_t*>(userdata) += sslen;
+        return sslen;
     }
 
     static void add_file_header_to_archive(struct archive* archive,
@@ -262,10 +263,10 @@ private:
     const QStringList filenames_;
     const bool compress_ {};
 
+    std::vector<char> step_buf_;
     std::shared_ptr<struct archive> step_archive_;
     int step_filenum_ {-1};
     QSharedPointer<QFile> step_file_;
-    std::vector<char> step_buf_;
 };
 
 /**
