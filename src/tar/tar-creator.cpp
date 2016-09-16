@@ -80,6 +80,7 @@ qDebug() << "new archive";
                 if (step_filenum_ >= filenames_.size()) // tried to read past the end
                 {
                     success = false;
+                    step_archive_.reset();
                     break;
                 }
 
