@@ -48,10 +48,6 @@ public:
     Impl(const QStringList& filenames, bool compress)
         : filenames_(filenames)
         , compress_(compress)
-        , step_archive_()
-        , step_filenum_(-1)
-        , step_file_()
-        , step_buf_()
     {
     }
 
