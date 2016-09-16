@@ -87,7 +87,8 @@ qDebug() << "new archive";
                 // step to next file
                 if (++step_filenum_ == filenames_.size()) // we made it to the end!
                 {
-                    archive_write_close(step_archive_.get());
+qDebug() << "finished last file, let's close the archive";
+                    wrapped_archive_write_close(step_archive_.get());
                     break;
                 }
 
@@ -238,6 +239,28 @@ private:
         return std::shared_ptr<struct archive>(archive, [](struct archive* a){archive_write_free(a);});
     }
 
+    static void wrapped_archive_write_close(struct archive* archive)
+    {
+        for (;;)
+        {
+            auto const err = archive_write_close(archive);
+            if (err == ARCHIVE_OK)
+                break;
+
+            if (err == ARCHIVE_RETRY)
+                continue;
+
+            auto const errstr = QStringLiteral("Error calling archive_write_close(): %1 (%2)")
+                .arg(archive_error_string(archive))
+                .arg(err);
+            qWarning() << qPrintable(errstr);
+            if (err == ARCHIVE_WARN)
+                break;
+
+            throw std::runtime_error(errstr.toStdString());
+        }
+    }
+
     ssize_t calculate_uncompressed_size() const
     {
         ssize_t archive_size {};
@@ -253,7 +276,7 @@ private:
             // so we don't need to call archive_write_data()
         }
 
-        archive_write_close(a.get());
+        wrapped_archive_write_close(a.get());
         return archive_size;
     }
 
@@ -290,7 +313,7 @@ private:
             }
         }
 
-        archive_write_close(a.get());
+        wrapped_archive_write_close(a.get());
         return archive_size;
     }
 
