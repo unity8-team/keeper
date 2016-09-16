@@ -59,7 +59,7 @@ public:
     bool step(std::vector<char>& fillme)
     {
         step_buf_.resize(0);
-        bool success = true;
+        bool success {true};
 
         // if this is the first step, create an archive
         if (!step_archive_)
@@ -107,6 +107,7 @@ qDebug() << "finished last file, let's close the archive";
             if (n > 0) // got data
             {
                 wrapped_archive_write_data(step_archive_.get(), inbuf, size_t(n), step_file_->fileName());
+                break;
             }
             else if (n < 0) // read error
             {
