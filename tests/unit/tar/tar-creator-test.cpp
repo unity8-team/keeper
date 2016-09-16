@@ -48,7 +48,24 @@ protected:
     {
     }
 
-    void test_tar_creation(QDir const& in, bool compression_enabled)
+    void test_tar_creation(int min_files,
+                           int max_files,
+                           int max_filesize,
+                           int max_dirs,
+                           bool compressed,
+                           int n_runs)
+    {
+        for (int i=0; i<n_runs; ++i)
+        {
+            QTemporaryDir in;
+            QDir indir(in.path());
+            FileUtils::fillTemporaryDirectory(in.path(), min_files, max_files, max_filesize, max_dirs);
+            test_tar_creation(indir, compressed);
+        }
+    }
+
+    void test_tar_creation(QDir const& in,
+                           bool compression_enabled)
     {
         qDebug() << Q_FUNC_INFO;
 
@@ -110,68 +127,48 @@ protected:
 
 TEST_F(TarCreatorFixture, CreateUncompressedOfSingleFile)
 {
+    static constexpr int min_files {1};
+    static constexpr int max_files {1};
+    static constexpr int max_filesize {1024};
+    static constexpr int max_dirs {0};
+    static constexpr bool compressed {false};
     static constexpr int n_runs {5};
-    for (int i=0; i<n_runs; ++i)
-    {
-        QTemporaryDir in;
-        QDir indir(in.path());
-        int const min_files = 1;
-        int const max_files = 1;
-        int const max_filesize = 1024;
-        int const max_dirs = 0;
-        bool const compressed = false;
-        FileUtils::fillTemporaryDirectory(in.path(), min_files, max_files, max_filesize, max_dirs);
-        test_tar_creation(indir, compressed);
-    }
+
+    test_tar_creation(min_files, max_files, max_filesize, max_dirs, compressed, n_runs);
 }
 
 TEST_F(TarCreatorFixture, CreateCompressedOfSingleFile)
 {
+    static constexpr int min_files {1};
+    static constexpr int max_files {1};
+    static constexpr int max_filesize {1024};
+    static constexpr int max_dirs {0};
+    static constexpr bool compressed {true};
     static constexpr int n_runs {5};
-    for (int i=0; i<n_runs; ++i)
-    {
-        QTemporaryDir in;
-        QDir indir(in.path());
-        int const min_files = 1;
-        int const max_files = 1;
-        int const max_filesize = 1024;
-        int const max_dirs = 0;
-        bool const compressed = true;
-        FileUtils::fillTemporaryDirectory(in.path(), min_files, max_files, max_filesize, max_dirs);
-        test_tar_creation(indir, compressed);
-    }
+
+    test_tar_creation(min_files, max_files, max_filesize, max_dirs, compressed, n_runs);
 }
 
 TEST_F(TarCreatorFixture, CreateUncompressedOfTree)
 {
+    static constexpr int min_files {100};
+    static constexpr int max_files {100};
+    static constexpr int max_filesize {1024};
+    static constexpr int max_dirs {10};
+    static constexpr bool compressed {false};
     static constexpr int n_runs {5};
-    for (int i=0; i<n_runs; ++i)
-    {
-        QTemporaryDir in;
-        QDir indir(in.path());
-        int const min_files = 100;
-        int const max_files = 100;
-        int const max_filesize = 1024;
-        int const max_dirs = 10;
-        bool const compressed = false;
-        FileUtils::fillTemporaryDirectory(in.path(), min_files, max_files, max_filesize, max_dirs);
-        test_tar_creation(indir, compressed);
-    }
+
+    test_tar_creation(min_files, max_files, max_filesize, max_dirs, compressed, n_runs);
 }
 
 TEST_F(TarCreatorFixture, CreateCompressedOfTree)
 {
+    static constexpr int min_files {100};
+    static constexpr int max_files {100};
+    static constexpr int max_filesize {1024};
+    static constexpr int max_dirs {10};
+    static constexpr bool compressed {true};
     static constexpr int n_runs {5};
-    for (int i=0; i<n_runs; ++i)
-    {
-        QTemporaryDir in;
-        QDir indir(in.path());
-        int const min_files = 100;
-        int const max_files = 100;
-        int const max_filesize = 1024;
-        int const max_dirs = 10;
-        bool const compressed = true;
-        FileUtils::fillTemporaryDirectory(in.path(), min_files, max_files, max_filesize, max_dirs);
-        test_tar_creation(indir, compressed);
-    }
+
+    test_tar_creation(min_files, max_files, max_filesize, max_dirs, compressed, n_runs);
 }
