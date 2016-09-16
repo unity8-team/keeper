@@ -105,28 +105,15 @@ qDebug() << "new archive";
             const auto n = step_file_->read(inbuf, sizeof(inbuf));
             if (n > 0) // got data
             {
-                for(;;) {
-                    if (archive_write_data(step_archive_.get(), inbuf, size_t(n)) != -1)
-                        break;
-                    const auto err = archive_errno(step_archive_.get());
-                    if (err == ARCHIVE_RETRY)
-                        continue;
-                    auto errstr = QString::fromUtf8("Error adding data for '%1': %2 (%3)")
-                        .arg(step_file_->fileName())
-                        .arg(archive_error_string(step_archive_.get()))
-                        .arg(err);
-                    qWarning() << qPrintable(errstr);
-                    if (err != ARCHIVE_WARN)
-                        throw std::runtime_error(errstr.toStdString());
-                }
+                wrapped_archive_write_data(step_archive_.get(), inbuf, size_t(n), step_file_->fileName());
             }
             else if (n < 0) // read error
             {
                 success = false;
-                auto errstr = QStringLiteral("read()ing %1 returned %2 (%3)")
-                                  .arg(step_file_->fileName())
-                                  .arg(n)
-                                  .arg(step_file_->errorString());
+                auto const errstr = QStringLiteral("read()ing %1 returned %2 (%3)")
+                    .arg(step_file_->fileName())
+                    .arg(n)
+                    .arg(step_file_->errorString());
                 qWarning() << errstr;
                 throw std::runtime_error(errstr.toStdString());
             }
@@ -206,6 +193,41 @@ private:
         }
     }
 
+    static void wrapped_archive_write_data(struct archive * archive,
+                                           void const     * buf_in,
+                                           size_t           bufsize_in,
+                                           QString const    source)
+    {
+        auto bufsize = bufsize_in;
+        auto buf = static_cast<char const*>(buf_in);
+
+        while (bufsize > 0)
+        {
+            auto const n_written = archive_write_data(archive, buf, bufsize);
+
+            if (n_written != -1)
+            {
+                bufsize -= n_written;
+                buf += n_written;
+                continue;
+            }
+
+            auto const err = archive_errno(archive);
+            if (err == ARCHIVE_RETRY)
+                continue;
+
+            auto const errstr = QStringLiteral("Error adding data for '%1': %2 (%3)")
+                .arg(source)
+                .arg(archive_error_string(archive))
+                .arg(err);
+            qWarning() << qPrintable(errstr);
+            if (err == ARCHIVE_WARN)
+                continue;
+
+            throw std::runtime_error(errstr.toStdString());
+        }
+    }
+
     static std::shared_ptr<struct archive> wrapped_archive_write_new(bool compress)
     {
         auto archive = archive_write_new();
@@ -256,7 +278,7 @@ private:
                 if (n_read == 0)
                     break;
                 if (n_read > 0)
-                    archive_write_data(a.get(), buf, size_t(n_read));
+                    wrapped_archive_write_data(a.get(), buf, size_t(n_read), filename);
                 if (n_read < 0) {
                     auto errstr = QStringLiteral("Reading '%1' returned %2 (%3)")
                                       .arg(file.fileName())
