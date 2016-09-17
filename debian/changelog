@@ -1,5 +1,6 @@
-keeper (0.0.1) UNRELEASED; urgency=medium
+keeper (0.1.0+16.10.20160915.3-0ubuntu1) yakkety; urgency=medium
 
   * Initial release. 
+  * Initial landing branch for keeper.
 
- -- Xavi Garcia <xavi.garcia.mena@canonical.com>  Fri, 17 Jun 2016 11:53:10 +0200
+ -- Xavi Garcia <xavi.garcia.mena@canonical.com>  Thu, 15 Sep 2016 19:20:14 +0000

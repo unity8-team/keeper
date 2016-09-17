@@ -19,10 +19,16 @@
 
 #include <helper/helper.h>
 
+#include <ubuntu-app-launch/registry.h>
+#include <service/app-const.h>
+#include <ubuntu-app-launch.h>
+
 #include <QDebug>
+#include <QTimer>
 
 #include <cmath> // std::fabs()
 #include <sys/time.h> // gettimeofday()
+
 
 namespace
 {
@@ -131,20 +137,30 @@ public:
     using State = Helper::State;
 
     HelperPrivate(
+        QString const & appid,
         Helper * helper,
         clock_func const & clock
     )
         : q_ptr{helper}
+        , appid_{appid}
         , clock_{clock}
         , state_{State::NOT_STARTED}
         , size_{}
         , sized_{}
         , expected_size_{}
         , history_{}
+        , registry_(new ubuntu::app_launch::Registry())
     {
+        ual_init();
+        QObject::connect(&timer_wait_ual_, &QTimer::timeout,
+            std::bind(&HelperPrivate::on_max_time_waiting_for_ual_started, this)
+        );
     }
 
-    ~HelperPrivate() =default;
+    ~HelperPrivate()
+    {
+        ual_uninit();
+    }
 
     Q_DISABLE_COPY(HelperPrivate)
 
@@ -152,7 +168,7 @@ public:
     {
         if (state_ != state)
         {
-            qDebug() << "changing state of helper" << static_cast<void*>(this) << "from" << toString(state_) << "to" << toString(state);
+            qDebug() << "changing state of helper" << static_cast<void*>(this) << "from" << q_ptr->to_string(state_) << "to" << q_ptr->to_string(state);
             state_ = state;
             q_ptr->state_changed(state);
         }
@@ -182,7 +198,7 @@ public:
         size_ += n_bytes;
         sized_ += double(n_bytes);
 
-        history_.add(clock_(), n_bytes);
+        history_.add(clock_(), size_t(n_bytes));
 
         update_percent_done();
     }
@@ -197,7 +213,119 @@ public:
         return percent_done_;
     }
 
+    void start(QStringList const& urls)
+    {
+        ual_start(urls);
+    }
+
+    void stop()
+    {
+        ual_stop();
+    }
+
+    QString to_string(Helper::State state) const
+    {
+        auto ret = QStringLiteral("bug");
+
+        switch (state)
+        {
+            case State::NOT_STARTED:     ret = QStringLiteral("not-started"); break;
+            case State::STARTED:         ret = QStringLiteral("started");     break;
+            case State::CANCELLED:       ret = QStringLiteral("cancelled");   break;
+            case State::FAILED:          ret = QStringLiteral("failed");      break;
+            case State::DATA_COMPLETE:   ret = QStringLiteral("finishing");   break;
+            case State::COMPLETE:        ret = QStringLiteral("complete");    break;
+        }
+
+        return ret;
+    }
+
+    void on_helper_started()
+    {
+        stop_wait_for_ual_timer();
+        q_ptr->set_state(Helper::State::STARTED);
+        is_helper_running_ = true;
+    }
+
+    void on_helper_finished()
+    {
+        is_helper_running_ = false;
+    }
+
+    bool is_helper_running() const
+    {
+        return is_helper_running_;
+    }
+
 private:
+    /***
+    ****  UAL
+    ***/
+
+    void ual_init()
+    {
+        ubuntu_app_launch_observer_add_helper_started(on_helper_started, HELPER_TYPE, this);
+        ubuntu_app_launch_observer_add_helper_stop(on_helper_stopped, HELPER_TYPE, this);
+    }
+
+    void ual_uninit()
+    {
+        if (q_ptr->state() == Helper::State::STARTED)
+            ual_stop();
+
+        ubuntu_app_launch_observer_delete_helper_started(on_helper_started, HELPER_TYPE, this);
+        ubuntu_app_launch_observer_delete_helper_stop(on_helper_stopped, HELPER_TYPE, this);
+    }
+
+    void ual_start(QStringList const& url_strings)
+    {
+        qDebug() << "Starting helper for app:" << appid_;
+
+        std::vector<ubuntu::app_launch::Helper::URL> urls;
+        for(const auto& url_string : url_strings) {
+            qDebug() << "url" << url_string;
+            urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(url_string.toStdString()));
+        }
+
+        auto backupType = ubuntu::app_launch::Helper::Type::from_raw(HELPER_TYPE);
+
+        auto appid = ubuntu::app_launch::AppID::parse(appid_.toStdString());
+        auto helper = ubuntu::app_launch::Helper::create(backupType, appid, registry_);
+
+        reset_wait_for_ual_timer();
+        helper->launch(urls);
+    }
+
+    void ual_stop()
+    {
+        qDebug() << "Stopping helper for app:" << appid_;
+        auto backupType = ubuntu::app_launch::Helper::Type::from_raw(HELPER_TYPE);
+
+        auto appid = ubuntu::app_launch::AppID::parse(appid_.toStdString());
+        auto helper = ubuntu::app_launch::Helper::create(backupType, appid, registry_);
+
+        auto instances = helper->instances();
+
+        if (instances.size() > 0 )
+        {
+            qDebug() << "We have instances";
+            instances[0]->stop();
+        }
+    }
+
+    static void on_helper_started(const char* appid, const char* /*instance*/, const char* /*type*/, void* vself)
+    {
+        qDebug() << "HELPER STARTED +++++++++++++++++++++++++++++++++++++" << appid;
+        auto self = static_cast<HelperPrivate*>(vself);
+        self->q_ptr->on_helper_started();
+    }
+
+    static void on_helper_stopped(const char* appid, const char* /*instance*/, const char* /*type*/, void* vself)
+    {
+        qDebug() << "HELPER STOPPED +++++++++++++++++++++++++++++++++++++" << appid;
+        auto self = static_cast<HelperPrivate*>(vself);
+        self->q_ptr->on_helper_finished();
+    }
 
     void update_percent_done()
     {
@@ -215,23 +343,26 @@ private:
         }
     }
 
-    QString toString(Helper::State state)
+    void reset_wait_for_ual_timer()
     {
-        auto ret = QStringLiteral("bug");
+        static constexpr int MAX_TIME_WAITING_FOR_DATA {Helper::MAX_UAL_WAIT_TIME};
+        timer_wait_ual_.start(MAX_TIME_WAITING_FOR_DATA);
+    }
 
-        switch (state)
-        {
-            case State::NOT_STARTED: ret = QStringLiteral("not-started"); break;
-            case State::STARTED:     ret = QStringLiteral("started");     break;
-            case State::CANCELLED:   ret = QStringLiteral("cancelled");   break;
-            case State::FAILED:      ret = QStringLiteral("failed");      break;
-            case State::COMPLETE:    ret = QStringLiteral("complete");    break;
-        }
+    void stop_wait_for_ual_timer()
+    {
+        timer_wait_ual_.stop();
+    }
 
-        return ret;
+    void on_max_time_waiting_for_ual_started()
+    {
+        qDebug() << "Max time reached waiting for UAL to start";
+        q_ptr->set_state(Helper::State::FAILED);
+        stop_wait_for_ual_timer();
     }
 
     Helper * const q_ptr;
+    QString appid_;
     clock_func clock_;
     State state_ {};
     qint64 size_ {};
@@ -240,15 +371,18 @@ private:
     RateHistory history_;
     float percent_done_ {};
     float last_notified_percent_done_ {};
+    std::shared_ptr<ubuntu::app_launch::Registry> registry_;
+    QTimer timer_wait_ual_;
+    bool is_helper_running_ = false;
 };
 
 /***
 ****
 ***/
 
-Helper::Helper(clock_func const& clock, QObject *parent)
+Helper::Helper(QString const & appid, clock_func const& clock, QObject *parent)
     : QObject{parent}
-    , d_ptr{new HelperPrivate{this, clock}}
+    , d_ptr{new HelperPrivate{appid, this, clock}}
 {
 }
 
@@ -260,6 +394,14 @@ Helper::state() const
     Q_D(const Helper);
 
     return d->state();
+}
+
+QString
+Helper::to_string(Helper::State state) const
+{
+    Q_D(const Helper);
+
+    return d->to_string(state);
 }
 
 int
@@ -324,3 +466,41 @@ Helper::default_clock = []()
     gettimeofday (&tv, nullptr);
     return uint64_t(tv.tv_sec*1000 + (tv.tv_usec/1000));
 };
+
+void
+Helper::start(QStringList const& urls)
+{
+    Q_D(Helper);
+
+    d->start(urls);
+}
+
+void
+Helper::stop()
+{
+    Q_D(Helper);
+
+    d->stop();
+}
+
+void
+Helper::on_helper_started()
+{
+    Q_D(Helper);
+    d->on_helper_started();
+}
+
+void
+Helper::on_helper_finished()
+{
+    Q_D(Helper);
+    d->on_helper_finished();
+}
+
+bool
+Helper::is_helper_running() const
+{
+    Q_D(const Helper);
+    return d->is_helper_running();
+
+}

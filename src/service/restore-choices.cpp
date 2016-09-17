@@ -14,7 +14,7 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authors:
- *   Charles Kerr <charles.kerr@canoincal.com>
+ *   Charles Kerr <charles.kerr@canonical.com>
  */
 
 #include "service/restore-choices.h"
@@ -31,6 +31,8 @@ using namespace unity::storage::qt::client;
 namespace
 {
 
+#if 0 // WE NEED TO FIX THIS AFTER LANDING AND WHEN WE IMPLEMENT RESTORE,
+      // It get's blocked at the result()...
 // FIXME: move to a common file so it can be used by restore-choices and storage_framework_client
 Item::SPtr get_backups_folder_sync(const Account::SPtr& account)
 {
@@ -76,6 +78,7 @@ QFuture<Item::SPtr> get_backups_folder(const Account::SPtr& account)
 {
     return QtConcurrent::run([account]{return get_backups_folder_sync(account);});
 }
+#endif
 
 } // namespace
 
@@ -89,11 +92,13 @@ RestoreChoices::RestoreChoices()
 RestoreChoices::~RestoreChoices() =default;
 
 QVector<Metadata>
-RestoreChoices::get_backups()
+RestoreChoices::get_backups() const
 {
     QVector<Metadata> ret;
 
     // FIXME: blocking
+#if 0 // WE NEED TO FIX THIS AFTER LANDING AND WHEN WE IMPLEMENT RESTORE,
+      // It get's blocked at the result()...
     auto accounts = runtime_->accounts().result();
 
     // FIXME: blocking
@@ -114,6 +119,6 @@ RestoreChoices::get_backups()
     // TODO: parse the manifest.json
 
     // TODO: how to do this in a nonblocking way but work with the QDBus Adaptor?
-
+#endif
     return ret;
 }

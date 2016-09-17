@@ -2,6 +2,7 @@
 include_directories(
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_BINARY_DIR}/src
+    ${CMAKE_BINARY_DIR}/tests/
 )
 
 set(
@@ -47,3 +48,5 @@ configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/helper-test.sh.in
   ${KEEPER_HELPER_TEST_LOCATION}
 )
+
+add_subdirectory(upstart)

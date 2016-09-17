@@ -65,7 +65,7 @@ TEST_F(TarCreatorFixture, Create)
             // build a directory full of random files
             QTemporaryDir in;
             QDir indir(in.path());
-            ASSERT_TRUE(FileUtils::fillTemporaryDirectory(in.path()));
+            FileUtils::fillTemporaryDirectory(in.path());
 
             // create the tar creator
             EXPECT_TRUE(QDir::setCurrent(in.path()));
@@ -107,7 +107,6 @@ TEST_F(TarCreatorFixture, Create)
             EXPECT_TRUE(untar.waitForFinished()) << qPrintable(untar.errorString());
 
             // compare it to the original
-            EXPECT_FALSE(FileUtils::compareDirectories(in.path(), out.path()));
             EXPECT_TRUE(tarfile.remove());
             EXPECT_TRUE(FileUtils::compareDirectories(in.path(), out.path()));
         }

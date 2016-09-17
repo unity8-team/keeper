@@ -33,10 +33,10 @@ target_link_libraries(
   Qt5::Test
 )
 
-add_test(
-  NAME ${SPEED_TEST}
-  COMMAND ${SPEED_TEST}
-)
+#add_test(
+#  NAME ${SPEED_TEST}
+#  COMMAND ${SPEED_TEST}
+#)
 
 #
 #

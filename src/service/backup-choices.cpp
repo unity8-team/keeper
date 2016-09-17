@@ -14,7 +14,7 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authors:
- *   Charles Kerr <charles.kerr@canoincal.com>
+ *   Charles Kerr <charles.kerr@canonical.com>
  */
 
 #include "service/backup-choices.h"
@@ -50,7 +50,7 @@ BackupChoices::BackupChoices() =default;
 BackupChoices::~BackupChoices() =default;
 
 QVector<Metadata>
-BackupChoices::get_backups()
+BackupChoices::get_backups() const
 {
     QVector<Metadata> ret;
 

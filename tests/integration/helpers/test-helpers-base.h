@@ -15,29 +15,14 @@
  *
  * Authors:
  *     Ted Gould <ted.gould@canonical.com>
- *     Xavi Garcia <xavi.garcia.mena@gmail.com>
+ *     Xavi Garcia <xavi.garcia.mena@canonical.com>
  *     Charles Kerr <charles.kerr@canonical.com>
  */
 #pragma once
 
-#include <future>
-#include <thread>
-
-#include <QCoreApplication>
-#include <QSignalSpy>
-
-#include <gtest/gtest.h>
-#include <gio/gio.h>
-#include <ubuntu-app-launch/registry.h>
-#include <libdbustest/dbus-test.h>
-
-#include <libqtdbustest/DBusTestRunner.h>
-#include <libqtdbustest/QProcessDBusService.h>
-#include <libqtdbusmock/DBusMock.h>
-
-#include "mir-mock.h"
 #include <helper/backup-helper.h>
 #include <qdbus-stubs/dbus-types.h>
+#include "DBusPropertiesInterface.h"
 #include "qdbus-stubs/keeper_user_interface.h"
 
 #include "tests/fakes/fake-backup-helper.h"
@@ -45,9 +30,21 @@
 #include "tests/utils/xdg-user-dirs-sandbox.h"
 #include "../../../src/service/app-const.h"
 
+#include <libqtdbustest/DBusTestRunner.h>
+#include <libqtdbustest/QProcessDBusService.h>
+#include <libqtdbusmock/DBusMock.h>
+
+#include <ubuntu-app-launch.h>
+#include <ubuntu-app-launch/registry.h>
+
+#include <QCoreApplication>
+#include <QSignalSpy>
+
+#include <gtest/gtest.h>
 
 namespace
 {
+constexpr char const UPSTART_SERVICE[] = "com.ubuntu.Upstart";
 constexpr char const UPSTART_PATH[] = "/com/ubuntu/Upstart";
 constexpr char const UPSTART_INTERFACE[] = "com.ubuntu.Upstart0_6";
 constexpr char const UPSTART_INSTANCE[] = "com.ubuntu.Upstart0_6.Instance";
@@ -55,42 +52,32 @@ constexpr char const UPSTART_JOB[] = "com.ubuntu.Upstart0_6.Job";
 constexpr char const UNTRUSTED_HELPER_PATH[] = "/com/test/untrusted/helper";
 }
 
-extern "C" {
-    #include <ubuntu-app-launch.h>
-    #include <fcntl.h>
+#define WAIT_FOR_SIGNALS(signalSpy, signalsExpected, time)\
+{\
+    while (signalSpy.size() < signalsExpected)\
+    {\
+        ASSERT_TRUE(signalSpy.wait(time));\
+    }\
+    ASSERT_EQ(signalsExpected, signalSpy.size());\
 }
 
 class TestHelpersBase : public ::testing::Test
 {
 public:
-    TestHelpersBase() = default;
+    TestHelpersBase();
 
     ~TestHelpersBase() = default;
 
 protected:
-    DbusTestService* service = nullptr;
-    DbusTestDbusMock* mock = nullptr;
-    DbusTestDbusMock* cgmock = nullptr;
-    GDBusConnection* bus = nullptr;
-    std::string last_focus_appid;
-    std::string last_resume_appid;
-    guint resume_timeout = 0;
-    std::shared_ptr<ubuntu::app_launch::Registry> registry;
-    QProcess keeper_client;
     QTemporaryDir xdg_data_home_dir;
-    DbusTestProcess * keeper_process = nullptr;
-
-private:
-    static void focus_cb(const gchar* appid, gpointer user_data);
-
-    static void resume_cb(const gchar* appid, gpointer user_data);
+    QtDBusTest::DBusTestRunner dbus_test_runner;
+    QtDBusMock::DBusMock dbus_mock;
+    QSharedPointer<QtDBusTest::QProcessDBusService> keeper_service;
+    QSharedPointer<QtDBusTest::QProcessDBusService> upstart_service;
+    QScopedPointer<QProcess> dbus_monitor_process;
 
 protected:
-    /* Useful debugging stuff, but not on by default.  You really want to
-       not get all this noise typically */
-    void debugConnection();
-
-    void startTasks();
+    void start_tasks();
 
     virtual void SetUp() override;
 
@@ -98,31 +85,25 @@ protected:
 
     bool init_helper_registry(QString const& registry);
 
-    int checkStorageFrameworkNbFiles();
+    int check_storage_framework_nb_files();
 
-    bool checkStorageFrameworkFiles(QStringList const & sourceDirs, bool compression=false);
+    bool check_storage_framework_files(QStringList const & source_dirs, bool compression=false);
 
-    bool compareTarContent (QString const & tarPath, QString const & sourceDir, bool compression);
+    bool compare_tar_content (QString const & tar_path, QString const & source_dir, bool compression);
 
-    bool extractTarContents(QString const & tarPath, QString const & destination, bool compression=false);
+    bool extract_tar_contents(QString const & tar_path, QString const & destination, bool compression=false);
 
-    QString getLastStorageFrameworkFile();
+    QFileInfoList get_storage_framework_files();
 
-    bool removeHelperMarkBeforeStarting();
+    bool wait_for_all_tasks_have_action_state(QStringList const & uuids, QString const & action_state, QSharedPointer<DBusInterfaceKeeperUser> const & keeper_user_iface, int max_timeout_msec = 15000);
 
-    bool waitUntilHelperFinishes(QString const & app_id, int maxTimeout = 15000, int times = 1);
+    bool check_task_has_action_state(QVariantDictMap const & state, QString const & uuid, QString const & action_state);
 
-    void sendUpstartHelperTermination(QString const &app_id);
+    bool capture_and_check_state_until_all_tasks_complete(QSignalSpy & spy, QStringList const & uuids, QString const & action_state, int max_timeout_msec = 15000);
 
-    QString getUUIDforXdgFolderPath(QString const &path, QVariantDictMap const & choices) const;
+    QString get_uuid_for_xdg_folder_path(QString const &path, QVariantDictMap const & choices) const;
 
-    GVariant* find_env(GVariant* env_array, const gchar* var);
-
-    std::string get_env(GVariant* env_array, const gchar* key);
-
-    bool have_env(GVariant* env_array, const gchar* key);
-
-    void pause(guint time = 0);
+    bool start_dbus_monitor();
 };
 
 #define EXPECT_ENV(expected, envvars, key) EXPECT_EQ(expected, get_env(envvars, key)) << "for key " << key

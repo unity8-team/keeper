@@ -13,19 +13,34 @@
  * You should have received a copy of the GNU General Public License along
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *
  * Authors:
- *     Ted Gould <ted@canonical.com>
+ *     Xavi Garcia Mena <xavi.garcia.mena@canonical.com>
  */
 
-#ifndef MIR_MOCK_H
-#define MIR_MOCK_H 1
+#pragma once
 
-#include <string>
-#include <utility>
+#include <QDBusContext>
+#include <QDBusObjectPath>
+#include <QMap>
+#include <QObject>
 
-void mir_mock_connect_return_valid (bool valid);
-std::pair<std::string, std::string> mir_mock_connect_last_connect (void);
-void mir_mock_set_trusted_fd (int fd);
+namespace testing
+{
 
-#endif // MIR_MOCK_H
+class UpstartMock : public QObject, protected QDBusContext
+{
+    Q_OBJECT
+
+public Q_SLOTS:
+    void EmitEvent(QString const &name, QStringList const & env, bool wait) const;
+    QDBusObjectPath GetJobByName(QString const &name) const;
+
+public:
+    explicit UpstartMock(QObject* parent = 0);
+    virtual ~UpstartMock();
+
+private:
+    QMap<QString, QString> job_paths_;
+};
+
+} // namespace testing

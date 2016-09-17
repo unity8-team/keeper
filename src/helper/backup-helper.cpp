@@ -18,24 +18,18 @@
  *     Charles Kerr <charles.kerr@canonical.com>
  */
 
-#include <helper/backup-helper.h>
-#include <service/app-const.h> // HELPER_TYPE
+#include "util/connection-helper.h"
+#include "helper/backup-helper.h"
+#include "service/app-const.h" // HELPER_TYPE
 
 #include <QByteArray>
 #include <QDebug>
 #include <QLocalSocket>
 #include <QMap>
 #include <QObject>
-#include <QScopedPointer>
 #include <QString>
 #include <QTimer>
 #include <QVector>
-
-#include <ubuntu-app-launch/registry.h>
-#include <service/app-const.h>
-extern "C" {
-    #include <ubuntu-app-launch.h>
-}
 
 #include <fcntl.h>
 #include <sys/types.h>
@@ -48,33 +42,18 @@ class BackupHelperPrivate
 {
 public:
 
-    BackupHelperPrivate(
-        BackupHelper* backup_helper,
-        const QString& appid
+    explicit BackupHelperPrivate(
+        BackupHelper* backup_helper
     )
         : q_ptr(backup_helper)
-        , appid_(appid)
-        , timer_(new QTimer())
-        , registry_(new ubuntu::app_launch::Registry())
-        , storage_framework_socket_(new QLocalSocket())
-        , helper_socket_(new QLocalSocket())
-        , read_socket_(new QLocalSocket())
-        , upload_buffer_{}
-        , n_read_{}
-        , n_uploaded_{}
-        , read_error_{}
-        , write_error_{}
-        , cancelled_{}
     {
-        ual_init();
-
         // listen for inactivity
-        QObject::connect(timer_.data(), &QTimer::timeout,
+        QObject::connect(&timer_, &QTimer::timeout,
             std::bind(&BackupHelperPrivate::on_inactivity_detected, this)
         );
 
         // listen for data ready to read
-        QObject::connect(read_socket_.data(), &QLocalSocket::readyRead,
+        QObject::connect(&read_socket_, &QLocalSocket::readyRead,
             std::bind(&BackupHelperPrivate::on_ready_read, this)
         );
 
@@ -89,25 +68,22 @@ public:
         }
 
         // helper socket is for the client.
-        helper_socket_->setSocketDescriptor(fds[1], QLocalSocket::ConnectedState, QIODevice::WriteOnly);
+        helper_socket_.setSocketDescriptor(fds[1], QLocalSocket::ConnectedState, QIODevice::WriteOnly);
 
-        read_socket_->setSocketDescriptor(fds[0], QLocalSocket::ConnectedState, QIODevice::ReadOnly);
+        read_socket_.setSocketDescriptor(fds[0], QLocalSocket::ConnectedState, QIODevice::ReadOnly);
     }
 
-    ~BackupHelperPrivate()
-    {
-        ual_uninit();
-    }
+    ~BackupHelperPrivate() = default;
 
     Q_DISABLE_COPY(BackupHelperPrivate)
 
     void start(QStringList const& urls)
     {
-        ual_start(urls);
+        q_ptr->Helper::start(urls);
         reset_inactivity_timer();
     }
 
-    void set_storage_framework_socket(std::shared_ptr<QLocalSocket> const& sf_socket)
+    void set_uploader(std::shared_ptr<Uploader> const& uploader)
     {
         n_read_ = 0;
         n_uploaded_ = 0;
@@ -115,15 +91,15 @@ public:
         write_error_ = false;
         cancelled_ = false;
 
-        storage_framework_socket_ = sf_socket;
+        uploader_ = uploader;
 
-        // listen for data uploaded
-        QObject::connect(storage_framework_socket_.get(), &QLocalSocket::bytesWritten,
-                         std::bind(&BackupHelperPrivate::on_data_uploaded, this, std::placeholders::_1)
-                         );
+        connections_.remember(QObject::connect(
+            uploader_->socket().get(), &QLocalSocket::bytesWritten,
+            std::bind(&BackupHelperPrivate::on_data_uploaded, this, std::placeholders::_1)
+        ));
 
         // TODO xavi is going to remove this line
-        q_ptr->set_state(Helper::State::STARTED);
+        q_ptr->Helper::on_helper_started();
 
         reset_inactivity_timer();
     }
@@ -131,12 +107,59 @@ public:
     void stop()
     {
         cancelled_ = true;
-        ual_stop();
+        q_ptr->Helper::stop();
     }
 
     int get_helper_socket() const
     {
-        return int(helper_socket_->socketDescriptor());
+        return int(helper_socket_.socketDescriptor());
+    }
+
+    QString to_string(Helper::State state) const
+    {
+        return state == Helper::State::STARTED
+            ? QStringLiteral("saving")
+            : q_ptr->Helper::to_string(state);
+    }
+
+    void on_state_changed(Helper::State state)
+    {
+        switch (state)
+        {
+            case Helper::State::CANCELLED:
+            case Helper::State::FAILED:
+                qDebug() << "cancelled/failed, calling uploader_.reset()";
+                uploader_.reset();
+                break;
+
+            case Helper::State::DATA_COMPLETE: {
+                qDebug() << "Backup helper finished, calling uploader_.commit()";
+                connections_.connect_oneshot(
+                    uploader_.get(),
+                    &Uploader::commit_finished,
+                    std::function<void(bool)>{[this](bool success){
+                        qDebug() << "Commit finished";
+                        uploader_.reset();
+                        if (!success)
+                            write_error_ = true;
+                        check_for_done();
+                    }}
+                );
+                uploader_->commit();
+                break;
+            }
+
+            //case Helper::State::NOT_STARTED:
+            //case Helper::State::STARTED:
+            default:
+                break;
+        }
+    }
+
+    void on_helper_finished()
+    {
+        stop_inactivity_timer();
+        check_for_done();
     }
 
 private:
@@ -155,23 +178,26 @@ private:
 
     void on_data_uploaded(qint64 n)
     {
-        // TODO review this after checking if there's a bug in storage framework.
-        // TODO The issue is that bytesWritten is called for every backup helper that was
-        // TODO executed before.
-//        n_uploaded_ += n;
+        n_uploaded_ += n;
+        q_ptr->record_data_transferred(n);
         qDebug("n_read %zu n_uploaded %zu (newly uploaded %zu)", size_t(n_read_), size_t(n_uploaded_), size_t(n));
         process_more();
+        check_for_done();
     }
 
     void process_more()
     {
+        if (!uploader_)
+            return;
+
         char readbuf[UPLOAD_BUFFER_MAX_];
+        auto socket = uploader_->socket();
         for(;;)
         {
             // try to fill the upload buf
             int max_bytes = UPLOAD_BUFFER_MAX_ - upload_buffer_.size();
             if (max_bytes > 0) {
-                const auto n = read_socket_->read(readbuf, max_bytes);
+                const auto n = read_socket_.read(readbuf, max_bytes);
                 if (n > 0) {
                     n_read_ += n;
                     upload_buffer_.append(readbuf, int(n));
@@ -185,18 +211,16 @@ private:
             }
 
             // try to empty the upload buf
-            const auto n = storage_framework_socket_->write(upload_buffer_);
+            const auto n = socket->write(upload_buffer_);
             if (n > 0) {
                 upload_buffer_.remove(0, int(n));
                 qDebug("upload_buffer_.size() is %zu after writing %zu to cloud", size_t(upload_buffer_.size()), size_t(n));
-                n_uploaded_ += n;
-                q_ptr->record_data_transferred(n);
                 continue;
             }
             else {
                 if (n < 0) {
                     write_error_ = true;
-                    qWarning() << "Write error:" << storage_framework_socket_->errorString();
+                    qWarning() << "Write error:" << socket->errorString();
                     stop();
                 }
                 break;
@@ -209,107 +233,42 @@ private:
     void reset_inactivity_timer()
     {
         static constexpr int MAX_TIME_WAITING_FOR_DATA {BackupHelper::MAX_INACTIVITY_TIME};
-        timer_->start(MAX_TIME_WAITING_FOR_DATA);
+        timer_.start(MAX_TIME_WAITING_FOR_DATA);
     }
 
     void stop_inactivity_timer()
     {
-        timer_->stop();
-    }
-
-    void wait_backup_socket_is_clear()
-    {
-        while (read_socket_->bytesAvailable())
-        {
-            process_more();
-        }
+        timer_.stop();
     }
 
     void check_for_done()
     {
-        wait_backup_socket_is_clear();
-
-        if (n_uploaded_ == q_ptr->expected_size())
-        {
-            q_ptr->set_state(Helper::State::COMPLETE);
-        }
-        else if (read_error_ || write_error_ || n_uploaded_ != q_ptr->expected_size())
-        {
-            q_ptr->set_state(Helper::State::FAILED);
-        }
-        else if (cancelled_)
+        if (cancelled_)
         {
             q_ptr->set_state(Helper::State::CANCELLED);
         }
-    }
-
-    /***
-    ****  UAL
-    ***/
-
-    void ual_init()
-    {
-        ubuntu_app_launch_observer_add_helper_started(on_helper_started, HELPER_TYPE, this);
-        ubuntu_app_launch_observer_add_helper_stop(on_helper_stopped, HELPER_TYPE, this);
-    }
-
-    void ual_uninit()
-    {
-        if (q_ptr->state() == Helper::State::STARTED)
-            ual_stop();
-
-        ubuntu_app_launch_observer_delete_helper_started(on_helper_started, HELPER_TYPE, this);
-        ubuntu_app_launch_observer_delete_helper_stop(on_helper_stopped, HELPER_TYPE, this);
-    }
-
-    void ual_start(QStringList const& url_strings)
-    {
-        qDebug() << "Starting helper for app:" << appid_;
-
-        std::vector<ubuntu::app_launch::Helper::URL> urls;
-        for(const auto& url_string : url_strings) {
-            qDebug() << "url" << url_string;
-            urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(url_string.toStdString()));
-        }
-
-        auto backupType = ubuntu::app_launch::Helper::Type::from_raw(HELPER_TYPE);
-
-        auto appid = ubuntu::app_launch::AppID::parse(appid_.toStdString());
-        auto helper = ubuntu::app_launch::Helper::create(backupType, appid, registry_);
-
-        helper->launch(urls);
-    }
-
-    void ual_stop()
-    {
-        qDebug() << "Stopping helper for app:" << appid_;
-        auto backupType = ubuntu::app_launch::Helper::Type::from_raw(HELPER_TYPE);
-
-        auto appid = ubuntu::app_launch::AppID::parse(appid_.toStdString());
-        auto helper = ubuntu::app_launch::Helper::create(backupType, appid, registry_);
-
-        auto instances = helper->instances();
-
-        if (instances.size() > 0 )
+        else if (read_error_ || write_error_ || n_uploaded_ > q_ptr->expected_size())
         {
-            qDebug() << "We have instances";
-            instances[0]->stop();
+            if (!q_ptr->is_helper_running())
+            {
+                q_ptr->set_state(Helper::State::FAILED);
+            }
         }
-    }
-
-    static void on_helper_started(const char* appid, const char* /*instance*/, const char* /*type*/, void* vself)
-    {
-        qDebug() << "HELPER STARTED +++++++++++++++++++++++++++++++++++++" << appid;
-        auto self = static_cast<BackupHelperPrivate*>(vself);
-        self->q_ptr->set_state(Helper::State::STARTED);
-    }
-
-    static void on_helper_stopped(const char* appid, const char* /*instance*/, const char* /*type*/, void* vself)
-    {
-        qDebug() << "HELPER STOPPED +++++++++++++++++++++++++++++++++++++" << appid;
-        auto self = static_cast<BackupHelperPrivate*>(vself);
-        self->check_for_done();
-        self->stop_inactivity_timer();
+        else if (n_uploaded_ == q_ptr->expected_size())
+        {
+            if (uploader_)
+            {
+                if (!q_ptr->is_helper_running())
+                {
+                    // only in the case that the helper process finished we move to the next state
+                    // this is to prevent to start the next task too early
+                    q_ptr->set_state(Helper::State::DATA_COMPLETE);
+                    stop_inactivity_timer();
+                }
+            }
+            else
+                q_ptr->set_state(Helper::State::COMPLETE);
+        }
     }
 
     /***
@@ -319,18 +278,17 @@ private:
     static constexpr int UPLOAD_BUFFER_MAX_ {1024*16};
 
     BackupHelper * const q_ptr;
-    const QString appid_;
-    QScopedPointer<QTimer> timer_;
-    std::shared_ptr<ubuntu::app_launch::Registry> registry_;
-    std::shared_ptr<QLocalSocket> storage_framework_socket_;
-    QScopedPointer<QLocalSocket> helper_socket_;
-    QScopedPointer<QLocalSocket> read_socket_;
+    QTimer timer_;
+    std::shared_ptr<Uploader> uploader_;
+    QLocalSocket helper_socket_;
+    QLocalSocket read_socket_;
     QByteArray upload_buffer_;
-    qint64 n_read_;
-    qint64 n_uploaded_;
-    bool read_error_;
-    bool write_error_;
-    bool cancelled_;
+    qint64 n_read_ = 0;
+    qint64 n_uploaded_ = 0;
+    bool read_error_ = false;
+    bool write_error_ = false;
+    bool cancelled_ = false;
+    ConnectionHelper connections_;
 };
 
 /***
@@ -342,8 +300,8 @@ BackupHelper::BackupHelper(
     clock_func const & clock,
     QObject * parent
 )
-    : Helper(clock, parent)
-    , d_ptr(new BackupHelperPrivate(this, appid))
+    : Helper(appid, clock, parent)
+    , d_ptr(new BackupHelperPrivate(this))
 {
 }
 
@@ -366,11 +324,11 @@ BackupHelper::stop()
 }
 
 void
-BackupHelper::set_storage_framework_socket(std::shared_ptr<QLocalSocket> const &sf_socket)
+BackupHelper::set_uploader(std::shared_ptr<Uploader> const &uploader)
 {
     Q_D(BackupHelper);
 
-    d->set_storage_framework_socket(sf_socket);
+    d->set_uploader(uploader);
 }
 
 int
@@ -379,4 +337,29 @@ BackupHelper::get_helper_socket() const
     Q_D(const BackupHelper);
 
     return d->get_helper_socket();
+}
+
+QString
+BackupHelper::to_string(Helper::State state) const
+{
+    Q_D(const BackupHelper);
+
+    return d->to_string(state);
+}
+
+void
+BackupHelper::set_state(Helper::State state)
+{
+    Q_D(BackupHelper);
+
+    qDebug() << Q_FUNC_INFO;
+    d->on_state_changed(state);
+    Helper::set_state(state);
+}
+
+void BackupHelper::on_helper_finished()
+{
+    Q_D(BackupHelper);
+    Helper::on_helper_finished();
+    d->on_helper_finished();
 }

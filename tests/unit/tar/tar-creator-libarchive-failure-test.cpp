@@ -37,16 +37,17 @@
 #include <algorithm>
 #include <array>
 #include <cstdio>
+#include <string>
 
 
 namespace
 {
     constexpr char const * WARNING_ERROR_MESSAGE {
-        R"(It's probably something to do with..." I look up today's excuse ".. clock speed")"};
+        "It's probably something to do with...\" I look up today's excuse \".. clock speed"};
     constexpr char const * RETRY_ERROR_MESSAGE {
-        R"(ELECTROMAGNETIC RADIATION FROM SATTELLITE DEBRIS)"};
+        "ELECTROMAGNETIC RADIATION FROM SATELLITE DEBRIS"};
     constexpr char const * FATAL_ERROR_MESSAGE {
-        R"(I turn the page on the excuse sheet. "SOLAR FLARES" stares out at me.)"};
+        "I turn the page on the excuse sheet. \"SOLAR FLARES\" stares out at me."};
 
     const std::map<int,std::pair<int,const char*>> nth_call_errors = {
         { 1, std::make_pair(ARCHIVE_WARN, WARNING_ERROR_MESSAGE) },
@@ -131,7 +132,7 @@ TEST_F(TarCreatorFixture, ArchiveWriteHeaderErrorInCalculateSize)
     // build a directory full of random files
     QTemporaryDir in;
     QDir indir(in.path());
-    ASSERT_TRUE(FileUtils::fillTemporaryDirectory(in.path()));
+    FileUtils::fillTemporaryDirectory(in.path(), 2);
 
     // create the tar creator
     EXPECT_TRUE(QDir::setCurrent(in.path()));
@@ -142,15 +143,16 @@ TEST_F(TarCreatorFixture, ArchiveWriteHeaderErrorInCalculateSize)
 
     // confirm that archive_write_header() returning ARCHIVE_FAILURE
     // throws an exception that we can catch
-    QString error_string;
+    std::string error_string;
     try {
         tar_creator.calculate_size();
     } catch (std::exception const& e) {
-        error_string = QString::fromUtf8(e.what());
+        error_string = e.what();
     }
 
-    EXPECT_TRUE(error_string.contains(QString::fromUtf8(FATAL_ERROR_MESSAGE)))
-        << qPrintable(error_string);
+    EXPECT_NE(std::string::npos, error_string.find(FATAL_ERROR_MESSAGE))
+        << "expected: '" << FATAL_ERROR_MESSAGE << "'" << std::endl
+        << "got: '" << error_string << "'" << std::endl;
 }
 
 TEST_F(TarCreatorFixture, ArchiveWriteHeaderErrorInStep)
@@ -158,7 +160,7 @@ TEST_F(TarCreatorFixture, ArchiveWriteHeaderErrorInStep)
     // build a directory full of random files
     QTemporaryDir in;
     QDir indir(in.path());
-    ASSERT_TRUE(FileUtils::fillTemporaryDirectory(in.path()));
+    FileUtils::fillTemporaryDirectory(in.path(), 2);
 
     // create the tar creator
     EXPECT_TRUE(QDir::setCurrent(in.path()));
@@ -168,16 +170,16 @@ TEST_F(TarCreatorFixture, ArchiveWriteHeaderErrorInStep)
     TarCreator tar_creator(files, false);
 
     // build the tar blob
-    QString error_string;
+    std::string error_string;
     std::vector<char> blob, step;
     try {
         while (tar_creator.step(step))
             blob.insert(blob.end(), step.begin(), step.end());
     } catch(std::exception& e) {
-        error_string = QString::fromUtf8(e.what());
+        error_string = e.what();
     }
 
-    EXPECT_TRUE(error_string.contains(QString::fromUtf8(FATAL_ERROR_MESSAGE)))
+    EXPECT_NE(std::string::npos, error_string.find(FATAL_ERROR_MESSAGE))
         << "expected: '" << FATAL_ERROR_MESSAGE << "'" << std::endl
-        << "got: '" << qPrintable(error_string) << "'" << std::endl;
+        << "got: '" << error_string << "'" << std::endl;
 }

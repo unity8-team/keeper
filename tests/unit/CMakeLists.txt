@@ -10,12 +10,14 @@ include_directories(
 
 set(
   UNIT_TEST_LIBRARIES
-  backup-helper
   test-utils
+  backup-helper
+  storage-framework
   keeperservice
   keepertar
   qdbus-stubs
   ${SERVICE_DEPS_LDFLAGS}
+  ${SERVICE_DEVEL_SF_DEPS_LIBRARIES}
   ${HELPERS_TEST_DEPS_LDFLAGS}
   ${TEST_DEPENDENCIES_LDFLAGS}
   ${GTEST_LIBRARIES}

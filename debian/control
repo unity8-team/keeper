@@ -66,6 +66,16 @@ Depends: keeper (= ${binary:Version}),
 Description: Client library for Keeper
  Runtime support for Keeper clients.
 
+Package: qml-keeper
+Architecture: any
+Pre-Depends: ${misc:Pre-Depends}
+Multi-Arch: same
+Depends: ${misc:Depends},
+         ${shlibs:Depends},
+         libkeeper-client (= ${binary:Version}),
+Description: QML bindings for Keeper
+ This package contains the qtdeclarative bindings for Ubuntu Keeper.
+
 Package: keeper-client-dev
 Section: libdevel
 Architecture: any

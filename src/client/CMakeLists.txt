@@ -1,7 +1,4 @@
-set(
-  CLIENT_LIB
-  keeper-client-${KEEPER_MAJOR}.${KEEPER_MINOR}
-)
+add_subdirectory(qml-plugin)
 
 set(
   CLIENT_HEADERS
@@ -9,19 +6,13 @@ set(
 )
 
 add_library(
-  ${CLIENT_LIB} SHARED
+  ${KEEPER_CLIENT_LIB} SHARED
   client.cpp
   ${CLIENT_HEADERS}
 )
 
-set_target_properties(
-  ${CLIENT_LIB}
-  PROPERTIES
-  AUTOMOC TRUE
-)
-
 target_link_libraries(
-  ${CLIENT_LIB}
+  ${KEEPER_CLIENT_LIB}
   qdbus-stubs
   Qt5::Core
   Qt5::DBus
@@ -30,7 +21,7 @@ target_link_libraries(
 set(
   COVERAGE_REPORT_TARGETS
   ${COVERAGE_REPORT_TARGETS}
-  ${CLIENT_LIB}
+  ${KEEPER_CLIENT_LIB}
   PARENT_SCOPE
 )
 
@@ -40,7 +31,7 @@ install(
 )
 
 install(
-  TARGETS ${CLIENT_LIB}
+  TARGETS ${KEEPER_CLIENT_LIB}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 

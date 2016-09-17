@@ -14,7 +14,7 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authors:
- *   Charles Kerr <charles.kerr@canoincal.com>
+ *   Charles Kerr <charles.kerr@canonical.com>
  */
 
 #pragma once
@@ -29,5 +29,5 @@ class BackupChoices: public MetadataProvider
 public:
     BackupChoices();
     virtual ~BackupChoices();
-    QVector<Metadata> get_backups() override;
+    QVector<Metadata> get_backups() const override;
 };
