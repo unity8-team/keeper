@@ -170,7 +170,10 @@ public:
         {
             qDebug() << "changing state of helper" << static_cast<void*>(this) << "from" << q_ptr->to_string(state_) << "to" << q_ptr->to_string(state);
             state_ = state;
-            q_ptr->state_changed(state);
+            QMetaObject::invokeMethod(q_ptr,
+                                      "state_changed",
+                                      Qt::QueuedConnection,
+                                      Q_ARG(Helper::State, state));
         }
     }
 
