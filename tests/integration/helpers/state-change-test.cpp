@@ -17,6 +17,7 @@
  *   Charles Kerr <charles.kerr@canonical.com>
  */
 
+#include "test-helpers-base.h"
 #include "state-change-test-manager.h"
 
 #include <helper/helper.h>
@@ -28,7 +29,17 @@
 #include <cmath> // std::pow()
 #include <iostream>
 
-TEST(HelperClass, TestStateSignalIsQueued)
+class TestHelpers: public TestHelpersBase
+{
+    using super = TestHelpersBase;
+
+    void SetUp() override
+    {
+        super::SetUp();
+    }
+};
+
+TEST_F(TestHelpers, TestStateSignalIsQueued)
 {
     StateChangeTestManager helper_manager;
 

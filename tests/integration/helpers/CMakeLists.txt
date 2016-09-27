@@ -128,6 +128,47 @@ add_test(
   COMMAND ${HELPERS_TEST_FAILURE}
 )
 
+#
+#  state-change-test
+#
+
+set(
+  HELPERS_STATE_CHANGE
+  helpers-state-change
+)
+
+add_executable(
+  ${HELPERS_STATE_CHANGE}
+  state-change-test.cpp
+  test-helpers-base.cpp
+  state-change-test-manager.h
+  state-test-helper.h
+)
+
+set_target_properties(
+  ${HELPERS_STATE_CHANGE}
+  PROPERTIES
+  COMPILE_FLAGS -fPIC
+  AUTOMOC TRUE
+)
+
+
+target_link_libraries(
+  ${HELPERS_STATE_CHANGE}
+  ${HELPERS_TEST_DEPS_LDFLAGS}
+  ${INTEGRATION_TEST_LIBRARIES}
+  qdbus-stubs-tests
+  Qt5::DBus
+  Qt5::Test
+  Qt5::Network
+  Qt5::Core
+)
+
+add_test(
+  NAME ${HELPERS_STATE_CHANGE}
+  COMMAND ${HELPERS_STATE_CHANGE}
+)
+
 
 #
 #
@@ -138,5 +179,6 @@ set(
   ${COVERAGE_TEST_TARGETS}
   ${HELPERS_TEST}
   ${HELPERS_TEST_FAILURE}
+  ${HELPERS_STATE_CHANGE}
   PARENT_SCOPE
 )
