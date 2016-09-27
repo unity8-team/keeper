@@ -1,3 +1,11 @@
+keeper (0.1.0+16.10.20160927-0ubuntu1) yakkety; urgency=medium
+
+  [ Xavi Garcia Mena ]
+  * This branch changes the way we send the Helper::state_changed signal
+    to queue it in the event loop.
+
+ -- Xavi Garcia <xavi.garcia.mena@canonical.com>  Tue, 27 Sep 2016 13:37:27 +0000
+
 keeper (0.1.0+16.10.20160915.3-0ubuntu1) yakkety; urgency=medium
 
   * Initial release. 
