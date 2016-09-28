@@ -63,6 +63,8 @@ public:
 
     QVariantDictMap get_state() const;
 
+    void cancel();
+
 private:
     QScopedPointer<KeeperPrivate> const d_ptr;
 };

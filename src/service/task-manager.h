@@ -58,6 +58,8 @@ public:
 
     void ask_for_uploader(quint64 n_bytes);
 
+    void cancel();
+
 Q_SIGNALS:
     void socket_ready(int reply);
     void state_changed();
