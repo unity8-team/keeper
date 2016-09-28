@@ -1,3 +1,10 @@
+keeper (0.1.0+16.10.20160928-0ubuntu1) yakkety; urgency=medium
+
+  [ Xavi Garcia Mena ]
+  * Cancel feature implemented.
+
+ -- Xavi Garcia <xavi.garcia.mena@canonical.com>  Wed, 28 Sep 2016 13:46:00 +0000
+
 keeper (0.1.0+16.10.20160915.3-0ubuntu1) yakkety; urgency=medium
 
   * Initial release. 
