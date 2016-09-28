@@ -36,6 +36,8 @@ public:
     QVariantMap state() const;
     void ask_for_storage_framework_socket(quint64 n_bytes);
 
+    void cancel();
+
     static QVariantMap get_initial_state(KeeperTask::TaskData const &td);
 
 protected:

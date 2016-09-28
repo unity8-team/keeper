@@ -127,6 +127,77 @@ TEST_F(TestHelpers, StartFullTest)
     EXPECT_TRUE(check_storage_framework_files(QStringList{user_dir, user_dir_2}));
 }
 
+TEST_F(TestHelpers, StartFullTestCancelling)
+{
+    XdgUserDirsSandbox tmp_dir;
+
+    // starts the services, including keeper-service
+    start_tasks();
+
+    QSharedPointer<DBusInterfaceKeeperUser> user_iface(new DBusInterfaceKeeperUser(
+                                                            DBusTypes::KEEPER_SERVICE,
+                                                            DBusTypes::KEEPER_USER_PATH,
+                                                            dbus_test_runner.sessionConnection()
+                                                        ) );
+
+    ASSERT_TRUE(user_iface->isValid()) << qPrintable(dbus_test_runner.sessionConnection().lastError().message());
+
+    // ask for a list of backup choices
+    QDBusReply<QVariantDictMap> choices = user_iface->call("GetBackupChoices");
+    EXPECT_TRUE(choices.isValid()) << qPrintable(choices.error().message());
+
+    QString user_option = "XDG_MUSIC_DIR";
+
+    auto user_dir = qgetenv(user_option.toLatin1().data());
+    ASSERT_FALSE(user_dir.isEmpty());
+    qDebug() << "USER DIR:" << user_dir;
+
+    // fill something in the music dir
+    FileUtils::fillTemporaryDirectory(user_dir, qrand() % 100);
+
+    // search for the user folder uuid
+    auto user_folder_uuid = get_uuid_for_xdg_folder_path(user_dir, choices.value());
+    ASSERT_FALSE(user_folder_uuid.isEmpty());
+    qDebug() << "User folder UUID is:" << user_folder_uuid;
+
+    QString user_option_2 = "XDG_VIDEOS_DIR";
+
+    auto user_dir_2 = qgetenv(user_option_2.toLatin1().data());
+    ASSERT_FALSE(user_dir_2.isEmpty());
+    qDebug() << "USER DIR 2:" << user_dir_2;
+
+    // fill something in the music dir
+    FileUtils::fillTemporaryDirectory(user_dir_2, qrand() % 100);
+
+    // search for the user folder uuid
+    auto user_folder_uuid_2 = get_uuid_for_xdg_folder_path(user_dir_2, choices.value());
+    ASSERT_FALSE(user_folder_uuid_2.isEmpty());
+    qDebug() << "User folder 2 UUID is:" << user_folder_uuid_2;
+
+    QSharedPointer<DBusPropertiesInterface> properties_interface(new DBusPropertiesInterface(
+                                                            DBusTypes::KEEPER_SERVICE,
+                                                            DBusTypes::KEEPER_USER_PATH,
+                                                            dbus_test_runner.sessionConnection()
+                                                        ) );
+
+    ASSERT_TRUE(properties_interface->isValid()) << qPrintable(QDBusConnection::sessionBus().lastError().message());
+
+    QSignalSpy spy(properties_interface.data(),&DBusPropertiesInterface::PropertiesChanged);
+
+    // Now we know the music folder uuid, let's start the backup for it.
+    QDBusReply<void> backup_reply = user_iface->call("StartBackup", QStringList{user_folder_uuid, user_folder_uuid_2});
+    ASSERT_TRUE(backup_reply.isValid()) << qPrintable(dbus_test_runner.sessionConnection().lastError().message());
+
+    EXPECT_TRUE(cancel_first_task_at_percentage(spy, 0.20, user_iface));
+
+    // wait until all the tasks have the action state "complete"
+    // this one uses pooling so it should just call Get once
+    EXPECT_TRUE(wait_for_all_tasks_have_action_state({user_folder_uuid, user_folder_uuid_2}, "cancelled", user_iface));
+
+    // check that we have no files in storage framework
+    EXPECT_EQ(0, check_storage_framework_nb_files());
+}
+
 TEST_F(TestHelpers, SimplyCheckThatTheSecondDBusInterfaceIsFine)
 {
     XdgUserDirsSandbox tmp_dir;
