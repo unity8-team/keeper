@@ -86,7 +86,14 @@ public:
     {
         auto watcher = new QFutureWatcher<ResultType>{};
 
-        std::function<void()> on_finished = [watcher, callme](){callme(watcher->result());};
+        std::function<void()> on_finished = [watcher, callme](){
+            try {
+                callme(watcher->result());
+            } catch(std::exception& e) {
+                qWarning() << "future threw error:" << e.what();
+                callme(ResultType{});
+            }
+        };
         std::function<void()> closure = [watcher](){qDebug() << "calling watcher->deleteLater"; watcher->deleteLater();};
 
         connect_oneshot(watcher,
