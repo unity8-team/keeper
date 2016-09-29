@@ -13,6 +13,7 @@ add_library(
   main.cpp
   file-utils.cpp
   xdg-user-dirs-sandbox.cpp
+  storage-framework-local.cpp
 )
 
 target_link_libraries(

@@ -31,6 +31,8 @@ namespace sf = unity::storage::qt::client;
 ****
 ***/
 
+const QString StorageFrameworkClient::KEEPER_FOLDER = QStringLiteral("Ubuntu-Backups");
+
 StorageFrameworkClient::StorageFrameworkClient(QObject *parent)
     : QObject(parent)
     , runtime_(sf::Runtime::create())
@@ -110,28 +112,85 @@ StorageFrameworkClient::get_new_uploader(int64_t n_bytes)
         auto root = choose(roots);
         if (root)
         {
-            auto const now = QDateTime::currentDateTime();
-            auto const filename = QStringLiteral("Backup_%1").arg(now.toString("dd.MM.yyyy-hh.mm.ss.zzz"));
             connection_helper_.connect_future(
-                root->create_file(filename, n_bytes),
-                std::function<void(std::shared_ptr<sf::Uploader> const&)>{
-                    [this, fi](std::shared_ptr<sf::Uploader> const& sf_uploader){
-                        qDebug() << "root->create_file() finished";
-                        std::shared_ptr<Uploader> ret;
-                        if (sf_uploader) {
-                            ret.reset(
-                                new StorageFrameworkUploader(sf_uploader, this),
-                                [](Uploader* u){u->deleteLater();}
+                create_keeper_folder(root),
+                std::function<void(sf::Folder::SPtr const&)>{
+                    [this, fi, n_bytes](sf::Folder::SPtr const& keeper_root){
+                        if (!keeper_root)
+                        {
+                            qWarning() << "Error creating keeper root folder";
+                            std::shared_ptr<Uploader> ret;
+                            QFutureInterface<decltype(ret)> qfi(fi);
+                            qfi.reportResult(ret);
+                            qfi.reportFinished();
+                        }
+                        else
+                        {
+                            auto const now = QDateTime::currentDateTime();
+                            auto const filename = QStringLiteral("Backup_%1").arg(now.toString("dd.MM.yyyy-hh.mm.ss.zzz"));
+                            connection_helper_.connect_future(
+                                keeper_root->create_file(filename, n_bytes),
+                                std::function<void(std::shared_ptr<sf::Uploader> const&)>{
+                                    [this, fi](std::shared_ptr<sf::Uploader> const& sf_uploader){
+                                        qDebug() << "keeper_root->create_file() finished";
+                                        std::shared_ptr<Uploader> ret;
+                                        if (sf_uploader) {
+                                            ret.reset(
+                                                new StorageFrameworkUploader(sf_uploader, this),
+                                                [](Uploader* u){u->deleteLater();}
+                                            );
+                                        }
+                                        QFutureInterface<decltype(ret)> qfi(fi);
+                                        qfi.reportResult(ret);
+                                        qfi.reportFinished();
+                                    }
+                                }
                             );
                         }
-                        QFutureInterface<decltype(ret)> qfi(fi);
-                        qfi.reportResult(ret);
-                        qfi.reportFinished();
                     }
                 }
             );
         }
     });
+
+    return fi.future();
+}
+
+QFuture<sf::Folder::SPtr>
+StorageFrameworkClient::create_keeper_folder(sf::Root::SPtr const & root)
+{
+    QFutureInterface<sf::Folder::SPtr> fi;
+
+    connection_helper_.connect_future(
+        root->lookup(KEEPER_FOLDER),
+        std::function<void(QVector<sf::Item::SPtr> const &)>{
+            [this, fi, root](QVector<sf::Item::SPtr> const & item){
+                if (item.size())
+                {
+                    auto it = item.at(0);
+                    // the folder already exists
+                    auto ret_root = std::dynamic_pointer_cast<sf::Folder>(item.at(0));
+                    QFutureInterface<decltype(ret_root)> qfi(fi);
+                    qfi.reportResult(ret_root);
+                    qfi.reportFinished();
+                }
+                else
+                {
+                    // we need to create the folder
+                    connection_helper_.connect_future(
+                            root->create_folder(KEEPER_FOLDER),
+                            std::function<void(sf::Folder::SPtr const &)>{
+                                [this, fi](sf::Folder::SPtr const & folder){
+                                    QFutureInterface<sf::Folder::SPtr> qfi(fi);
+                                    qfi.reportResult(folder);
+                                    qfi.reportFinished();
+                                }
+                            }
+                    );
+                }
+            }
+        }
+    );
 
     return fi.future();
 }

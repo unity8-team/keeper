@@ -19,6 +19,7 @@
  *     Charles Kerr <charles.kerr@canonical.com>
  */
 #include "test-helpers-base.h"
+#include "tests/utils/storage-framework-local.h"
 
 class TestHelpers: public TestHelpersBase
 {
@@ -90,7 +91,7 @@ TEST_F(TestHelpers, BackupHelperWritesTooMuch)
     EXPECT_TRUE(wait_for_all_tasks_have_action_state({user_folder_uuid}, "failed", user_iface));
 
     // check that the content of the file is the expected
-    EXPECT_EQ(0, check_storage_framework_nb_files());
+    EXPECT_EQ(0, StorageFrameworkLocalUtils::check_storage_framework_nb_files());
 
     // check that the state is failed
     QVariantDictMap state = user_iface->state();
