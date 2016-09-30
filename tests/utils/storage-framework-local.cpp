@@ -47,7 +47,17 @@ bool find_storage_framework_dir(QDir & dir)
         return false;
     }
     qDebug() << "Keeper storage framework directory is" << sf_dir.absolutePath();
-    dir = sf_dir;
+
+    // return the first directory that we find here, in alphabetical order
+    auto dirs_in_sf_folder = sf_dir.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
+    if (!dirs_in_sf_folder.size())
+    {
+        qDebug() << "Error: no directory was found inside the keeper folder.";
+        return false;
+    }
+
+    qDebug() << "The first directory containing data from storage framework is: " <<  dirs_in_sf_folder.at(0).absoluteFilePath();
+    dir = QDir(dirs_in_sf_folder.at(0).absoluteFilePath());
 
     return true;
 }

@@ -103,17 +103,17 @@ StorageFrameworkClient::add_roots_task(std::function<void(QVector<sf::Root::SPtr
 }
 
 QFuture<std::shared_ptr<Uploader>>
-StorageFrameworkClient::get_new_uploader(int64_t n_bytes)
+StorageFrameworkClient::get_new_uploader(int64_t n_bytes, QString const & dir_name)
 {
     QFutureInterface<std::shared_ptr<Uploader>> fi;
 
-    add_roots_task([this, fi, n_bytes](QVector<sf::Root::SPtr> const& roots)
+    add_roots_task([this, fi, n_bytes, dir_name](QVector<sf::Root::SPtr> const& roots)
     {
         auto root = choose(roots);
         if (root)
         {
             connection_helper_.connect_future(
-                create_keeper_folder(root),
+                create_keeper_folder(root, dir_name),
                 std::function<void(sf::Folder::SPtr const&)>{
                     [this, fi, n_bytes](sf::Folder::SPtr const& keeper_root){
                         if (!keeper_root)
@@ -157,14 +157,56 @@ StorageFrameworkClient::get_new_uploader(int64_t n_bytes)
 }
 
 QFuture<sf::Folder::SPtr>
-StorageFrameworkClient::create_keeper_folder(sf::Root::SPtr const & root)
+StorageFrameworkClient::create_keeper_folder(sf::Folder::SPtr const & root, QString const & dir_name)
 {
     QFutureInterface<sf::Folder::SPtr> fi;
 
     connection_helper_.connect_future(
-        root->lookup(KEEPER_FOLDER),
+        create_storage_framework_folder(root, KEEPER_FOLDER),
+        std::function<void(sf::Folder::SPtr const &)>{
+            [this, fi, root, dir_name](sf::Folder::SPtr const & keeper_folder){
+                if (!keeper_folder)
+                {
+                    qWarning() << "Error creating keeper root folder";
+                    sf::Folder::SPtr ret;
+                    QFutureInterface<decltype(ret)> qfi(fi);
+                    qfi.reportResult(ret);
+                    qfi.reportFinished();
+                }
+                else
+                {
+                    connection_helper_.connect_future(
+                        create_storage_framework_folder(keeper_folder, dir_name),
+                        std::function<void(sf::Folder::SPtr const &)>{
+                            [this, fi, root](sf::Folder::SPtr const & timestamp_folder){
+                                if (!timestamp_folder)
+                                {
+                                    qWarning() << "Error creating keeper time stamp folder";
+                                }
+                                QFutureInterface<sf::Folder::SPtr> qfi(fi);
+                                qfi.reportResult(timestamp_folder);
+                                qfi.reportFinished();
+                            }
+                        }
+                    );
+                }
+            }
+        }
+    );
+
+    return fi.future();
+}
+
+QFuture<sf::Folder::SPtr>
+StorageFrameworkClient::create_storage_framework_folder(sf::Folder::SPtr const & root,
+                                                        QString const & dir_name)
+{
+    QFutureInterface<sf::Folder::SPtr> fi;
+
+    connection_helper_.connect_future(
+        root->lookup(dir_name),
         std::function<void(QVector<sf::Item::SPtr> const &)>{
-            [this, fi, root](QVector<sf::Item::SPtr> const & item){
+            [this, fi, root, dir_name](QVector<sf::Item::SPtr> const & item){
                 if (item.size())
                 {
                     auto it = item.at(0);
@@ -178,7 +220,7 @@ StorageFrameworkClient::create_keeper_folder(sf::Root::SPtr const & root)
                 {
                     // we need to create the folder
                     connection_helper_.connect_future(
-                            root->create_folder(KEEPER_FOLDER),
+                            root->create_folder(dir_name),
                             std::function<void(sf::Folder::SPtr const &)>{
                                 [this, fi](sf::Folder::SPtr const & folder){
                                     QFutureInterface<sf::Folder::SPtr> qfi(fi);

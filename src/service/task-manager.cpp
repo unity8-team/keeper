@@ -40,6 +40,8 @@ public:
 
     bool start_backup(QList<Metadata> const& tasks)
     {
+        auto const now = QDateTime::currentDateTime();
+        backup_dir_name_ = now.toString("dd.MM.yyyy-hh.mm.ss.zzz");
         return start_tasks(tasks, Mode::BACKUP);
     }
 
@@ -69,7 +71,7 @@ public:
                 // TODO Mark this as an error at the current task and move to the next task
                 return;
             }
-            backup_task_->ask_for_uploader(n_bytes);
+            backup_task_->ask_for_uploader(n_bytes, backup_dir_name_);
         }
     }
 
@@ -271,6 +273,7 @@ private:
 
     QStringList remaining_tasks_;
     QString current_task_;
+    QString backup_dir_name_;
 
     QVariantDictMap state_;
     QSharedPointer<KeeperTask> task_;

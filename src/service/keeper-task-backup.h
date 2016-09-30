@@ -37,7 +37,7 @@ public:
 
     Q_DISABLE_COPY(KeeperTaskBackup)
 
-    void ask_for_uploader(quint64 n_bytes);
+    void ask_for_uploader(quint64 n_bytes, QString const & dir_name);
 
 protected:
     QStringList get_helper_urls() const override;

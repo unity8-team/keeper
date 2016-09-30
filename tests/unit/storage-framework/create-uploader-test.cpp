@@ -38,11 +38,12 @@ TEST(SF, CreateUploaderWithCommitAndDispose)
     )";
 
     QTemporaryDir tmp_dir;
+    QString test_dir = QStringLiteral("test_dir");
 
     g_setenv("XDG_DATA_HOME", tmp_dir.path().toLatin1().data(), true);
 
     StorageFrameworkClient sf_client;
-    auto uploader_fut = sf_client.get_new_uploader(test_content.size());
+    auto uploader_fut = sf_client.get_new_uploader(test_content.size(), test_dir);
     {
         QFutureWatcher<std::shared_ptr<Uploader>> w;
         QSignalSpy spy(&w, &decltype(w)::finished);
@@ -68,7 +69,7 @@ TEST(SF, CreateUploaderWithCommitAndDispose)
     ASSERT_EQ(sf_files.size(), 1);
 
     // check that the file path ends up with the keeper folder
-    EXPECT_TRUE(sf_files.at(0).path().endsWith(StorageFrameworkClient::KEEPER_FOLDER));
+    EXPECT_TRUE(sf_files.at(0).path().endsWith(QString("%1%2%3").arg(StorageFrameworkClient::KEEPER_FOLDER).arg(QDir::separator()).arg(test_dir)));
 
     // check the file content
     QFile file(sf_files.at(0).absoluteFilePath());
@@ -78,7 +79,7 @@ TEST(SF, CreateUploaderWithCommitAndDispose)
     file.close();
 
     // get another uploader
-    uploader_fut = sf_client.get_new_uploader(test_content.size());
+    uploader_fut = sf_client.get_new_uploader(test_content.size(), test_dir);
     {
         QFutureWatcher<std::shared_ptr<Uploader>> w;
         QSignalSpy spy(&w, &decltype(w)::finished);

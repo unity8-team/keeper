@@ -249,7 +249,7 @@ FileUtils::compareDirectories(QString const & dir1Path, QString const & dir2Path
             if (!compareFiles(abs1, abs2))
             {
                 qWarning() << Q_FUNC_INFO << "files" << abs1 << "and" << abs2 << "are not equal";
-                directories_identical = false;
+                return false;
             }
         }
     }
