@@ -353,8 +353,8 @@ BackupHelper::set_state(Helper::State state)
     Q_D(BackupHelper);
 
     qDebug() << Q_FUNC_INFO;
-    d->on_state_changed(state);
     Helper::set_state(state);
+    d->on_state_changed(state);
 }
 
 void BackupHelper::on_helper_finished()

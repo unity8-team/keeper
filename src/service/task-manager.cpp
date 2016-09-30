@@ -75,6 +75,23 @@ public:
         }
     }
 
+    void cancel()
+    {
+        if (task_)
+        {
+            task_->cancel();
+        }
+        for (auto const & task: remaining_tasks_)
+        {
+            auto& td = task_data_[task];
+            td.action = QStringLiteral("cancelled"); // TODO i18n
+            set_initial_task_state(td);
+        }
+        // notify the initial state once for all tasks
+        notify_state_changed();
+        remaining_tasks_.clear();
+    }
+
 private:
 
     enum class Mode { IDLE, BACKUP, RESTORE };
@@ -323,4 +340,11 @@ void TaskManager::ask_for_uploader(quint64 n_bytes)
     Q_D(TaskManager);
 
     d->ask_for_uploader(n_bytes);
+}
+
+void TaskManager::cancel()
+{
+    Q_D(TaskManager);
+
+    d->cancel();
 }

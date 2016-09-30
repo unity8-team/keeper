@@ -57,6 +57,8 @@ public:
 
     static QVariantMap get_initial_state(KeeperTask::TaskData const &td);
 
+    void cancel();
+
 Q_SIGNALS:
     void task_state_changed(Helper::State state);
     void task_socket_ready(int socket_descriptor);
