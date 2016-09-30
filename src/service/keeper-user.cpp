@@ -81,9 +81,7 @@ KeeperUser::StartBackup (const QStringList& keys)
 void
 KeeperUser::Cancel()
 {
-    // FIXME: writeme
-
-    qDebug() << "hello world";
+    keeper_.cancel();
 }
 
 QVariantDictMap

@@ -149,6 +149,14 @@ void KeeperTaskPrivate::calculate_and_notify_state(Helper::State state)
     Q_EMIT(q_ptr->task_state_changed(state));
 }
 
+void KeeperTaskPrivate::cancel()
+{
+    if (helper_)
+    {
+        helper_->stop();
+    }
+}
+
 QVariantMap KeeperTaskPrivate::get_initial_state(KeeperTask::TaskData const &td)
 {
     QVariantMap ret;
@@ -188,16 +196,25 @@ KeeperTask::~KeeperTask() = default;
 bool KeeperTask::start()
 {
     Q_D(KeeperTask);
+
     return d->start();
 }
 
 QVariantMap KeeperTask::state() const
 {
     Q_D(const KeeperTask);
+
     return d->state();
 }
 
 QVariantMap KeeperTask::get_initial_state(KeeperTask::TaskData const &td)
 {
     return KeeperTaskPrivate::get_initial_state(td);
+}
+
+void KeeperTask::cancel()
+{
+    Q_D(KeeperTask);
+
+    return d->cancel();
 }

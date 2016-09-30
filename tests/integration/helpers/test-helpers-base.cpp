@@ -598,6 +598,94 @@ bool TestHelpersBase::capture_and_check_state_until_all_tasks_complete(QSignalSp
     return analyze_tasks_values(uuids_state);
 }
 
+bool TestHelpersBase::cancel_first_task_at_percentage(QSignalSpy & spy, double expected_percentage, QSharedPointer<DBusInterfaceKeeperUser> const & user_iface, int max_timeout_msec)
+{
+    QMap<QString, QList<QVariantMap>> uuids_state;
+    QMap<QString, QString> uuids_current_state;
+
+    QElapsedTimer timer;
+    timer.start();
+    bool finished = false;
+    while (!timer.hasExpired(max_timeout_msec) && !finished)
+    {
+        spy.wait();
+
+        qDebug() << "PropertiesChanged SIGNALS RECEIVED:  " << spy.count();
+        while (spy.count())
+        {
+            auto arguments = spy.takeFirst();
+
+            if (arguments.size() != 3)
+            {
+                qWarning() << "Bad number of arguments in PropertiesChanged signal";
+                return false;
+            }
+
+            // verify interface and invalidated_properties arguments
+            if(!verify_signal_interface_and_invalidated_properties(arguments.at(0), arguments.at(2), DBusTypes::KEEPER_USER_INTERFACE, "State"))
+            {
+                return false;
+            }
+            QVariantDictMap keeper_state;
+            if (!get_property_qvariant_dict_map("State", arguments.at(1), keeper_state))
+            {
+                return false;
+            }
+            for (auto iter = keeper_state.begin(); iter != keeper_state.end(); ++iter )
+            {
+                QVariantMap task_state;
+                if (!qvariant_to_map((*iter), task_state))
+                {
+                    qWarning() << "Error converting second argument in PropertiesChanged signal to QVariantMap for uuid: " << iter.key();
+                    return false;
+                }
+                qDebug() << "State for uuid: " << iter.key() << " : " << task_state;
+
+                QVariant action;
+                if (get_task_property("action", task_state, action))
+                {
+                    if (action.type() != QVariant::String)
+                    {
+                        qWarning() << "Property [action] is not a string";
+                        return false;
+                    }
+                    if ( action.toString() == "saving")
+                    {
+                        // the helper is saving data... check for the percentage
+                        QVariant percentage;
+                        if (!get_task_property("percent-done", task_state, percentage))
+                        {
+                            qWarning() << Q_FUNC_INFO << ": Percentage was not found for task: " << iter.key();
+                            return false;
+                        }
+                        bool ok_double;
+                        auto percentage_double = percentage.toDouble(&ok_double);
+                        if (!ok_double)
+                        {
+                            qWarning() << Q_FUNC_INFO << ": Error converting percent-done to double for uuid: " << iter.key() << ". State: " << (*iter);
+                            return false;
+                        }
+                        if (percentage_double >= expected_percentage)
+                        {
+                            qDebug() << "CANCELLING ******************************";
+                            // found... cancel keeper
+                            QDBusReply<void> backup_reply = user_iface->call("Cancel");
+                            if (!backup_reply.isValid())
+                            {
+                                qWarning() << "Error calling Cancel in the dbus user interface: " << backup_reply.error().message();
+                                return false;
+                            }
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    qWarning() << Q_FUNC_INFO << ":Error no task was not found or the expected percentage was not reached";
+    return false;
+}
+
 QString TestHelpersBase::get_uuid_for_xdg_folder_path(QString const &path, QVariantDictMap const & choices) const
 {
     for(auto iter = choices.begin(); iter != choices.end(); ++iter)

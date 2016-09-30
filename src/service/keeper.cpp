@@ -135,6 +135,11 @@ public:
         return QDBusUnixFileDescriptor(0);
     }
 
+    void cancel()
+    {
+        task_manager_.cancel();
+    }
+
 private:
 
     Keeper * const q_ptr;
@@ -200,4 +205,12 @@ Keeper::get_state() const
     Q_D(const Keeper);
 
     return d->get_state();
+}
+
+void
+Keeper::cancel()
+{
+    Q_D(Keeper);
+
+    return d->cancel();
 }
