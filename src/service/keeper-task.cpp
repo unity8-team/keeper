@@ -196,12 +196,14 @@ KeeperTask::~KeeperTask() = default;
 bool KeeperTask::start()
 {
     Q_D(KeeperTask);
+
     return d->start();
 }
 
 QVariantMap KeeperTask::state() const
 {
     Q_D(const KeeperTask);
+
     return d->state();
 }
 
@@ -213,5 +215,6 @@ QVariantMap KeeperTask::get_initial_state(KeeperTask::TaskData const &td)
 void KeeperTask::cancel()
 {
     Q_D(KeeperTask);
+
     return d->cancel();
 }

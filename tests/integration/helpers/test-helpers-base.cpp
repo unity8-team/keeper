@@ -670,6 +670,11 @@ bool TestHelpersBase::cancel_first_task_at_percentage(QSignalSpy & spy, double e
                             qDebug() << "CANCELLING ******************************";
                             // found... cancel keeper
                             QDBusReply<void> backup_reply = user_iface->call("Cancel");
+                            if (!backup_reply.isValid())
+                            {
+                                qWarning() << "Error calling Cancel in the dbus user interface: " << backup_reply.error().message();
+                                return false;
+                            }
                             return true;
                         }
                     }

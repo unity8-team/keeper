@@ -73,7 +73,7 @@ TEST_F(TestHelpers, StartFullTest)
     QDBusReply<QVariantDictMap> choices = user_iface->call("GetBackupChoices");
     EXPECT_TRUE(choices.isValid()) << qPrintable(choices.error().message());
 
-    QString user_option = "XDG_MUSIC_DIR";
+    QString user_option = QStringLiteral("XDG_MUSIC_DIR");
 
     auto user_dir = qgetenv(user_option.toLatin1().data());
     ASSERT_FALSE(user_dir.isEmpty());
@@ -87,7 +87,7 @@ TEST_F(TestHelpers, StartFullTest)
     ASSERT_FALSE(user_folder_uuid.isEmpty());
     qDebug() << "User folder UUID is:" << user_folder_uuid;
 
-    QString user_option_2 = "XDG_VIDEOS_DIR";
+    QString user_option_2 = QStringLiteral("XDG_VIDEOS_DIR");
 
     auto user_dir_2 = qgetenv(user_option_2.toLatin1().data());
     ASSERT_FALSE(user_dir_2.isEmpty());
@@ -146,7 +146,7 @@ TEST_F(TestHelpers, StartFullTestCancelling)
     QDBusReply<QVariantDictMap> choices = user_iface->call("GetBackupChoices");
     EXPECT_TRUE(choices.isValid()) << qPrintable(choices.error().message());
 
-    QString user_option = "XDG_MUSIC_DIR";
+    QString user_option = QStringLiteral("XDG_MUSIC_DIR");
 
     auto user_dir = qgetenv(user_option.toLatin1().data());
     ASSERT_FALSE(user_dir.isEmpty());
@@ -160,7 +160,7 @@ TEST_F(TestHelpers, StartFullTestCancelling)
     ASSERT_FALSE(user_folder_uuid.isEmpty());
     qDebug() << "User folder UUID is:" << user_folder_uuid;
 
-    QString user_option_2 = "XDG_VIDEOS_DIR";
+    QString user_option_2 = QStringLiteral("XDG_VIDEOS_DIR");
 
     auto user_dir_2 = qgetenv(user_option_2.toLatin1().data());
     ASSERT_FALSE(user_dir_2.isEmpty());

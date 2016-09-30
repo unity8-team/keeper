@@ -79,7 +79,7 @@ public:
         {
             task_->cancel();
         }
-        for (auto task : remaining_tasks_)
+        for (auto const & task: remaining_tasks_)
         {
             auto& td = task_data_[task];
             td.action = QStringLiteral("cancelled"); // TODO i18n
