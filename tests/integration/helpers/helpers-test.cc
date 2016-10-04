@@ -199,6 +199,34 @@ TEST_F(TestHelpers, StartFullTestCancelling)
     EXPECT_EQ(0, StorageFrameworkLocalUtils::check_storage_framework_nb_files());
 }
 
+TEST_F(TestHelpers, CheckBadUUIDS)
+{
+    XdgUserDirsSandbox tmp_dir;
+
+    // starts the services, including keeper-service
+    start_tasks();
+
+    QSharedPointer<DBusInterfaceKeeperUser> user_iface(new DBusInterfaceKeeperUser(
+                                                            DBusTypes::KEEPER_SERVICE,
+                                                            DBusTypes::KEEPER_USER_PATH,
+                                                            dbus_test_runner.sessionConnection()
+                                                        ) );
+
+    ASSERT_TRUE(user_iface->isValid()) << qPrintable(dbus_test_runner.sessionConnection().lastError().message());
+
+    // Now we know the music folder uuid, let's start the backup for it.
+    QDBusReply<void> backup_reply = user_iface->call("StartBackup", QStringList{"bad_uuid_1", "bad_uuid_2"});
+
+    ASSERT_FALSE(backup_reply.isValid());
+
+    // check the error message
+    // the uuids are not printed always in the same order
+    QString error_message = dbus_test_runner.sessionConnection().lastError().message();
+    EXPECT_TRUE(error_message.startsWith("unhandled uuids: "));
+    EXPECT_TRUE(error_message.contains("bad_uuid_1"));
+    EXPECT_TRUE(error_message.contains("bad_uuid_2"));
+}
+
 TEST_F(TestHelpers, SimplyCheckThatTheSecondDBusInterfaceIsFine)
 {
     XdgUserDirsSandbox tmp_dir;
