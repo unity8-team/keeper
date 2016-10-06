@@ -28,6 +28,7 @@
 #include "tests/fakes/fake-backup-helper.h"
 #include "tests/utils/file-utils.h"
 #include "tests/utils/xdg-user-dirs-sandbox.h"
+#include "tests/utils/storage-framework-local.h"
 #include "../../../src/service/app-const.h"
 
 #include <libqtdbustest/DBusTestRunner.h>
@@ -60,6 +61,13 @@ constexpr char const UNTRUSTED_HELPER_PATH[] = "/com/test/untrusted/helper";
     }\
     ASSERT_EQ(signalsExpected, signalSpy.size());\
 }
+
+struct BackupItem
+{
+    QString display_name;
+    QString type;
+    QString uuid;
+};
 
 class TestHelpersBase : public ::testing::Test
 {
@@ -94,6 +102,8 @@ protected:
     bool cancel_first_task_at_percentage(QSignalSpy & spy, double expected_percentage, QSharedPointer<DBusInterfaceKeeperUser> const & user_iface, int max_timeout_msec = 15000);
 
     QString get_uuid_for_xdg_folder_path(QString const &path, QVariantDictMap const & choices) const;
+
+    bool check_manifest_file(QVector<BackupItem> const & backup_items);
 
     bool start_dbus_monitor();
 };

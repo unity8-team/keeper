@@ -139,9 +139,11 @@ public:
                     &Uploader::commit_finished,
                     std::function<void(bool)>{[this](bool success){
                         qDebug() << "Commit finished";
-                        uploader_.reset();
                         if (!success)
                             write_error_ = true;
+                        else
+                            uploader_committed_file_name_ = uploader_->file_name();
+                        uploader_.reset();
                         check_for_done();
                     }}
                 );
@@ -160,6 +162,11 @@ public:
     {
         stop_inactivity_timer();
         check_for_done();
+    }
+
+    QString get_uploader_committed_file_name() const
+    {
+        return uploader_committed_file_name_;
     }
 
 private:
@@ -289,6 +296,7 @@ private:
     bool write_error_ = false;
     bool cancelled_ = false;
     ConnectionHelper connections_;
+    QString uploader_committed_file_name_;
 };
 
 /***
@@ -360,6 +368,14 @@ BackupHelper::set_state(Helper::State state)
 void BackupHelper::on_helper_finished()
 {
     Q_D(BackupHelper);
+
     Helper::on_helper_finished();
     d->on_helper_finished();
+}
+
+QString BackupHelper::get_uploader_committed_file_name() const
+{
+    Q_D(const BackupHelper);
+
+    return d->get_uploader_committed_file_name();
 }

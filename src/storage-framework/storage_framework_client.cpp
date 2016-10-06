@@ -103,19 +103,19 @@ StorageFrameworkClient::add_roots_task(std::function<void(QVector<sf::Root::SPtr
 }
 
 QFuture<std::shared_ptr<Uploader>>
-StorageFrameworkClient::get_new_uploader(int64_t n_bytes, QString const & dir_name)
+StorageFrameworkClient::get_new_uploader(int64_t n_bytes, QString const & dir_name, QString const & file_name)
 {
     QFutureInterface<std::shared_ptr<Uploader>> fi;
 
-    add_roots_task([this, fi, n_bytes, dir_name](QVector<sf::Root::SPtr> const& roots)
+    add_roots_task([this, fi, n_bytes, dir_name, file_name](QVector<sf::Root::SPtr> const& roots)
     {
         auto root = choose(roots);
         if (root)
         {
             connection_helper_.connect_future(
-                create_keeper_folder(root, dir_name),
+                get_keeper_folder(root, dir_name, true),
                 std::function<void(sf::Folder::SPtr const&)>{
-                    [this, fi, n_bytes](sf::Folder::SPtr const& keeper_root){
+                    [this, fi, n_bytes, file_name](sf::Folder::SPtr const& keeper_root){
                         if (!keeper_root)
                         {
                             qWarning() << "Error creating keeper root folder";
@@ -126,10 +126,8 @@ StorageFrameworkClient::get_new_uploader(int64_t n_bytes, QString const & dir_na
                         }
                         else
                         {
-                            auto const now = QDateTime::currentDateTime();
-                            auto const filename = QStringLiteral("Backup_%1").arg(now.toString("dd.MM.yyyy-hh.mm.ss.zzz"));
                             connection_helper_.connect_future(
-                                keeper_root->create_file(filename, n_bytes),
+                                keeper_root->create_file(file_name, n_bytes),
                                 std::function<void(std::shared_ptr<sf::Uploader> const&)>{
                                     [this, fi](std::shared_ptr<sf::Uploader> const& sf_uploader){
                                         qDebug() << "keeper_root->create_file() finished";
@@ -156,15 +154,82 @@ StorageFrameworkClient::get_new_uploader(int64_t n_bytes, QString const & dir_na
     return fi.future();
 }
 
+QFuture<sf::Downloader::SPtr>
+StorageFrameworkClient::get_new_downloader(QString const & dir_name, QString const & file_name)
+{
+    QFutureInterface<sf::Downloader::SPtr> fi;
+
+    add_roots_task([this, fi, dir_name, file_name](QVector<sf::Root::SPtr> const& roots)
+    {
+        auto root = choose(roots);
+        if (root)
+        {
+            connection_helper_.connect_future(
+                get_keeper_folder(root, dir_name, false),
+                std::function<void(sf::Folder::SPtr const&)>{
+                    [this, fi, file_name](sf::Folder::SPtr const& keeper_root){
+                        if (!keeper_root)
+                        {
+                            qWarning() << "Error accessing keeper root folder";
+                            sf::Downloader::SPtr ret;
+                            QFutureInterface<decltype(ret)> qfi(fi);
+                            qfi.reportResult(ret);
+                            qfi.reportFinished();
+                        }
+                        else
+                        {
+                            qDebug() << "We found the storage-framework root folder" << keeper_root->name();
+                            connection_helper_.connect_future(
+                                get_storage_framework_file(keeper_root, file_name),
+                                std::function<void(sf::File::SPtr const&)>{
+                                    [this, fi](sf::File::SPtr const& sf_file){
+                                        sf::Downloader::SPtr ret_null;
+                                        if (sf_file) {
+                                            connection_helper_.connect_future(
+                                                sf_file->create_downloader(),
+                                                std::function<void(sf::Downloader::SPtr const&)>{
+                                                    [this, fi, ret_null](sf::Downloader::SPtr const& sf_downloader){
+                                                        QFutureInterface<decltype(ret_null)> qfi(fi);
+                                                        if (sf_downloader)
+                                                        {
+                                                            qfi.reportResult(sf_downloader);
+                                                            qfi.reportFinished();
+                                                        }
+                                                        else
+                                                        {
+                                                            qfi.reportResult(ret_null);
+                                                            qfi.reportFinished();
+                                                        }
+                                                    }
+                                                }
+                                            );
+                                        } else {
+                                            QFutureInterface<decltype(ret_null)> qfi(fi);
+                                            qfi.reportResult(ret_null);
+                                            qfi.reportFinished();
+                                        }
+                                    }
+                                }
+                            );
+                        }
+                    }
+                }
+            );
+        }
+    });
+
+    return fi.future();
+}
+
 QFuture<sf::Folder::SPtr>
-StorageFrameworkClient::create_keeper_folder(sf::Folder::SPtr const & root, QString const & dir_name)
+StorageFrameworkClient::get_keeper_folder(sf::Folder::SPtr const & root, QString const & dir_name, bool create_if_not_exists)
 {
     QFutureInterface<sf::Folder::SPtr> fi;
 
     connection_helper_.connect_future(
-        create_storage_framework_folder(root, KEEPER_FOLDER),
+        get_storage_framework_folder(root, KEEPER_FOLDER, create_if_not_exists),
         std::function<void(sf::Folder::SPtr const &)>{
-            [this, fi, root, dir_name](sf::Folder::SPtr const & keeper_folder){
+            [this, fi, root, dir_name, create_if_not_exists](sf::Folder::SPtr const & keeper_folder){
                 if (!keeper_folder)
                 {
                     qWarning() << "Error creating keeper root folder";
@@ -176,7 +241,7 @@ StorageFrameworkClient::create_keeper_folder(sf::Folder::SPtr const & root, QStr
                 else
                 {
                     connection_helper_.connect_future(
-                        create_storage_framework_folder(keeper_folder, dir_name),
+                        get_storage_framework_folder(keeper_folder, dir_name, create_if_not_exists),
                         std::function<void(sf::Folder::SPtr const &)>{
                             [this, fi, root](sf::Folder::SPtr const & timestamp_folder){
                                 if (!timestamp_folder)
@@ -198,15 +263,16 @@ StorageFrameworkClient::create_keeper_folder(sf::Folder::SPtr const & root, QStr
 }
 
 QFuture<sf::Folder::SPtr>
-StorageFrameworkClient::create_storage_framework_folder(sf::Folder::SPtr const & root,
-                                                        QString const & dir_name)
+StorageFrameworkClient::get_storage_framework_folder(sf::Folder::SPtr const & root,
+                                                     QString const & dir_name,
+                                                     bool create_if_not_exists)
 {
     QFutureInterface<sf::Folder::SPtr> fi;
 
     connection_helper_.connect_future(
         root->lookup(dir_name),
         std::function<void(QVector<sf::Item::SPtr> const &)>{
-            [this, fi, root, dir_name](QVector<sf::Item::SPtr> const & item){
+            [this, fi, root, dir_name, create_if_not_exists](QVector<sf::Item::SPtr> const & item){
                 if (item.size())
                 {
                     auto it = item.at(0);
@@ -218,17 +284,62 @@ StorageFrameworkClient::create_storage_framework_folder(sf::Folder::SPtr const &
                 }
                 else
                 {
-                    // we need to create the folder
-                    connection_helper_.connect_future(
+                    sf::Folder::SPtr res;
+                    if (!create_if_not_exists)
+                    {
+                        QFutureInterface<decltype(res)> qfi(fi);
+                        qfi.reportResult(res);
+                        qfi.reportFinished();
+                    }
+                    else
+                    {
+                        // we need to create the folder
+                        connection_helper_.connect_future(
                             root->create_folder(dir_name),
                             std::function<void(sf::Folder::SPtr const &)>{
-                                [this, fi](sf::Folder::SPtr const & folder){
-                                    QFutureInterface<sf::Folder::SPtr> qfi(fi);
+                                [this, fi, res](sf::Folder::SPtr const & folder){
+                                    QFutureInterface<decltype(res)> qfi(fi);
                                     qfi.reportResult(folder);
                                     qfi.reportFinished();
                                 }
                             }
-                    );
+                        );
+                    }
+                }
+            }
+        }
+    );
+
+    return fi.future();
+}
+
+QFuture<sf::File::SPtr>
+StorageFrameworkClient::get_storage_framework_file(sf::Folder::SPtr const & root, QString const & file_name)
+{
+    QFutureInterface<sf::File::SPtr> fi;
+
+    connection_helper_.connect_future(
+        root->lookup(file_name),
+        std::function<void(QVector<sf::Item::SPtr> const &)>{
+            [this, fi, root, file_name](QVector<sf::Item::SPtr> const & item){
+                if (item.size())
+                {
+                    qDebug() << "Storage framework file exists";
+                    auto it = item.at(0);
+                    // the item exists...
+                    // do a dynamic_cast and return the result
+                    auto ret_file = std::dynamic_pointer_cast<sf::File>(item.at(0));
+                    QFutureInterface<decltype(ret_file)> qfi(fi);
+                    qfi.reportResult(ret_file);
+                    qfi.reportFinished();
+                }
+                else
+                {
+                    qDebug() << "Storage framework file does not exist";
+                    sf::File::SPtr res;
+                    QFutureInterface<decltype(res)> qfi(fi);
+                    qfi.reportResult(res);
+                    qfi.reportFinished();
                 }
             }
         }

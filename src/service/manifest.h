@@ -14,35 +14,38 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authors:
- *   Charles Kerr <charles.kerr@canonical.com>
+ *   Xavi Garcia Mena <xavi.garcia.mena@canonical.com>
  */
 
 #pragma once
 
-#include "util/connection-helper.h"
-#include "storage-framework/uploader.h"
+#include <helper/metadata.h>
 
-#include <unity/storage/qt/client/client-api.h>
+#include <QObject>
 
-#include <QLocalSocket>
+class ManifestPrivate;
+class StorageFrameworkClient;
 
-#include <memory>
-
-class StorageFrameworkUploader final: public Uploader
+class Manifest : public QObject
 {
+    Q_OBJECT
+    Q_DECLARE_PRIVATE(Manifest)
 public:
+    Manifest(QSharedPointer<StorageFrameworkClient> const & storage, QString const & dir, QObject * parent = nullptr);
+    virtual ~Manifest();
+    Q_DISABLE_COPY(Manifest)
 
-    StorageFrameworkUploader(std::shared_ptr<unity::storage::qt::client::Uploader> const& uploader,
-                             QObject * parent = nullptr);
-    std::shared_ptr<QLocalSocket> socket() override;
-    void commit() override;
-    QString file_name() const override;
+    void add_entry(Metadata const & entry);
+    void store();
+
+    void read();
+    QVector<Metadata> get_entries();
+
+    QString error() const;
+
+Q_SIGNALS:
+    void finished(bool success);
 
 private:
-
-    std::shared_ptr<unity::storage::qt::client::Uploader> const uploader_;
-
-    ConnectionHelper connections_;
-
-    QString file_name_after_commit_;
+    QScopedPointer<ManifestPrivate> const d_ptr;
 };

@@ -28,6 +28,8 @@
 #include <gtest/gtest.h>
 #include <glib.h>
 
+namespace sf = unity::storage::qt::client;
+
 TEST(SF, CreateUploaderWithCommitAndDispose)
 {
     QByteArray test_content = R"(
@@ -39,11 +41,12 @@ TEST(SF, CreateUploaderWithCommitAndDispose)
 
     QTemporaryDir tmp_dir;
     QString test_dir = QStringLiteral("test_dir");
+    QString test_file_name = QStringLiteral("test_file");
 
     g_setenv("XDG_DATA_HOME", tmp_dir.path().toLatin1().data(), true);
 
     StorageFrameworkClient sf_client;
-    auto uploader_fut = sf_client.get_new_uploader(test_content.size(), test_dir);
+    auto uploader_fut = sf_client.get_new_uploader(test_content.size(), test_dir, test_file_name);
     {
         QFutureWatcher<std::shared_ptr<Uploader>> w;
         QSignalSpy spy(&w, &decltype(w)::finished);
@@ -72,6 +75,7 @@ TEST(SF, CreateUploaderWithCommitAndDispose)
     EXPECT_TRUE(sf_files.at(0).path().endsWith(QString("%1%2%3").arg(StorageFrameworkClient::KEEPER_FOLDER).arg(QDir::separator()).arg(test_dir)));
 
     // check the file content
+    EXPECT_EQ(sf_files.at(0).fileName(), test_file_name);
     QFile file(sf_files.at(0).absoluteFilePath());
     ASSERT_TRUE(file.open(QIODevice::ReadOnly | QIODevice::Text)) << qPrintable(file.errorString());
     auto content_file = file.readAll();
@@ -79,7 +83,8 @@ TEST(SF, CreateUploaderWithCommitAndDispose)
     file.close();
 
     // get another uploader
-    uploader_fut = sf_client.get_new_uploader(test_content.size(), test_dir);
+    QString test_file_name_2 = QStringLiteral("test_file2");
+    uploader_fut = sf_client.get_new_uploader(test_content.size(), test_dir, test_file_name_2);
     {
         QFutureWatcher<std::shared_ptr<Uploader>> w;
         QSignalSpy spy(&w, &decltype(w)::finished);
@@ -104,6 +109,35 @@ TEST(SF, CreateUploaderWithCommitAndDispose)
 
     // check that files are exactly the same than before the second uploader
     EXPECT_EQ(sf_files, sf_files_after_dispose);
+
+    // create a downloader
+    auto downloader_fut = sf_client.get_new_downloader(test_dir, test_file_name);
+    {
+        QFutureWatcher<sf::Downloader::SPtr> w;
+        QSignalSpy spy(&w, &decltype(w)::finished);
+        w.setFuture(downloader_fut);
+        assert(spy.wait());
+        ASSERT_EQ(spy.count(), 1);
+    }
+
+    auto downloader = downloader_fut.result();
+    ASSERT_NE(downloader, nullptr);
+
+    auto socket_downloader = downloader->socket();
+    ASSERT_NE(socket_downloader, nullptr);
+
+    auto downloader_content = socket_downloader->readAll();
+
+    EXPECT_EQ(downloader_content, test_content);
+
+    auto finish_downloader_fut = downloader->finish_download();
+    {
+        QFutureWatcher<void> w;
+        QSignalSpy spy(&w, &decltype(w)::finished);
+        w.setFuture(finish_downloader_fut);
+        assert(spy.wait());
+        ASSERT_EQ(spy.count(), 1);
+    }
 
     g_unsetenv("XDG_DATA_HOME");
 }

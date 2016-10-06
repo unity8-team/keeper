@@ -20,8 +20,10 @@
 
 #include "helper/metadata.h"
 #include "keeper-task-backup.h"
+#include "manifest.h"
 #include "storage-framework/storage_framework_client.h"
 #include "task-manager.h"
+#include "util/connection-helper.h"
 #include "util/dbus-utils.h"
 
 class TaskManagerPrivate
@@ -42,6 +44,7 @@ public:
     {
         auto const now = QDateTime::currentDateTime();
         backup_dir_name_ = now.toString("dd.MM.yyyy-hh.mm.ss.zzz");
+        active_manifest_.reset(new Manifest(storage_, backup_dir_name_));
         return start_tasks(tasks, Mode::BACKUP);
     }
 
@@ -145,8 +148,40 @@ private:
 
         if (state == Helper::State::COMPLETE || state == Helper::State::FAILED)
         {
-            qDebug() << "STARTING NEXT TASK ---------------------------------------";
-            start_next_task();
+            auto backup_task_ = qSharedPointerDynamicCast<KeeperTaskBackup>(task_);
+            if (backup_task_ && state == Helper::State::COMPLETE && active_manifest_)
+            {
+                qDebug() << "Backup task finished. The file created in storage framework is: [" << backup_task_->get_file_name() << "]";
+                td.metadata.set_property(Metadata::FILE_NAME_KEY, backup_task_->get_file_name());
+                active_manifest_->add_entry(td.metadata);
+            }
+            if (remaining_tasks_.size())
+            {
+                qDebug() << "STARTING NEXT TASK ---------------------------------------";
+                start_next_task();
+            }
+            else
+            {
+                // TODO we should revisit this.
+                // TODO Maybe we could treat the manifest storage as a new task (with a different task type) to check
+                // TODO when all tasks are finished and prompt something to the user.
+                if (active_manifest_ && active_manifest_->get_entries().size())
+                {
+                    qDebug() << "STORING MANIFEST------------";
+                    connections_.connect_oneshot(
+                        active_manifest_.data(),
+                        &Manifest::finished,
+                        std::function<void(bool)>{[this](bool success){
+                            if (!success)
+                                qWarning() << "Manifest store finished with error: " << active_manifest_->error();
+                            else
+                                qDebug() << "Manifest store finished successfully";
+                            active_manifest_.reset();
+                        }}
+                    );
+                    active_manifest_->store();
+                }
+            }
         }
     }
 
@@ -294,6 +329,10 @@ private:
 
     QVariantDictMap state_;
     QSharedPointer<KeeperTask> task_;
+
+    QSharedPointer<Manifest> active_manifest_;
+
+    ConnectionHelper connections_;
 
     mutable QMap<QString,KeeperTask::TaskData> task_data_;
 };

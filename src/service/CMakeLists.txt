@@ -15,6 +15,7 @@ set(SERVICE_LIB_SOURCES
   task-manager.cpp
   keeper-task.cpp
   keeper-task-backup.cpp
+  manifest.cpp
 )
 add_library(
   ${SERVICE_LIB}

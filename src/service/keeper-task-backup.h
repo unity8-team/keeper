@@ -39,6 +39,8 @@ public:
 
     void ask_for_uploader(quint64 n_bytes, QString const & dir_name);
 
+    QString get_file_name() const;
+
 protected:
     QStringList get_helper_urls() const override;
     void init_helper() override;
