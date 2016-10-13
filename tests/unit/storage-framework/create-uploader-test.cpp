@@ -98,6 +98,10 @@ TEST(SF, CreateUploaderWithCommitAndDispose)
     auto socket_downloader = downloader->socket();
     ASSERT_NE(socket_downloader, nullptr);
 
+    if (socket_downloader->atEnd())
+    {
+        EXPECT_TRUE(socket_downloader->waitForReadyRead(5000));
+    }
     auto downloader_content = socket_downloader->readAll();
 
     EXPECT_EQ(downloader_content, test_content);

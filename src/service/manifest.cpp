@@ -116,6 +116,13 @@ public:
                     if (downloader)
                     {
                         auto socket = downloader->socket();
+                        if (socket->atEnd())
+                        {
+                            if (!socket->waitForReadyRead(5000))
+                            {
+                                qWarning() << "Manifest socket was not ready to read after timeout";
+                            }
+                        }
                         auto json_content = socket->readAll();
                         from_json(json_content);
                         downloader->finish_download();
