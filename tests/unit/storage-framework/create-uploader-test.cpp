@@ -82,34 +82,6 @@ TEST(SF, CreateUploaderWithCommitAndDispose)
     EXPECT_EQ(content_file, test_content);
     file.close();
 
-    // get another uploader
-    QString test_file_name_2 = QStringLiteral("test_file2");
-    uploader_fut = sf_client.get_new_uploader(test_content.size(), test_dir, test_file_name_2);
-    {
-        QFutureWatcher<std::shared_ptr<Uploader>> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(uploader_fut);
-        assert(spy.wait());
-        ASSERT_EQ(spy.count(), 1);
-    }
-    uploader = uploader_fut.result();
-    ASSERT_NE(uploader, nullptr);
-
-    // this time we write something and then dispose the uploader
-    socket = uploader->socket();
-    ASSERT_NE(socket, nullptr);
-
-    socket->write(test_content);
-
-    uploader.reset();
-
-    // and the number of files must be 1 as the second one was not committed
-    EXPECT_EQ(StorageFrameworkLocalUtils::check_storage_framework_nb_files(), 1);
-    auto sf_files_after_dispose = StorageFrameworkLocalUtils::get_storage_framework_files();
-
-    // check that files are exactly the same than before the second uploader
-    EXPECT_EQ(sf_files, sf_files_after_dispose);
-
     // create a downloader
     auto downloader_fut = sf_client.get_new_downloader(test_dir, test_file_name);
     {
@@ -138,6 +110,34 @@ TEST(SF, CreateUploaderWithCommitAndDispose)
         assert(spy.wait());
         ASSERT_EQ(spy.count(), 1);
     }
+
+    // get another uploader
+    QString test_file_name_2 = QStringLiteral("test_file2");
+    uploader_fut = sf_client.get_new_uploader(test_content.size(), test_dir, test_file_name_2);
+    {
+        QFutureWatcher<std::shared_ptr<Uploader>> w;
+        QSignalSpy spy(&w, &decltype(w)::finished);
+        w.setFuture(uploader_fut);
+        assert(spy.wait());
+        ASSERT_EQ(spy.count(), 1);
+    }
+    uploader = uploader_fut.result();
+    ASSERT_NE(uploader, nullptr);
+
+    // this time we write something and then dispose the uploader
+    socket = uploader->socket();
+    ASSERT_NE(socket, nullptr);
+
+    socket->write(test_content);
+
+    uploader.reset();
+
+    // and the number of files must be 1 as the second one was not committed
+    EXPECT_EQ(StorageFrameworkLocalUtils::check_storage_framework_nb_files(), 1);
+    auto sf_files_after_dispose = StorageFrameworkLocalUtils::get_storage_framework_files();
+
+    // check that files are exactly the same than before the second uploader
+    EXPECT_EQ(sf_files, sf_files_after_dispose);
 
     g_unsetenv("XDG_DATA_HOME");
 }
