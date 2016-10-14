@@ -26,6 +26,14 @@
 ///
 ///
 
+// JSON Keys
+namespace
+{
+    constexpr const char UUID_KEY[]         = "uuid";
+    constexpr const char DISPLAY_NAME_KEY[] = "display-name";
+    constexpr const char PROPERTIES_KEY[]   = "properties";
+}
+
 // Metadata keys
 const QString Metadata::TYPE_KEY = QStringLiteral("type");
 const QString Metadata::SUBTYPE_KEY = QStringLiteral("subtype");
@@ -34,20 +42,12 @@ const QString Metadata::PACKAGE_KEY = QStringLiteral("package");
 const QString Metadata::TITLE_KEY = QStringLiteral("title");
 const QString Metadata::VERSION_KEY = QStringLiteral("version");
 const QString Metadata::FILE_NAME_KEY = QStringLiteral("file-name");
+const QString Metadata::DISPLAY_NAME_KEY = QStringLiteral("display-name");
 
 // Metadata values
 const QString Metadata::FOLDER_VALUE = QStringLiteral("folder");
 const QString Metadata::SYSTEM_DATA_VALUE = QStringLiteral("system-data");
 const QString Metadata::APPLICATION_VALUE = QStringLiteral("application");
-
-
-// JSON Keys
-namespace
-{
-    constexpr const char UUID_KEY[]         = "uuid";
-    constexpr const char DISPLAY_NAME_KEY[] = "display-name";
-    constexpr const char PROPERTIES_KEY[]   = "properties";
-}
 
 ///
 ///

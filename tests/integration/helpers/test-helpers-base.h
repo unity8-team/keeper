@@ -102,6 +102,8 @@ protected:
     bool cancel_first_task_at_percentage(QSignalSpy & spy, double expected_percentage, QSharedPointer<DBusInterfaceKeeperUser> const & user_iface, int max_timeout_msec = 15000);
 
     QString get_uuid_for_xdg_folder_path(QString const &path, QVariantDictMap const & choices) const;
+    QString get_type_for_xdg_folder_path(QString const &path, QVariantDictMap const & choices) const;
+    QString get_display_name_for_xdg_folder_path(QString const &path, QVariantDictMap const & choices) const;
 
     bool check_manifest_file(QVector<BackupItem> const & backup_items);
 

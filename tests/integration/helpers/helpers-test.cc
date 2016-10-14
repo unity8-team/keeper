@@ -90,7 +90,9 @@ TEST_F(TestHelpers, StartFullTest)
     qDebug() << "User folder UUID is:" << user_folder_uuid;
 
     // FIXME retrieve display-name and type from choices
-    backup_items.push_back(BackupItem{"Music", "folder", user_folder_uuid});
+    backup_items.push_back(BackupItem{get_display_name_for_xdg_folder_path(user_dir, choices.value()),
+                                      get_type_for_xdg_folder_path(user_dir, choices.value()),
+                                      user_folder_uuid});
 
     QString user_option_2 = QStringLiteral("XDG_VIDEOS_DIR");
 
@@ -107,7 +109,9 @@ TEST_F(TestHelpers, StartFullTest)
     qDebug() << "User folder 2 UUID is:" << user_folder_uuid_2;
 
     // FIXME retrieve display-name and type from choices
-    backup_items.push_back(BackupItem{"Movies", "folder", user_folder_uuid_2});
+    backup_items.push_back(BackupItem{get_display_name_for_xdg_folder_path(user_dir_2, choices.value()),
+                                      get_type_for_xdg_folder_path(user_dir_2, choices.value()),
+                                      user_folder_uuid_2});
 
     QSharedPointer<DBusPropertiesInterface> properties_interface(new DBusPropertiesInterface(
                                                             DBusTypes::KEEPER_SERVICE,

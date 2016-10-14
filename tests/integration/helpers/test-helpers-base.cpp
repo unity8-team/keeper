@@ -632,6 +632,53 @@ QString TestHelpersBase::get_uuid_for_xdg_folder_path(QString const &path, QVari
     return QString();
 }
 
+QString TestHelpersBase::get_type_for_xdg_folder_path(QString const &path, QVariantDictMap const & choices) const
+{
+    for(auto iter = choices.begin(); iter != choices.end(); ++iter)
+    {
+        const auto& values = iter.value();
+        auto iter_values = values.find(Metadata::SUBTYPE_KEY);
+        if (iter_values != values.end())
+        {
+            if (iter_values.value().toString() == path)
+            {
+                // got it
+                qDebug() << "iter_values: " << values;
+                auto iter_type = values.find(Metadata::TYPE_KEY);
+                if (iter_type != values.end())
+                {
+                    return iter_type.value().toString();
+                }
+            }
+        }
+    }
+
+    return QString();
+}
+
+QString TestHelpersBase::get_display_name_for_xdg_folder_path(QString const &path, QVariantDictMap const & choices) const
+{
+    for(auto iter = choices.begin(); iter != choices.end(); ++iter)
+    {
+        const auto& values = iter.value();
+        auto iter_values = values.find(Metadata::SUBTYPE_KEY);
+        if (iter_values != values.end())
+        {
+            if (iter_values.value().toString() == path)
+            {
+                // got it
+                auto iter_display_name = values.find(Metadata::DISPLAY_NAME_KEY);
+                if (iter_display_name != values.end())
+                {
+                    return iter_display_name.value().toString();
+                }
+            }
+        }
+    }
+
+    return QString();
+}
+
 bool TestHelpersBase::check_manifest_file(QVector<BackupItem> const & backup_items)
 {
     auto dir_name = StorageFrameworkLocalUtils::get_storage_framework_dir_name();
