@@ -52,14 +52,14 @@ public:
         qDebug() << "Helper " <<  static_cast<void*>(helper_.data()) << " was created";
     }
 
-    void ask_for_uploader(quint64 n_bytes)
+    void ask_for_uploader(quint64 n_bytes, QString const & dir_name)
     {
         qDebug() << "asking storage framework for a socket";
 
         helper_->set_expected_size(n_bytes);
 
         connections_.connect_future(
-            storage_->get_new_uploader(n_bytes),
+            storage_->get_new_uploader(n_bytes, dir_name),
             std::function<void(std::shared_ptr<Uploader> const&)>{
                 [this](std::shared_ptr<Uploader> const& uploader){
                     qDebug() << "uploader is" << static_cast<void*>(uploader.get());
@@ -94,17 +94,20 @@ KeeperTaskBackup::~KeeperTaskBackup() = default;
 QStringList KeeperTaskBackup::get_helper_urls() const
 {
     Q_D(const KeeperTaskBackup);
+
     return d->get_helper_urls();
 }
 
 void KeeperTaskBackup::init_helper()
 {
     Q_D(KeeperTaskBackup);
+
     d->init_helper();
 }
 
-void KeeperTaskBackup::ask_for_uploader(quint64 n_bytes)
+void KeeperTaskBackup::ask_for_uploader(quint64 n_bytes, QString const & dir_name)
 {
     Q_D(KeeperTaskBackup);
-    d->ask_for_uploader(n_bytes);
+
+    d->ask_for_uploader(n_bytes, dir_name);
 }

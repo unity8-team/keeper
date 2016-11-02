@@ -42,8 +42,10 @@ public:
     StorageFrameworkClient(QObject *parent = nullptr);
     virtual ~StorageFrameworkClient();
 
-    QFuture<std::shared_ptr<Uploader>> get_new_uploader(int64_t n_bytes);
+    QFuture<std::shared_ptr<Uploader>> get_new_uploader(int64_t n_bytes, QString const & dir_name);
+    static QString timeToString(QDateTime const time = QDateTime::currentDateTime());
 
+    static QString const KEEPER_FOLDER;
 private:
 
     void add_accounts_task(std::function<void(QVector<unity::storage::qt::client::Account::SPtr> const&)> task);
@@ -51,6 +53,10 @@ private:
 
     unity::storage::qt::client::Account::SPtr choose(QVector<unity::storage::qt::client::Account::SPtr> const& choices) const;
     unity::storage::qt::client::Root::SPtr choose(QVector<unity::storage::qt::client::Root::SPtr> const& choices) const;
+
+    QFuture<unity::storage::qt::client::Folder::SPtr> create_keeper_folder(unity::storage::qt::client::Folder::SPtr const & root, QString const & dir_name);
+
+    QFuture<unity::storage::qt::client::Folder::SPtr> create_storage_framework_folder(unity::storage::qt::client::Folder::SPtr const & root, QString const & dir_name);
 
     unity::storage::qt::client::Runtime::SPtr runtime_;
     ConnectionHelper connection_helper_;
