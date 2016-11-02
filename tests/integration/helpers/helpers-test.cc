@@ -154,7 +154,7 @@ TEST_F(TestHelpers, StartFullTestCancelling)
     qDebug() << "USER DIR:" << user_dir;
 
     // fill something in the music dir
-    FileUtils::fillTemporaryDirectory(user_dir, qrand() % 100);
+    FileUtils::fillTemporaryDirectory(user_dir, qrand() % 1000);
 
     // search for the user folder uuid
     auto user_folder_uuid = get_uuid_for_xdg_folder_path(user_dir, choices.value());
@@ -168,7 +168,7 @@ TEST_F(TestHelpers, StartFullTestCancelling)
     qDebug() << "USER DIR 2:" << user_dir_2;
 
     // fill something in the music dir
-    FileUtils::fillTemporaryDirectory(user_dir_2, qrand() % 100);
+    FileUtils::fillTemporaryDirectory(user_dir_2, qrand() % 1000);
 
     // search for the user folder uuid
     auto user_folder_uuid_2 = get_uuid_for_xdg_folder_path(user_dir_2, choices.value());
@@ -189,7 +189,7 @@ TEST_F(TestHelpers, StartFullTestCancelling)
     QDBusReply<void> backup_reply = user_iface->call("StartBackup", QStringList{user_folder_uuid, user_folder_uuid_2});
     ASSERT_TRUE(backup_reply.isValid()) << qPrintable(dbus_test_runner.sessionConnection().lastError().message());
 
-    EXPECT_TRUE(cancel_first_task_at_percentage(spy, 0.20, user_iface));
+    EXPECT_TRUE(cancel_first_task_at_percentage(spy, 0.05, user_iface));
 
     // wait until all the tasks have the action state "complete"
     // this one uses pooling so it should just call Get once
