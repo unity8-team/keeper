@@ -137,6 +137,31 @@ bool analyze_task_percentage_values(QString const & uuid, QList<QVariantMap> con
             return false;
         }
         previous_percentage = percentage_double;
+
+        // check the percentages for completed and queued states
+        QVariant action;
+        if (!get_task_property("action", (*iter), action))
+        {
+            qWarning() << Q_FUNC_INFO << ": Action was not found for task: " << uuid;
+            return false;
+        }
+        auto current_action = action.toString();
+        if (current_action == "queued")
+        {
+            if (percentage_double != 0.0)
+            {
+                qWarning() << Q_FUNC_INFO << ": Percentage for queue state is not 0.0 for task: " << uuid;
+                return false;
+            }
+        }
+        else if (current_action == "complete")
+        {
+            if (percentage_double != 1.0)
+            {
+                qWarning() << Q_FUNC_INFO << ": Percentage for complete state is not 1.0 for task: " << uuid;
+                return false;
+            }
+        }
     }
     return true;
 }
@@ -187,6 +212,15 @@ bool analyze_task_action_values(QString const & uuid, QList<QVariantMap> const &
         }
         auto current_action = action.toString();
 
+        if (previous_action == "none")
+        {
+            // check that the very first state is queued
+            if (action.toString() != "queued")
+            {
+                qWarning() << Q_FUNC_INFO << ": Bad initial state. Expecting [queued] and found: [" << action.toString() << "]";
+                return false;
+            }
+        }
         if (!check_valid_action_state_step(previous_action, action.toString()))
         {
             qWarning() << Q_FUNC_INFO << ": Bad action state step: previous state=" << previous_action << ", current=" << action.toString();
