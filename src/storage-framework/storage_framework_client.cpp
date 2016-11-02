@@ -127,7 +127,7 @@ StorageFrameworkClient::get_new_uploader(int64_t n_bytes, QString const & dir_na
                         else
                         {
                             auto const now = QDateTime::currentDateTime();
-                            auto const filename = QStringLiteral("Backup_%1").arg(now.toString("dd.MM.yyyy-hh.mm.ss.zzz"));
+                            auto const filename = QStringLiteral("Backup_%1").arg(timeToString());
                             connection_helper_.connect_future(
                                 keeper_root->create_file(filename, n_bytes),
                                 std::function<void(std::shared_ptr<sf::Uploader> const&)>{
@@ -154,6 +154,15 @@ StorageFrameworkClient::get_new_uploader(int64_t n_bytes, QString const & dir_na
     });
 
     return fi.future();
+}
+
+QString
+StorageFrameworkClient::timeToString(QDateTime const time)
+{
+    // add milliseconds to isoDate as seconds is not enough for
+    // very fast cases and for unit and integration tests.
+    auto iso_date = time.toString(Qt::ISODate);
+    return iso_date + time.toString(".zzz");
 }
 
 QFuture<sf::Folder::SPtr>

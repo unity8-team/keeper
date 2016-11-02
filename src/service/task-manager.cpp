@@ -41,7 +41,7 @@ public:
     bool start_backup(QList<Metadata> const& tasks)
     {
         auto const now = QDateTime::currentDateTime();
-        backup_dir_name_ = now.toString("dd.MM.yyyy-hh.mm.ss.zzz");
+        backup_dir_name_ = now.toString(Qt::ISODate);
         return start_tasks(tasks, Mode::BACKUP);
     }
 

@@ -43,6 +43,7 @@ public:
     virtual ~StorageFrameworkClient();
 
     QFuture<std::shared_ptr<Uploader>> get_new_uploader(int64_t n_bytes, QString const & dir_name);
+    static QString timeToString(QDateTime const time = QDateTime::currentDateTime());
 
     static QString const KEEPER_FOLDER;
 private:

@@ -41,6 +41,7 @@ TEST(SF, CreateUploaderWithCommitAndDispose)
     QString test_dir = QStringLiteral("test_dir");
 
     g_setenv("XDG_DATA_HOME", tmp_dir.path().toLatin1().data(), true);
+    qDebug() << "XDG_DATA_HOME is:" << qPrintable(tmp_dir.path());
 
     StorageFrameworkClient sf_client;
     auto uploader_fut = sf_client.get_new_uploader(test_content.size(), test_dir);
@@ -63,18 +64,18 @@ TEST(SF, CreateUploaderWithCommitAndDispose)
     uploader->commit();
 
     spy_commit.wait();
-    EXPECT_EQ(spy_commit.count(), 1);
+    EXPECT_EQ(1, spy_commit.count());
 
-    auto sf_files = StorageFrameworkLocalUtils::get_storage_framework_files();
+    const auto sf_files = StorageFrameworkLocalUtils::get_storage_framework_files();
     ASSERT_EQ(sf_files.size(), 1);
 
     // check that the file path ends up with the keeper folder
-    EXPECT_TRUE(sf_files.at(0).path().endsWith(QString("%1%2%3").arg(StorageFrameworkClient::KEEPER_FOLDER).arg(QDir::separator()).arg(test_dir)));
+    EXPECT_TRUE(sf_files.at(0).path().endsWith(QStringLiteral("%1%2%3").arg(StorageFrameworkClient::KEEPER_FOLDER).arg(QDir::separator()).arg(test_dir)));
 
     // check the file content
     QFile file(sf_files.at(0).absoluteFilePath());
     ASSERT_TRUE(file.open(QIODevice::ReadOnly | QIODevice::Text)) << qPrintable(file.errorString());
-    auto content_file = file.readAll();
+    const auto content_file = file.readAll();
     EXPECT_EQ(content_file, test_content);
     file.close();
 
@@ -100,7 +101,7 @@ TEST(SF, CreateUploaderWithCommitAndDispose)
 
     // and the number of files must be 1 as the second one was not committed
     EXPECT_EQ(StorageFrameworkLocalUtils::check_storage_framework_nb_files(), 1);
-    auto sf_files_after_dispose = StorageFrameworkLocalUtils::get_storage_framework_files();
+    const auto sf_files_after_dispose = StorageFrameworkLocalUtils::get_storage_framework_files();
 
     // check that files are exactly the same than before the second uploader
     EXPECT_EQ(sf_files, sf_files_after_dispose);

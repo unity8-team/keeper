@@ -17,13 +17,6 @@ add_executable(
   create-uploader-test.cpp
 )
 
-set_target_properties(
-  ${STORAGE_FRAMEWORK_UPLOADER_TEST}
-  PROPERTIES
-  COMPILE_FLAGS -fPIC
-  AUTOMOC TRUE
-)
-
 target_link_libraries(
   ${STORAGE_FRAMEWORK_UPLOADER_TEST}
   ${UNIT_TEST_LIBRARIES}
