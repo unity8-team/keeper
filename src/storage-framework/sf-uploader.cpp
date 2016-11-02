@@ -48,8 +48,18 @@ StorageFrameworkUploader::commit()
             [this](std::shared_ptr<unity::storage::qt::client::File> const& file){
                 auto const success = bool(file);
                 qDebug() << "commit finished with" << success;
+                if (success)
+                {
+                    file_name_after_commit_ = file->name();
+                }
                 Q_EMIT(commit_finished(success));
             }
         }
     );
+}
+
+QString
+StorageFrameworkUploader::file_name() const
+{
+    return file_name_after_commit_;
 }

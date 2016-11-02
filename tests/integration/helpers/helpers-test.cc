@@ -20,7 +20,6 @@
  */
 
 #include "test-helpers-base.h"
-#include "tests/utils/storage-framework-local.h"
 
 class TestHelpers: public TestHelpersBase
 {
@@ -62,6 +61,8 @@ TEST_F(TestHelpers, StartFullTest)
     // starts the services, including keeper-service
     start_tasks();
 
+    QVector<BackupItem> backup_items;
+
     QSharedPointer<DBusInterfaceKeeperUser> user_iface(new DBusInterfaceKeeperUser(
                                                             DBusTypes::KEEPER_SERVICE,
                                                             DBusTypes::KEEPER_USER_PATH,
@@ -88,6 +89,11 @@ TEST_F(TestHelpers, StartFullTest)
     ASSERT_FALSE(user_folder_uuid.isEmpty());
     qDebug() << "User folder UUID is:" << user_folder_uuid;
 
+    // FIXME retrieve display-name and type from choices
+    backup_items.push_back(BackupItem{get_display_name_for_xdg_folder_path(user_dir, choices.value()),
+                                      get_type_for_xdg_folder_path(user_dir, choices.value()),
+                                      user_folder_uuid});
+
     QString user_option_2 = QStringLiteral("XDG_VIDEOS_DIR");
 
     auto user_dir_2 = qgetenv(user_option_2.toLatin1().data());
@@ -101,6 +107,11 @@ TEST_F(TestHelpers, StartFullTest)
     auto user_folder_uuid_2 = get_uuid_for_xdg_folder_path(user_dir_2, choices.value());
     ASSERT_FALSE(user_folder_uuid_2.isEmpty());
     qDebug() << "User folder 2 UUID is:" << user_folder_uuid_2;
+
+    // FIXME retrieve display-name and type from choices
+    backup_items.push_back(BackupItem{get_display_name_for_xdg_folder_path(user_dir_2, choices.value()),
+                                      get_type_for_xdg_folder_path(user_dir_2, choices.value()),
+                                      user_folder_uuid_2});
 
     QSharedPointer<DBusPropertiesInterface> properties_interface(new DBusPropertiesInterface(
                                                             DBusTypes::KEEPER_SERVICE,
@@ -126,6 +137,9 @@ TEST_F(TestHelpers, StartFullTest)
 
     // check that the content of the file is the expected
     EXPECT_TRUE(StorageFrameworkLocalUtils::check_storage_framework_files(QStringList{user_dir, user_dir_2}));
+
+    // finally check that we have a valid manifest file.
+    EXPECT_TRUE(check_manifest_file(backup_items));
 }
 
 TEST_F(TestHelpers, StartFullTestCancelling)

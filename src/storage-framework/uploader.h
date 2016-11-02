@@ -37,6 +37,7 @@ public:
 
     virtual std::shared_ptr<QLocalSocket> socket() =0;
     virtual void commit() =0;
+    virtual QString file_name() const =0;
 
 Q_SIGNALS:
 

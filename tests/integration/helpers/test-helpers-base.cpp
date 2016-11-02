@@ -20,6 +20,9 @@
  */
 #include "test-helpers-base.h"
 
+#include "service/manifest.h"
+#include "storage-framework/storage_framework_client.h"
+
 #include <sys/types.h>
 #include <signal.h>
 
@@ -615,7 +618,7 @@ QString TestHelpersBase::get_uuid_for_xdg_folder_path(QString const &path, QVari
     for(auto iter = choices.begin(); iter != choices.end(); ++iter)
     {
         const auto& values = iter.value();
-        auto iter_values = values.find("subtype");
+        auto iter_values = values.find(Metadata::SUBTYPE_KEY);
         if (iter_values != values.end())
         {
             if (iter_values.value().toString() == path)
@@ -627,6 +630,136 @@ QString TestHelpersBase::get_uuid_for_xdg_folder_path(QString const &path, QVari
     }
 
     return QString();
+}
+
+QString TestHelpersBase::get_type_for_xdg_folder_path(QString const &path, QVariantDictMap const & choices) const
+{
+    for(auto iter = choices.begin(); iter != choices.end(); ++iter)
+    {
+        const auto& values = iter.value();
+        auto iter_values = values.find(Metadata::SUBTYPE_KEY);
+        if (iter_values != values.end())
+        {
+            if (iter_values.value().toString() == path)
+            {
+                // got it
+                qDebug() << "iter_values: " << values;
+                auto iter_type = values.find(Metadata::TYPE_KEY);
+                if (iter_type != values.end())
+                {
+                    return iter_type.value().toString();
+                }
+            }
+        }
+    }
+
+    return QString();
+}
+
+QString TestHelpersBase::get_display_name_for_xdg_folder_path(QString const &path, QVariantDictMap const & choices) const
+{
+    for(auto iter = choices.begin(); iter != choices.end(); ++iter)
+    {
+        const auto& values = iter.value();
+        auto iter_values = values.find(Metadata::SUBTYPE_KEY);
+        if (iter_values != values.end())
+        {
+            if (iter_values.value().toString() == path)
+            {
+                // got it
+                auto iter_display_name = values.find(Metadata::DISPLAY_NAME_KEY);
+                if (iter_display_name != values.end())
+                {
+                    return iter_display_name.value().toString();
+                }
+            }
+        }
+    }
+
+    return QString();
+}
+
+bool TestHelpersBase::check_manifest_file(QVector<BackupItem> const & backup_items)
+{
+    auto dir_name = StorageFrameworkLocalUtils::get_storage_framework_dir_name();
+    if (dir_name.isEmpty())
+    {
+        qWarning() << "ERROR: could not find storage framework dir name";
+        return false;
+    }
+
+    QSharedPointer<StorageFrameworkClient> sf_client(new StorageFrameworkClient);
+    Manifest manifest_read(sf_client, dir_name);
+    QSignalSpy spy_read(&manifest_read, &Manifest::finished);
+
+    manifest_read.read();
+
+    // wait for the manifest to be read
+    spy_read.wait();
+
+    if (!spy_read.count())
+    {
+        qWarning() << "Failed reading manifest file";
+        return false;
+    }
+
+    auto arguments = spy_read.takeFirst();
+    if (!arguments.at(0).toBool())
+    {
+        qWarning() << "Manifest::read returned no success reading the manifest file";
+    }
+
+    auto metadata_with_sf = manifest_read.get_entries();
+
+    if (metadata_with_sf.size() != backup_items.size())
+    {
+        qWarning() << "We found: [" << metadata_with_sf.size() << "] items in the manifest file. [" << backup_items.size() << "] expected.";
+        return false;
+    }
+
+    for (auto const & backup_item : backup_items)
+    {
+        bool item_found = false;
+        for (auto const & metadata : metadata_with_sf)
+        {
+            if (metadata.uuid() == backup_item.uuid)
+            {
+                item_found = true;
+                if (metadata.display_name() != backup_item.display_name)
+                {
+                    qWarning() << "Display name for backup item: " << backup_item.uuid << " does not match.";
+                    qWarning() << "Expected: [" << backup_item.display_name << "], Found: [" << metadata.display_name() << "]";
+                    return false;
+                }
+                QString prop_value;
+                if (!metadata.get_property(Metadata::TYPE_KEY, prop_value))
+                {
+                    qWarning() << "Property " << Metadata::TYPE_KEY << " was not found in the manifest file for item: " << backup_item.uuid;
+                    return false;
+                }
+
+                if (prop_value != backup_item.type)
+                {
+                    qWarning() << "Type for backup item: " << backup_item.uuid << " does not match.";
+                    qWarning() << "Expected: [" << backup_item.type << "], Found: [" << prop_value << "]";
+                    return false;
+                }
+
+                if (!metadata.get_property(Metadata::FILE_NAME_KEY, prop_value))
+                {
+                    qWarning() << "Property " << Metadata::FILE_NAME_KEY << " was not found in the manifest file for item: " << backup_item.uuid;
+                    return false;
+                }
+            }
+        }
+        if (!item_found)
+        {
+            qWarning() << "Item with uuid: " << backup_item.uuid << " was not found in the manifest file";
+            return false;
+        }
+    }
+
+    return true;
 }
 
 bool TestHelpersBase::start_dbus_monitor()
