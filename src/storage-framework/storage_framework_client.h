@@ -42,8 +42,8 @@ public:
     StorageFrameworkClient(QObject *parent = nullptr);
     virtual ~StorageFrameworkClient();
 
-    QFuture<std::shared_ptr<Uploader>> get_new_uploader(int64_t n_bytes, QString const & dir_name);
-    static QString timeToString(QDateTime const time = QDateTime::currentDateTime());
+    QFuture<std::shared_ptr<Uploader>> get_new_uploader(int64_t n_bytes, QString const & dir_name, QString const & file_name);
+    QFuture<unity::storage::qt::client::Downloader::SPtr> get_new_downloader(QString const & dir_name, QString const & file_name);
 
     static QString const KEEPER_FOLDER;
 private:
@@ -54,9 +54,9 @@ private:
     unity::storage::qt::client::Account::SPtr choose(QVector<unity::storage::qt::client::Account::SPtr> const& choices) const;
     unity::storage::qt::client::Root::SPtr choose(QVector<unity::storage::qt::client::Root::SPtr> const& choices) const;
 
-    QFuture<unity::storage::qt::client::Folder::SPtr> create_keeper_folder(unity::storage::qt::client::Folder::SPtr const & root, QString const & dir_name);
-
-    QFuture<unity::storage::qt::client::Folder::SPtr> create_storage_framework_folder(unity::storage::qt::client::Folder::SPtr const & root, QString const & dir_name);
+    QFuture<unity::storage::qt::client::Folder::SPtr> get_keeper_folder(unity::storage::qt::client::Folder::SPtr const & root, QString const & dir_name, bool create_if_not_exists);
+    QFuture<unity::storage::qt::client::Folder::SPtr> get_storage_framework_folder(unity::storage::qt::client::Folder::SPtr const & root, QString const & dir_name, bool create_if_not_exists);
+    QFuture<unity::storage::qt::client::File::SPtr> get_storage_framework_file(unity::storage::qt::client::Folder::SPtr const & root, QString const & file_name);
 
     unity::storage::qt::client::Runtime::SPtr runtime_;
     ConnectionHelper connection_helper_;

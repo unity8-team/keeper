@@ -58,8 +58,10 @@ public:
 
         helper_->set_expected_size(n_bytes);
 
+        const auto file_name = QString("%1.keeper").arg(task_data_.metadata.display_name());
+
         connections_.connect_future(
-            storage_->get_new_uploader(n_bytes, dir_name),
+            storage_->get_new_uploader(n_bytes, dir_name, file_name),
             std::function<void(std::shared_ptr<Uploader> const&)>{
                 [this](std::shared_ptr<Uploader> const& uploader){
                     qDebug() << "uploader is" << static_cast<void*>(uploader.get());
@@ -77,8 +79,15 @@ public:
         );
     }
 
+    QString get_file_name() const
+    {
+        auto backup_helper = qSharedPointerDynamicCast<BackupHelper>(helper_);
+        return backup_helper->get_uploader_committed_file_name();
+    }
+
 private:
     ConnectionHelper connections_;
+    QString file_name_;
 };
 
 KeeperTaskBackup::KeeperTaskBackup(TaskData const & task_data,
@@ -110,4 +119,11 @@ void KeeperTaskBackup::ask_for_uploader(quint64 n_bytes, QString const & dir_nam
     Q_D(KeeperTaskBackup);
 
     d->ask_for_uploader(n_bytes, dir_name);
+}
+
+QString KeeperTaskBackup::get_file_name() const
+{
+    Q_D(const KeeperTaskBackup);
+
+    return d->get_file_name();
 }

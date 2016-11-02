@@ -151,4 +151,14 @@ int check_storage_framework_nb_files()
         : -1;
 }
 
+QString get_storage_framework_dir_name()
+{
+    QDir sf_dir;
+    auto exists = find_storage_framework_dir(sf_dir);
+
+    return exists
+            ? sf_dir.dirName()
+            : "";
+}
+
 } // namespace StorageFrameworkLocalUtils

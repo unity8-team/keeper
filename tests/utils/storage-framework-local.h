@@ -37,4 +37,6 @@ namespace StorageFrameworkLocalUtils
     bool extract_tar_contents(QString const & tar_path, QString const & destination, bool compression=false);
 
     QFileInfoList get_storage_framework_files();
+
+    QString get_storage_framework_dir_name();
 }

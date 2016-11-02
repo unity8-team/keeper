@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <QJsonObject>
 #include <QMap>
 #include <QString>
 
@@ -30,6 +31,7 @@ class Metadata
 public:
 
     Metadata();
+    explicit Metadata(QJsonObject const & json_object);
     Metadata(QString const& uuid, QString const& display_name);
 
     // metadata keys
@@ -39,6 +41,8 @@ public:
     static QString const PACKAGE_KEY;
     static QString const TITLE_KEY;
     static QString const VERSION_KEY;
+    static QString const FILE_NAME_KEY;
+    static QString const DISPLAY_NAME_KEY;
 
     // metadata values
     static QString const FOLDER_VALUE;
@@ -51,6 +55,8 @@ public:
     void set_property(QString const& property_name, QString const& value);
 
     QMap<QString,QString> get_public_properties() const;
+
+    QJsonObject json() const;
 
 private:
 
