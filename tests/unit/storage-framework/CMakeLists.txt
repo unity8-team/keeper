@@ -1,0 +1,42 @@
+add_definitions(
+  -DCMAKE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+  -DCMAKE_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+#
+# storage-framework-folder-test
+#
+
+set(
+  STORAGE_FRAMEWORK_UPLOADER_TEST
+  create-uploader-test
+)
+
+add_executable(
+  ${STORAGE_FRAMEWORK_UPLOADER_TEST}
+  create-uploader-test.cpp
+)
+
+target_link_libraries(
+  ${STORAGE_FRAMEWORK_UPLOADER_TEST}
+  ${UNIT_TEST_LIBRARIES}
+  Qt5::Core
+  Qt5::DBus
+  Qt5::Test
+)
+
+add_test(
+  NAME ${STORAGE_FRAMEWORK_UPLOADER_TEST}
+  COMMAND ${STORAGE_FRAMEWORK_UPLOADER_TEST}
+)
+
+#
+#
+#
+
+set(
+  COVERAGE_TEST_TARGETS
+  ${COVERAGE_TEST_TARGETS}
+  ${STORAGE_FRAMEWORK_UPLOADER_TEST}
+  PARENT_SCOPE
+)

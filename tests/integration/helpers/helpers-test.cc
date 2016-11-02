@@ -20,6 +20,7 @@
  */
 
 #include "test-helpers-base.h"
+#include "tests/utils/storage-framework-local.h"
 
 class TestHelpers: public TestHelpersBase
 {
@@ -124,7 +125,7 @@ TEST_F(TestHelpers, StartFullTest)
     EXPECT_TRUE(wait_for_all_tasks_have_action_state({user_folder_uuid, user_folder_uuid_2}, "complete", user_iface));
 
     // check that the content of the file is the expected
-    EXPECT_TRUE(check_storage_framework_files(QStringList{user_dir, user_dir_2}));
+    EXPECT_TRUE(StorageFrameworkLocalUtils::check_storage_framework_files(QStringList{user_dir, user_dir_2}));
 }
 
 TEST_F(TestHelpers, StartFullTestCancelling)
@@ -195,7 +196,7 @@ TEST_F(TestHelpers, StartFullTestCancelling)
     EXPECT_TRUE(wait_for_all_tasks_have_action_state({user_folder_uuid, user_folder_uuid_2}, "cancelled", user_iface));
 
     // check that we have no files in storage framework
-    EXPECT_EQ(0, check_storage_framework_nb_files());
+    EXPECT_EQ(0, StorageFrameworkLocalUtils::check_storage_framework_nb_files());
 }
 
 TEST_F(TestHelpers, SimplyCheckThatTheSecondDBusInterfaceIsFine)

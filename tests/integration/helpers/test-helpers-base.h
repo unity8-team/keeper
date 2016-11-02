@@ -85,16 +85,6 @@ protected:
 
     bool init_helper_registry(QString const& registry);
 
-    int check_storage_framework_nb_files();
-
-    bool check_storage_framework_files(QStringList const & source_dirs, bool compression=false);
-
-    bool compare_tar_content (QString const & tar_path, QString const & source_dir, bool compression);
-
-    bool extract_tar_contents(QString const & tar_path, QString const & destination, bool compression=false);
-
-    QFileInfoList get_storage_framework_files();
-
     bool wait_for_all_tasks_have_action_state(QStringList const & uuids, QString const & action_state, QSharedPointer<DBusInterfaceKeeperUser> const & keeper_user_iface, int max_timeout_msec = 15000);
 
     bool check_task_has_action_state(QVariantDictMap const & state, QString const & uuid, QString const & action_state);
