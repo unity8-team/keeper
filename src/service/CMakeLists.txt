@@ -16,6 +16,7 @@ set(SERVICE_LIB_SOURCES
   keeper-task.cpp
   keeper-task-backup.cpp
   manifest.cpp
+  metadata-provider.h
 )
 add_library(
   ${SERVICE_LIB}

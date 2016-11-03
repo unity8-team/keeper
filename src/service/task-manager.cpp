@@ -44,7 +44,7 @@ public:
     {
         auto const now = QDateTime::currentDateTime();
         backup_dir_name_ = now.toString(Qt::ISODate);
-        active_manifest_.reset(new Manifest(storage_, backup_dir_name_));
+        active_manifest_.reset(new Manifest(storage_, backup_dir_name_), [](Manifest *m){m->deleteLater();});
         return start_tasks(tasks, Mode::BACKUP);
     }
 

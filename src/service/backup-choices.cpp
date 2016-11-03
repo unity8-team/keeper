@@ -45,22 +45,30 @@ namespace
     }
 }
 
-BackupChoices::BackupChoices() =default;
+BackupChoices::BackupChoices(QObject *parent)
+    : MetadataProvider(parent)
+{
+}
 
 BackupChoices::~BackupChoices() =default;
 
 QVector<Metadata>
 BackupChoices::get_backups() const
 {
-    QVector<Metadata> ret;
+    return backups_;
+}
 
+void
+BackupChoices::get_backups_async()
+{
+    backups_.clear();
     //
     //  System Data
     //
     {
         Metadata m(generate_new_uuid(), "System Data"); // FIXME: how to i18n in a Qt DBus service?
         m.set_property(Metadata::TYPE_KEY, Metadata::SYSTEM_DATA_VALUE);
-        ret.push_back(m);
+        backups_.push_back(m);
     }
 
     //
@@ -118,7 +126,7 @@ BackupChoices::get_backups() const
                 if (version != QJsonValue::Undefined)
                     m.set_property(Metadata::VERSION_KEY, version.toString());
 
-                ret.push_back(m);
+                backups_.push_back(m);
             }
         }
     }
@@ -148,9 +156,9 @@ BackupChoices::get_backups() const
             Metadata m(keystr, name);
             m.set_property(Metadata::TYPE_KEY, Metadata::FOLDER_VALUE);
             m.set_property(Metadata::SUBTYPE_KEY, locations.front());
-            ret.push_back(m);
+            backups_.push_back(m);
         }
     }
 
-    return ret;
+    Q_EMIT(finished());
 }

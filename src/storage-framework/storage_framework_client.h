@@ -44,6 +44,7 @@ public:
 
     QFuture<std::shared_ptr<Uploader>> get_new_uploader(int64_t n_bytes, QString const & dir_name, QString const & file_name);
     QFuture<unity::storage::qt::client::Downloader::SPtr> get_new_downloader(QString const & dir_name, QString const & file_name);
+    QFuture<QVector<QString>> get_keeper_dirs();
 
     static QString const KEEPER_FOLDER;
 private:
@@ -57,6 +58,7 @@ private:
     QFuture<unity::storage::qt::client::Folder::SPtr> get_keeper_folder(unity::storage::qt::client::Folder::SPtr const & root, QString const & dir_name, bool create_if_not_exists);
     QFuture<unity::storage::qt::client::Folder::SPtr> get_storage_framework_folder(unity::storage::qt::client::Folder::SPtr const & root, QString const & dir_name, bool create_if_not_exists);
     QFuture<unity::storage::qt::client::File::SPtr> get_storage_framework_file(unity::storage::qt::client::Folder::SPtr const & root, QString const & file_name);
+    QFuture<QVector<QString>> get_storage_framework_dirs(unity::storage::qt::client::Folder::SPtr const & root);
 
     unity::storage::qt::client::Runtime::SPtr runtime_;
     ConnectionHelper connection_helper_;

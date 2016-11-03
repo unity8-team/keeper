@@ -75,6 +75,53 @@ set_property(
   APPEND PROPERTY COMPILE_DEFINITIONS HELPER_REGISTRY="${CMAKE_CURRENT_BINARY_DIR}/${HELPERS_TEST}-registry.json"
 )
 
+#
+#   restore-test
+#
+set(
+  RESTORE_TEST
+  restore-test
+)
+
+add_executable(
+  ${RESTORE_TEST}
+  ${interface_files}
+  restore-test.cpp
+  test-helpers-base.cpp
+)
+
+set_target_properties(
+  ${RESTORE_TEST}
+  PROPERTIES
+  COMPILE_FLAGS -fPIC
+  AUTOMOC TRUE
+)
+
+target_link_libraries(
+  ${RESTORE_TEST}
+  ${HELPERS_TEST_DEPS_LDFLAGS}
+  ${INTEGRATION_TEST_LIBRARIES}
+  qdbus-stubs-tests
+  Qt5::DBus
+  Qt5::Test
+  Qt5::Network
+  Qt5::Core
+)
+
+add_test(
+  NAME ${RESTORE_TEST}
+  COMMAND ${RESTORE_TEST}
+)
+
+set(
+  FOLDER_BACKUP_EXEC
+  ${KEEPER_HELPER_TEST_LOCATION}
+)
+
+set_property(
+  TARGET ${RESTORE_TEST}
+  APPEND PROPERTY COMPILE_DEFINITIONS HELPER_REGISTRY="${CMAKE_CURRENT_BINARY_DIR}/${HELPERS_TEST}-registry.json"
+)
 
 #
 #  helpers-test-failure

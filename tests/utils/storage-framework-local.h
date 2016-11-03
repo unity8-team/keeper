@@ -28,6 +28,8 @@ namespace StorageFrameworkLocalUtils
 {
     bool find_storage_framework_dir(QDir & dir);
 
+    bool find_storage_framework_root_dir(QDir & dir);
+
     int check_storage_framework_nb_files();
 
     bool check_storage_framework_files(QStringList const & source_dirs, bool compression=false);

@@ -33,33 +33,12 @@ KeeperUser::KeeperUser(Keeper* keeper)
 
 KeeperUser::~KeeperUser() =default;
 
-namespace
-{
-    QVariantMap strings_to_variants(const QMap<QString,QString>& strings)
-    {
-        QVariantMap variants;
-
-        for (auto it=strings.begin(), end=strings.end(); it!=end; ++it)
-            variants.insert(it.key(), QVariant::fromValue(it.value()));
-
-        return variants;
-    }
-
-    QVariantDictMap choices_to_variant_dict_map(const QVector<Metadata>& choices)
-    {
-        QVariantDictMap ret;
-
-        for (auto const& metadata : choices)
-            ret.insert(metadata.uuid(), strings_to_variants(metadata.get_public_properties()));
-
-        return ret;
-    }
-}
-
 QVariantDictMap
 KeeperUser::GetBackupChoices()
 {
-    return choices_to_variant_dict_map(keeper_.get_backup_choices());
+    auto bus = connection();
+    auto& msg = message();
+    return keeper_.get_backup_choices_var_dict_map(bus, msg);
 }
 
 void
@@ -67,15 +46,9 @@ KeeperUser::StartBackup (const QStringList& keys)
 {
     Q_ASSERT(calledFromDBus());
 
-    auto const unhandled = keeper_.start_tasks(keys);
-
-    if (!unhandled.empty())
-    {
-        QString text = QStringLiteral("unhandled uuids:");
-        for (auto const& uuid : unhandled)
-            text += ' ' + uuid;
-        connection().send(message().createErrorReply(QDBusError::InvalidArgs, text));
-    }
+    auto bus = connection();
+    auto& msg = message();
+    keeper_.start_tasks(keys, bus, msg);
 }
 
 void
@@ -87,7 +60,11 @@ KeeperUser::Cancel()
 QVariantDictMap
 KeeperUser::GetRestoreChoices()
 {
-    return choices_to_variant_dict_map(keeper_.get_restore_choices());
+    Q_ASSERT(calledFromDBus());
+
+    auto bus = connection();
+    auto& msg = message();
+    return keeper_.get_restore_choices(bus, msg);
 }
 
 void
