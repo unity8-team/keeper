@@ -25,6 +25,7 @@
 
 #include <QDebug>
 #include <QString>
+#include <QSignalSpy>
 
 #include <cstdio>
 #include <memory>
@@ -66,6 +67,15 @@ private:
 TEST_F(UserDirsProviderTest, UserDirs)
 {
     BackupChoices tmp;
+
+    QSignalSpy spy(&tmp, &MetadataProvider::finished);
+    tmp.get_backups_async();
+
+    if (!spy.count())
+    {
+        EXPECT_TRUE(spy.wait());
+    }
+    EXPECT_EQ(spy.count(), 1);
     const auto choices = tmp.get_backups();
 
     // confirm that choices has the advertised public properties

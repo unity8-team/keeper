@@ -314,6 +314,22 @@ void TestHelpersBase::start_tasks()
                                         KEEPER_SERVICE_BIN,
                                         QStringList()));
         keeper_service->start(dbus_test_runner.sessionConnection());
+
+        auto on_finished = [](int exit_code, QProcess::ExitStatus exit_status)
+        {
+            qDebug() << "Keeper process finished: Exit code: " << exit_code;
+            if (exit_status == QProcess::CrashExit)
+            {
+                qDebug() << "************** KEEPER SERVICE CRASHED ******************";
+            }
+
+
+        };
+
+        QObject::connect(&keeper_service->underlyingProcess(),
+                        static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
+                        on_finished);
+
     }
     catch (std::exception const& e)
     {

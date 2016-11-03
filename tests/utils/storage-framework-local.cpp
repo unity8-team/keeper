@@ -27,7 +27,7 @@
 namespace StorageFrameworkLocalUtils
 {
 
-bool find_storage_framework_dir(QDir & dir)
+bool find_storage_framework_root_dir(QDir & dir)
 {
     auto path = QStandardPaths::locate(QStandardPaths::GenericDataLocation,
                                        "storage-framework",
@@ -40,14 +40,23 @@ bool find_storage_framework_dir(QDir & dir)
     }
     qDebug() << "storage framework directory is" << path;
 
-    auto sf_dir = QDir(QString("%1%2%3").arg(path).arg(QDir::separator()).arg(StorageFrameworkClient::KEEPER_FOLDER));
+    dir = QDir(QString("%1%2%3").arg(path).arg(QDir::separator()).arg(StorageFrameworkClient::KEEPER_FOLDER));
 
-    if (!sf_dir.exists())
+    if (!dir.exists())
     {
         return false;
     }
-    qDebug() << "Keeper storage framework directory is" << sf_dir.absolutePath();
+    qDebug() << "Keeper storage framework directory is" << dir.absolutePath();
+    return true;
+}
 
+bool find_storage_framework_dir(QDir & dir)
+{
+    QDir sf_dir;
+    if (!find_storage_framework_root_dir(sf_dir))
+    {
+        return false;
+    }
     // return the first directory that we find here, in alphabetical order
     auto dirs_in_sf_folder = sf_dir.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
     if (!dirs_in_sf_folder.size())

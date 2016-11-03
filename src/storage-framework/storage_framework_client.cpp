@@ -221,6 +221,50 @@ StorageFrameworkClient::get_new_downloader(QString const & dir_name, QString con
     return fi.future();
 }
 
+QFuture<QVector<QString>>
+StorageFrameworkClient::get_keeper_dirs()
+{
+    QFutureInterface<QVector<QString>> fi;
+
+    add_roots_task([this, fi](QVector<sf::Root::SPtr> const& roots)
+    {
+        auto root = choose(roots);
+        if (root)
+        {
+            connection_helper_.connect_future(
+                     get_storage_framework_folder(root, KEEPER_FOLDER, false),
+                     std::function<void(sf::Folder::SPtr const &)>{
+                          [this, fi, root](sf::Folder::SPtr const & keeper_folder){
+                              QVector<QString> res;
+                              if (keeper_folder)
+                              {
+                                  qDebug() << "Keeper root folder was found";
+                                  connection_helper_.connect_future(
+                                          get_storage_framework_dirs(keeper_folder),
+                                          std::function<void(QVector<QString> const &)> {
+                                              [this, fi, res](QVector<QString> const & keeper_folders){
+                                                  QFutureInterface<decltype(res)> qfi(fi);
+                                                  qfi.reportResult(keeper_folders);
+                                                  qfi.reportFinished();
+                                              }
+                                          }
+                                  );
+                              }
+                              else
+                              {
+                                  qWarning() << "Keeper root folder was not found";
+                                  QFutureInterface<decltype(res)> qfi(fi);
+                                  qfi.reportResult(res);
+                                  qfi.reportFinished();
+                              }
+                          }
+                    }
+            );
+        }
+    });
+    return fi.future();
+}
+
 QFuture<sf::Folder::SPtr>
 StorageFrameworkClient::get_keeper_folder(sf::Folder::SPtr const & root, QString const & dir_name, bool create_if_not_exists)
 {
@@ -341,6 +385,36 @@ StorageFrameworkClient::get_storage_framework_file(sf::Folder::SPtr const & root
                     qfi.reportResult(res);
                     qfi.reportFinished();
                 }
+            }
+        }
+    );
+
+    return fi.future();
+}
+
+QFuture<QVector<QString>>
+StorageFrameworkClient::get_storage_framework_dirs(unity::storage::qt::client::Folder::SPtr const & root)
+{
+    QFutureInterface<QVector<QString>> fi;
+
+    qDebug() << "Keeper folder name: " << root->name();
+    connection_helper_.connect_future(
+        root->list(),
+        std::function<void(QVector<sf::Item::SPtr> const &)>{
+            [this, fi, root](QVector<sf::Item::SPtr> const & items){
+                QVector<QString> res;
+
+                for (auto item : items)
+                {
+                    if (item->type() == unity::storage::ItemType::folder)
+                    {
+                        res.push_back(item->name());
+                    }
+                }
+
+                QFutureInterface<decltype(res)> qfi(fi);
+                qfi.reportResult(res);
+                qfi.reportFinished();
             }
         }
     );

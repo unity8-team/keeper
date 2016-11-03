@@ -52,14 +52,16 @@ public:
 
     virtual ~Keeper();
 
-    QVector<Metadata> get_backup_choices();
-    QVector<Metadata> get_restore_choices();
+    QVariantDictMap get_backup_choices_var_dict_map(QDBusConnection bus, QDBusMessage const & msg);
+    QVariantDictMap get_restore_choices(QDBusConnection bus, QDBusMessage const & msg);
 
     QDBusUnixFileDescriptor StartBackup(QDBusConnection,
                                         QDBusMessage const & message,
                                         quint64 nbytes);
 
-    QStringList start_tasks(QStringList const & uuids);
+    void start_tasks(QStringList const & uuids,
+                            QDBusConnection bus,
+                            QDBusMessage const & msg);
 
     QVariantDictMap get_state() const;
 

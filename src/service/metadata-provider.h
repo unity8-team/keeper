@@ -21,16 +21,23 @@
 
 #include "helper/metadata.h"
 
+#include <QObject>
 #include <QVector>
 
-class MetadataProvider
+class MetadataProvider : public QObject
 {
+    Q_OBJECT
 public:
     virtual ~MetadataProvider() =0;
     virtual QVector<Metadata> get_backups() const =0;
+    virtual void get_backups_async() =0;
+
+Q_SIGNALS:
+    void finished();
 
 protected:
-    MetadataProvider() =default;
+    explicit MetadataProvider(QObject *parent = nullptr) : QObject(parent){};
+    QVector<Metadata> backups_;
 };
 
 inline MetadataProvider::~MetadataProvider() =default;
