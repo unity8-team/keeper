@@ -285,6 +285,7 @@ TEST_F(TestHelpers, Inactivity)
     BackupHelper helper("com.bar_foo_8432.13.1");
 
     QSignalSpy spy(&helper, &BackupHelper::state_changed);
+    QSignalSpy spy_error(&helper, &Helper::error);
     QStringList urls;
     urls << TEST_INACTIVE_HELPER << "/tmp";
     helper.start(urls);
@@ -300,4 +301,8 @@ TEST_F(TestHelpers, Inactivity)
     EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::STARTED);
     arguments = spy.takeFirst();
     EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::CANCELLED);
+
+    ASSERT_EQ(spy_error.count(), 1);
+    arguments = spy_error.takeFirst();
+    EXPECT_EQ(arguments.at(0).toInt(), static_cast<int>(KeeperError::HELPER_INACTIVITY_DETECTED));
 }

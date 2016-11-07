@@ -43,6 +43,7 @@ const QString Metadata::TITLE_KEY = QStringLiteral("title");
 const QString Metadata::VERSION_KEY = QStringLiteral("version");
 const QString Metadata::FILE_NAME_KEY = QStringLiteral("file-name");
 const QString Metadata::DISPLAY_NAME_KEY = QStringLiteral("display-name");
+const QString Metadata::ERROR_MESSAGE_KEY = QStringLiteral("error-message");
 
 // Metadata values
 const QString Metadata::FOLDER_VALUE = QStringLiteral("folder");

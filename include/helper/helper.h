@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <keeper/errors.h>
 #include <util/attributes.h>
 
 #include <QObject>
@@ -69,6 +70,7 @@ public:
 Q_SIGNALS:
     void state_changed(Helper::State);
     void percent_done_changed(float);
+    void error(KeeperError error);
 
 protected:
     Helper(QString const & appid, const clock_func& clock=default_clock, QObject *parent=nullptr);

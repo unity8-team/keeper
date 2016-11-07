@@ -28,13 +28,14 @@
 #include <QString>
 
 KeeperTaskPrivate::KeeperTaskPrivate(KeeperTask * keeper_task,
-                  KeeperTask::TaskData const & task_data,
+                  KeeperTask::TaskData & task_data,
                   QSharedPointer<HelperRegistry> const & helper_registry,
                   QSharedPointer<StorageFrameworkClient> const & storage)
     : q_ptr(keeper_task)
     , task_data_(task_data)
     , helper_registry_(helper_registry)
     , storage_(storage)
+    , error_(KeeperError::OK)
 {
 }
 
@@ -49,8 +50,8 @@ bool KeeperTaskPrivate::start()
     if (urls.isEmpty())
     {
         task_data_.action = helper_->to_string(Helper::State::FAILED);
-        task_data_.error = "no helper information in registry";
-        qWarning() << "ERROR: uuid: " << task_data_.metadata.uuid() << " has no url";
+        error_ = KeeperError::HELPER_BAD_URL;
+        qWarning() << QStringLiteral("Error: uuid %1 has no url").arg(task_data_.metadata.uuid());
         calculate_and_notify_state(Helper::State::FAILED);
         return false;
     }
@@ -132,8 +133,15 @@ QVariantMap KeeperTaskPrivate::calculate_task_state()
     auto const percent_done = helper_->percent_done();
     ret.insert(QStringLiteral("percent-done"), double(percent_done));
 
-    if (task_data_.action == "failed")
-        ret.insert(QStringLiteral("error"), task_data_.error);
+    if (task_data_.action == "failed" || task_data_.action == "cancelled")
+    {
+        auto error = error_;
+        if (task_data_.error != KeeperError::OK)
+        {
+            error = task_data_.error;
+        }
+        ret.insert(QStringLiteral("error"), static_cast<int>(error));
+    }
 
     ret.insert(QStringLiteral("uuid"), uuid);
 
@@ -145,8 +153,13 @@ QVariantMap KeeperTaskPrivate::calculate_task_state()
 
 void KeeperTaskPrivate::calculate_and_notify_state(Helper::State state)
 {
-    state_ = calculate_task_state();
+    recalculate_task_state();
     Q_EMIT(q_ptr->task_state_changed(state));
+}
+
+void KeeperTaskPrivate::recalculate_task_state()
+{
+    state_ = calculate_task_state();
 }
 
 void KeeperTaskPrivate::cancel()
@@ -175,7 +188,25 @@ QVariantMap KeeperTaskPrivate::get_initial_state(KeeperTask::TaskData const &td)
     return ret;
 }
 
-KeeperTask::KeeperTask(TaskData const & task_data,
+QString KeeperTaskPrivate::to_string(Helper::State state)
+{
+    if (helper_)
+    {
+        return helper_->to_string(state);
+    }
+    else
+    {
+        qWarning() << "Asking for the string of a state when the helper is not initialized yet";
+        return "bug";
+    }
+}
+
+KeeperError KeeperTaskPrivate::error() const
+{
+    return error_;
+}
+
+KeeperTask::KeeperTask(TaskData & task_data,
                        QSharedPointer<HelperRegistry> const & helper_registry,
                        QSharedPointer<StorageFrameworkClient> const & storage,
                        QObject *parent)
@@ -207,6 +238,14 @@ QVariantMap KeeperTask::state() const
     return d->state();
 }
 
+void KeeperTask::recalculate_task_state()
+{
+    Q_D(KeeperTask);
+
+    return d->recalculate_task_state();
+}
+
+
 QVariantMap KeeperTask::get_initial_state(KeeperTask::TaskData const &td)
 {
     return KeeperTaskPrivate::get_initial_state(td);
@@ -217,4 +256,18 @@ void KeeperTask::cancel()
     Q_D(KeeperTask);
 
     return d->cancel();
+}
+
+QString KeeperTask::to_string(Helper::State state)
+{
+    Q_D(KeeperTask);
+
+    return d->to_string(state);
+}
+
+KeeperError KeeperTask::error() const
+{
+    Q_D(const KeeperTask);
+
+    return d->error();
 }

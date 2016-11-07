@@ -76,6 +76,8 @@ public:
     {
     }
 
+    enum class ChoicesType { BACKUP_CHOICES, RESTORES_CHOICES };
+
     ~KeeperPrivate() =default;
 
     Q_DISABLE_COPY(KeeperPrivate)
@@ -130,30 +132,40 @@ public:
                             bus.send(reply);
                         }}
                     );
-                    get_restore_choices();
+                    get_choices(restore_choices_, KeeperPrivate::ChoicesType::RESTORES_CHOICES);
                 }
             }}
         );
 
-        get_backup_choices();
+        get_choices(backup_choices_, KeeperPrivate::ChoicesType::BACKUP_CHOICES);
         msg.setDelayedReply(true);
     }
 
-    void get_backup_choices()
+    void get_choices(const QSharedPointer<MetadataProvider> & provider, ChoicesType type)
     {
-        if (cached_backup_choices_.isEmpty())
+        bool check_empty = (type == KeeperPrivate::ChoicesType::BACKUP_CHOICES)
+                            ? cached_backup_choices_.isEmpty() : cached_restore_choices_.isEmpty();
+        if (check_empty)
         {
             connections_.connect_oneshot(
-                backup_choices_.data(),
+                provider.data(),
                 &MetadataProvider::finished,
-                std::function<void()>{[this](){
-                    qDebug() << "Get backups finished";
-                    cached_backup_choices_ = backup_choices_->get_backups();
+                std::function<void()>{[this, provider, type](){
+                    qDebug() << "Get choices finished";
+                    switch (type)
+                    {
+                    case KeeperPrivate::ChoicesType::BACKUP_CHOICES:
+                        cached_backup_choices_ = provider->get_backups();
+                        break;
+                    case KeeperPrivate::ChoicesType::RESTORES_CHOICES:
+                        cached_restore_choices_ = provider->get_backups();
+                        break;
+                    };
                     Q_EMIT(choices_ready());
                 }}
             );
 
-            backup_choices_->get_backups_async();
+            provider->get_backups_async();
         }
         else
         {
@@ -176,7 +188,7 @@ public:
             }}
         );
 
-        get_backup_choices();
+        get_choices(backup_choices_, KeeperPrivate::ChoicesType::BACKUP_CHOICES);
         msg.setDelayedReply(true);
         return QVariantDictMap();
     }
@@ -196,32 +208,9 @@ public:
             }}
         );
 
-        get_restore_choices();
+        get_choices(restore_choices_, KeeperPrivate::ChoicesType::RESTORES_CHOICES);
         msg.setDelayedReply(true);
         return QVariantDictMap();
-    }
-
-    // TODO REFACTOR THIS TO USE THE SAME METHOD POR RESTORES AND BACKUPS
-    void get_restore_choices()
-    {
-        if (cached_restore_choices_.isEmpty())
-        {
-            connections_.connect_oneshot(
-                restore_choices_.data(),
-                &MetadataProvider::finished,
-                std::function<void()>{[this](){
-                    qDebug() << "Get restores finished";
-                    cached_restore_choices_ = restore_choices_->get_backups();
-                    Q_EMIT(choices_ready());
-                }}
-            );
-
-            restore_choices_->get_backups_async();
-        }
-        else
-        {
-            Q_EMIT(choices_ready());
-        }
     }
 
     QVariantDictMap get_state() const

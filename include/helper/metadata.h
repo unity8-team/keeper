@@ -43,6 +43,7 @@ public:
     static QString const VERSION_KEY;
     static QString const FILE_NAME_KEY;
     static QString const DISPLAY_NAME_KEY;
+    static QString const ERROR_MESSAGE_KEY;
 
     // metadata values
     static QString const FOLDER_VALUE;

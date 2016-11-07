@@ -31,7 +31,7 @@ class KeeperTaskBackupPrivate : public KeeperTaskPrivate
     Q_DECLARE_PUBLIC(KeeperTaskBackup)
 public:
     KeeperTaskBackupPrivate(KeeperTask * keeper_task,
-                            KeeperTask::TaskData const & task_data,
+                            KeeperTask::TaskData & task_data,
                             QSharedPointer<HelperRegistry> const & helper_registry,
                             QSharedPointer<StorageFrameworkClient> const & storage)
         : KeeperTaskPrivate(keeper_task, task_data, helper_registry, storage)
@@ -50,6 +50,7 @@ public:
         qDebug() << "Initializing a backup helper";
         helper_.reset(new BackupHelper(DEKKO_APP_ID), [](Helper *h){h->deleteLater();});
         qDebug() << "Helper " <<  static_cast<void*>(helper_.data()) << " was created";
+        QObject::connect(helper_.data(), &Helper::error, [this](KeeperError error){ error_ = error;});
     }
 
     void ask_for_uploader(quint64 n_bytes, QString const & dir_name)
@@ -90,7 +91,7 @@ private:
     QString file_name_;
 };
 
-KeeperTaskBackup::KeeperTaskBackup(TaskData const & task_data,
+KeeperTaskBackup::KeeperTaskBackup(TaskData & task_data,
            QSharedPointer<HelperRegistry> const & helper_registry,
            QSharedPointer<StorageFrameworkClient> const & storage,
            QObject *parent)
