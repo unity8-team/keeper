@@ -44,7 +44,7 @@ public:
         Metadata metadata;
     };
 
-    KeeperTask(TaskData const & task_data,
+    KeeperTask(TaskData & task_data,
                QSharedPointer<HelperRegistry> const & helper_registry,
                QSharedPointer<StorageFrameworkClient> const & storage,
                QObject *parent = nullptr);
@@ -54,11 +54,13 @@ public:
 
     bool start();
     QVariantMap state() const;
+    void recalculate_task_state();
 
     static QVariantMap get_initial_state(KeeperTask::TaskData const &td);
 
     void cancel();
 
+    QString to_string(Helper::State state);
 Q_SIGNALS:
     void task_state_changed(Helper::State state);
     void task_socket_ready(int socket_descriptor);

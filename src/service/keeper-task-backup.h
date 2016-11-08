@@ -29,7 +29,7 @@ class KeeperTaskBackup : public KeeperTask
     Q_DECLARE_PRIVATE(KeeperTaskBackup)
 public:
 
-    KeeperTaskBackup(TaskData const & task_data,
+    KeeperTaskBackup(TaskData & task_data,
                QSharedPointer<HelperRegistry> const & helper_registry,
                QSharedPointer<StorageFrameworkClient> const & storage,
                QObject *parent = nullptr);
