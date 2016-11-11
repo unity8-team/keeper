@@ -22,6 +22,7 @@
 
 #include "util/connection-helper.h"
 #include "storage-framework/uploader.h"
+#include "storage-framework/downloader.h"
 
 #include <unity/storage/qt/client/client-api.h>
 
@@ -43,7 +44,7 @@ public:
     virtual ~StorageFrameworkClient();
 
     QFuture<std::shared_ptr<Uploader>> get_new_uploader(int64_t n_bytes, QString const & dir_name, QString const & file_name);
-    QFuture<unity::storage::qt::client::Downloader::SPtr> get_new_downloader(QString const & dir_name, QString const & file_name);
+    QFuture<std::shared_ptr<Downloader>> get_new_downloader(QString const & dir_name, QString const & file_name);
     QFuture<QVector<QString>> get_keeper_dirs();
 
     static QString const KEEPER_FOLDER;

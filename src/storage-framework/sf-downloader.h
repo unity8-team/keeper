@@ -14,35 +14,35 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authors:
- *     Charles Kerr <charles.kerr@canonical.com>
+ *   Charles Kerr <charles.kerr@canonical.com>
  */
 
 #pragma once
 
-#include "helper/registry.h" // parent class
+#include "util/connection-helper.h"
+#include "storage-framework/downloader.h"
 
-#include <QObject>
-#include <QString>
+#include <unity/storage/qt/client/client-api.h>
+
+#include <QLocalSocket>
 
 #include <memory>
 
-/**
- * A HelpeRegistry that gets info from an XDG_DATA dir config file.
- */
-class DataDirRegistry: public HelperRegistry
+class StorageFrameworkDownloader final: public Downloader
 {
 public:
-    DataDirRegistry();
-    ~DataDirRegistry();
 
-    Q_DISABLE_COPY(DataDirRegistry)
-
-    QStringList get_backup_helper_urls(Metadata const& metadata) override;
-
-    QStringList get_restore_helper_urls(Metadata const& metadata) override;
+    StorageFrameworkDownloader(unity::storage::qt::client::Downloader::SPtr const& uploader,
+                               qint64 file_size,
+                               QObject * parent = nullptr);
+    std::shared_ptr<QLocalSocket> socket() override;
+    void finish() override;
+    qint64 file_size() const override;
 
 private:
-    class Impl;
-    friend class Impl;
-    std::unique_ptr<Impl> impl_;
+
+    unity::storage::qt::client::Downloader::SPtr const downloader_;
+    qint64 file_size_;
+
+    ConnectionHelper connections_;
 };

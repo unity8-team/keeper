@@ -199,7 +199,7 @@ FileUtils::compareFiles(QString const & filePath1, QString const & filePath2)
         return false;
     }
     auto checksum1 = calculate_checksum(filePath1, QCryptographicHash::Md5);
-    auto checksum2 = calculate_checksum(filePath1, QCryptographicHash::Md5);
+    auto checksum2 = calculate_checksum(filePath2, QCryptographicHash::Md5);
     if (checksum1 != checksum2)
     {
         qWarning() << "Checksum for file:" << filePath1 << "differ";

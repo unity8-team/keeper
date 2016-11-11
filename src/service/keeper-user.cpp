@@ -70,9 +70,11 @@ KeeperUser::GetRestoreChoices()
 void
 KeeperUser::StartRestore (const QStringList& keys)
 {
-    // FIXME: writeme
+    Q_ASSERT(calledFromDBus());
 
-    qDebug() << keys;
+    auto bus = connection();
+    auto& msg = message();
+    keeper_.start_tasks(keys, bus, msg, true);
 }
 
 QVariantDictMap

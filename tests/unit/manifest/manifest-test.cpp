@@ -78,7 +78,7 @@ TEST(ManifestClass, StoreTest)
 
     g_setenv("XDG_DATA_HOME", tmp_dir.path().toLatin1().data(), true);
 
-    QSharedPointer<StorageFrameworkClient> sf_client(new StorageFrameworkClient);
+    QSharedPointer<StorageFrameworkClient> sf_client(new StorageFrameworkClient, [](StorageFrameworkClient* sf){sf->deleteLater();});
     Manifest manifest(sf_client, test_dir);
 
     auto objects_to_test = 10;

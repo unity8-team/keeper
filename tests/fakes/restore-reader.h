@@ -14,24 +14,28 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authors:
- *     Charles Kerr <charles.kerr@canonical.com>
+ *     Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
 
 #pragma once
 
-#include "helper/metadata.h"
+#include <QObject>
+#include <QFile>
+#include <QLocalSocket>
 
-#include <QString>
-
-class HelperRegistry
+class RestoreReader : public QObject
 {
+    Q_OBJECT
 public:
-    virtual ~HelperRegistry() =default;
-    Q_DISABLE_COPY(HelperRegistry)
+    RestoreReader(qint64 fd, QString const & file_path, QObject * parent = nullptr);
+    ~RestoreReader() = default;
 
-    virtual QStringList get_backup_helper_urls(Metadata const& task) =0;
-    virtual QStringList get_restore_helper_urls(Metadata const& task) =0;
-
-protected:
-    HelperRegistry() =default;
+public Q_SLOTS:
+    void read_chunk();
+    void finish();
+private:
+    QLocalSocket socket_;
+    QString file_path_;
+    qint64 n_bytes_read_ = 0;
+    QFile file_;
 };

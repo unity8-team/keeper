@@ -59,9 +59,14 @@ public:
                                         QDBusMessage const & message,
                                         quint64 nbytes);
 
+
+    QDBusUnixFileDescriptor StartRestore(QDBusConnection,
+                                        QDBusMessage const & message);
+
     void start_tasks(QStringList const & uuids,
                             QDBusConnection bus,
-                            QDBusMessage const & msg);
+                            QDBusMessage const & msg,
+                            bool reset_cached_choices = false);
 
     QVariantDictMap get_state() const;
 

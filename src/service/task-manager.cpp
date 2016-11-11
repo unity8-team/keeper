@@ -20,6 +20,7 @@
 
 #include "helper/metadata.h"
 #include "keeper-task-backup.h"
+#include "keeper-task-restore.h"
 #include "manifest.h"
 #include "storage-framework/storage_framework_client.h"
 #include "task-manager.h"
@@ -50,6 +51,7 @@ public:
 
     bool start_restore(QList<Metadata> const& tasks)
     {
+        qDebug() << "Starting restore...";
         return start_tasks(tasks, Mode::RESTORE);
     }
 
@@ -75,6 +77,22 @@ public:
                 return;
             }
             backup_task_->ask_for_uploader(n_bytes, backup_dir_name_);
+        }
+    }
+
+    void ask_for_downloader()
+    {
+        qDebug() << "Starting restore";
+        if (task_)
+        {
+            auto restore_task_ = qSharedPointerDynamicCast<KeeperTaskRestore>(task_);
+            if (!restore_task_)
+            {
+                qWarning() << "Only restore tasks are allowed to ask for storage framework downloaders";
+                // TODO Mark this as an error at the current task and move to the next task
+                return;
+            }
+            restore_task_->ask_for_downloader();
         }
     }
 
@@ -158,7 +176,6 @@ private:
 
     void on_helper_state_changed(Helper::State state)
     {
-        qDebug() << "Task State changed";
         auto backup_task_ = qSharedPointerDynamicCast<KeeperTaskBackup>(task_);
         auto& td = task_data_[current_task_];
         update_task_state(td);
@@ -174,6 +191,7 @@ private:
             {
                 qDebug() << "Backup task finished. The file created in storage framework is: [" << backup_task_->get_file_name() << "]";
                 td.metadata.set_property(Metadata::FILE_NAME_KEY, backup_task_->get_file_name());
+                td.metadata.set_property(Metadata::DIR_NAME_KEY, backup_dir_name_);
                 active_manifest_->add_entry(td.metadata);
             }
             if (remaining_tasks_.size())
@@ -217,14 +235,16 @@ private:
         qDebug() << "Creating task for uuid = " << uuid;
         // initialize a new task
 
-        task_.data()->disconnect();
+        if (task_)
+            task_.data()->disconnect();
+
         if (mode_ == Mode::BACKUP)
         {
             task_.reset(new KeeperTaskBackup(td, helper_registry_, storage_));
         }
         else
         {
-            // TODO initialize a Restore task
+            task_.reset(new KeeperTaskRestore(td, helper_registry_, storage_));
         }
 
         qDebug() << "task created: " << state_;
@@ -394,6 +414,13 @@ void TaskManager::ask_for_uploader(quint64 n_bytes)
     Q_D(TaskManager);
 
     d->ask_for_uploader(n_bytes);
+}
+
+void TaskManager::ask_for_downloader()
+{
+    Q_D(TaskManager);
+
+    d->ask_for_downloader();
 }
 
 void TaskManager::cancel()

@@ -179,15 +179,19 @@ bool check_valid_action_state_step(QString const &previous, QString const &curre
     {
         return previous == "saving" || previous == "queued";
     }
+    else if (current == "restoring")
+    {
+        return previous == "restoring" || previous == "queued";
+    }
     else if (current == "finishing")
     {
-        return previous == "finishing" || previous == "saving";
+        return previous == "finishing" || previous == "saving" || previous == "restoring";
     }
     else if (current == "complete")
     {
         // we may pass from "saving" to "complete" if we don't have enough time
         // to emit the "finishing" state change
-        return previous == "complete" || previous == "finishing" || previous == "saving";
+        return previous == "complete" || previous == "finishing" || previous == "saving" || previous == "restoring";
     }
     else if (current == "failed")
     {
@@ -704,7 +708,7 @@ bool TestHelpersBase::check_manifest_file(QVector<BackupItem> const & backup_ite
         return false;
     }
 
-    QSharedPointer<StorageFrameworkClient> sf_client(new StorageFrameworkClient);
+    QSharedPointer<StorageFrameworkClient> sf_client(new StorageFrameworkClient, [](StorageFrameworkClient* sf){sf->deleteLater();});
     Manifest manifest_read(sf_client, dir_name);
     QSignalSpy spy_read(&manifest_read, &Manifest::finished);
 
@@ -716,6 +720,7 @@ bool TestHelpersBase::check_manifest_file(QVector<BackupItem> const & backup_ite
     if (!spy_read.count())
     {
         qWarning() << "Failed reading manifest file";
+        sf_client.reset();
         return false;
     }
 

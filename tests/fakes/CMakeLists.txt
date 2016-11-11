@@ -30,6 +30,16 @@ target_link_libraries(
 )
 
 add_executable(
+    ${RESTORE_HELPER}
+    fake-restore-helper.cpp
+    restore-reader.cpp
+)
+target_link_libraries(
+    ${RESTORE_HELPER}
+    ${LINK_LIBS}
+)
+
+add_executable(
     ${BACKUP_HELPER_FAILURE}
     fake-backup-helper.cpp
 )
