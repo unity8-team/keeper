@@ -20,6 +20,9 @@
 #include "restore-reader.h"
 
 #include <QCoreApplication>
+#include <QCryptographicHash>
+
+static constexpr int UPLOAD_BUFFER_MAX_ {1024*16};
 
 RestoreReader::RestoreReader(qint64 fd, QString const & file_path, QObject * parent)
     : QObject(parent)
@@ -37,16 +40,23 @@ RestoreReader::RestoreReader(qint64 fd, QString const & file_path, QObject * par
 
 void RestoreReader::read_chunk()
 {
-    qDebug() << "Reading chunk";
-    auto bytes = socket_.readAll();
-    qDebug() << "I read: " << bytes.size() << " bytes";
-    n_bytes_read_ += bytes.size();
-    qDebug() << "Total of: " << n_bytes_read_;
-    file_.write(bytes);
+    while(socket_.bytesAvailable())
+    {
+        auto bytes = socket_.readAll();
+        n_bytes_read_ += bytes.size();
+        bytes_read_ += bytes;
+
+//        QCryptographicHash hash(QCryptographicHash::Sha1);
+//        hash.addData(bytes.left(50));
+//        qDebug() << "Hash: " << hash.result().toHex() << " Size: " << bytes.size() << " total: " << n_bytes_read_;
+
+        qDebug() << "Hash: bytes " << bytes.size() << " total: " << n_bytes_read_;
+    }
 }
 
 void RestoreReader::finish()
 {
+    file_.write(bytes_read_);
     qDebug() << "Finishing";
     file_.close();
     QCoreApplication::exit();

@@ -30,6 +30,7 @@
 #include <QString>
 #include <QTimer>
 #include <QVector>
+#include <QCryptographicHash>
 
 #include <fcntl.h>
 #include <sys/types.h>
@@ -172,9 +173,10 @@ private:
     void on_data_uploaded(qint64 n)
     {
         n_uploaded_ += n;
+        qDebug() << "Hash TOTAL :" << n_uploaded_;
         q_ptr->record_data_transferred(n);
         qDebug("n_read %zu n_uploaded %zu (newly uploaded %zu)", size_t(n_read_), size_t(n_uploaded_), size_t(n));
-        process_more();
+//        process_more();
         check_for_done();
     }
 
@@ -207,6 +209,9 @@ private:
             }
 
             // try to empty the upload buf
+            QCryptographicHash hash(QCryptographicHash::Sha1);
+            hash.addData(upload_buffer_.left(50));
+            qDebug() << "Hash send: " << hash.result().toHex() << " Size: " << upload_buffer_.size();
             const auto n = write_socket_.write(upload_buffer_);
             if (n > 0) {
                 upload_buffer_.remove(0, int(n));

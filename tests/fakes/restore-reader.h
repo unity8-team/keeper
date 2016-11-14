@@ -38,4 +38,5 @@ private:
     QString file_path_;
     qint64 n_bytes_read_ = 0;
     QFile file_;
+    QByteArray bytes_read_;
 };
