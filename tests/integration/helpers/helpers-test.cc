@@ -171,6 +171,9 @@ TEST_F(TestHelpers, StartFullTest)
     // Keeper uses the display name plus .keeper extension for the files it creates
     QFileInfo sf_file_info(storage_framework_file_path);
     EXPECT_EQ(sf_file_info.fileName(), QStringLiteral("%1.keeper").arg(get_display_name_for_xdg_folder_path(user_dir, choices.value())));
+
+    qDebug() << "-----------------------------------------------------";
+    system("cat /tmp/restore-helper-output");
 }
 
 //TEST_F(TestHelpers, StartFullTestCancelling)

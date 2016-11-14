@@ -30,13 +30,38 @@
 #include <QDBusReply>
 #include <QProcessEnvironment>
 #include <QLocalSocket>
+#include <QtGlobal>
 
 #include <unistd.h>
+
+void myMessageHandler(QtMsgType type, const QMessageLogContext &, const QString & msg)
+{
+    QString txt;
+    switch (type) {
+    case QtDebugMsg:
+        txt = QString("Debug: %1").arg(msg);
+        break;
+    case QtWarningMsg:
+        txt = QString("Warning: %1").arg(msg);
+    break;
+    case QtCriticalMsg:
+        txt = QString("Critical: %1").arg(msg);
+    break;
+    case QtFatalMsg:
+        txt = QString("Fatal: %1").arg(msg);
+        abort();
+    }
+    QFile outFile("/tmp/restore-helper-output");
+    outFile.open(QIODevice::WriteOnly | QIODevice::Append);
+    QTextStream ts(&outFile);
+    ts << txt << endl;
+}
 
 int
 main(int argc, char **argv)
 {
     QCoreApplication app(argc, argv);
+    qInstallMessageHandler(myMessageHandler);
 
     // dump the inputs to stdout
     qDebug() << "argc:" << argc;
@@ -47,6 +72,7 @@ main(int argc, char **argv)
         qDebug() << "env" << qPrintable(key) << "is" << qPrintable(env.value(key));
 
     qDebug() << "Retrieving connection";
+
     // ask the service for a socket
     auto conn = QDBusConnection::connectToBus(QDBusConnection::SessionBus, DBusTypes::KEEPER_SERVICE);
     const auto object_path = QString::fromUtf8(DBusTypes::KEEPER_HELPER_PATH);
