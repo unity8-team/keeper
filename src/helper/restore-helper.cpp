@@ -92,6 +92,7 @@ public:
         q_ptr->set_expected_size(downloader->file_size());
 
         qDebug() << "Storage framework socket is: " << static_cast<void *>(downloader_->socket().get());
+
         // listen for data ready to read
         QObject::connect(downloader_->socket().get(), &QLocalSocket::readyRead,
             std::bind(&RestoreHelperPrivate::on_ready_read, this)
@@ -102,7 +103,7 @@ public:
             std::bind(&RestoreHelperPrivate::on_data_uploaded, this, std::placeholders::_1)
         ));
 
-        // maybe there's data already to be read
+        // maybe there's already readable data
         process_more();
 
         reset_inactivity_timer();
@@ -183,10 +184,13 @@ private:
 
     void process_more()
     {
-        qDebug() << "RestoreHelper::process_more()";
+        qDebug() << Q_FUNC_INFO;
+
         if (!downloader_)
             return;
-        qDebug() << "RestoreHelper::process_more() 2";
+
+        qDebug() << Q_FUNC_INFO << "2";
+
         char readbuf[UPLOAD_BUFFER_MAX_];
         auto socket = downloader_->socket();
         for(;;)
@@ -200,11 +204,11 @@ private:
                 if (n > 0) {
                     n_read_ += n;
                     upload_buffer_.append(readbuf, int(n));
-                    qDebug("upload_buffer_.size() is %zu after reading %zu from helper", size_t(upload_buffer_.size()), size_t(n));
+                    qDebug("buffer_.size() is %zu after reading %zu", size_t(upload_buffer_.size()), size_t(n));
                 }
                 else if (n < 0) {
                     read_error_ = true;
-                    qDebug() << "Read error in restore helper: " << socket->errorString();
+                    qDebug() << "Read error in" << Q_FUNC_INFO << ":" << socket->errorString();
                     stop();
                     return;
                 }
@@ -220,7 +224,7 @@ private:
             const auto n = write_socket_.write(upload_buffer_);
             if (n > 0) {
                 upload_buffer_.remove(0, int(n));
-                qDebug("upload_buffer_.size() is %zu after writing %zu to cloud", size_t(upload_buffer_.size()), size_t(n));
+                qDebug("buffer_.size() is %zu after writing %zu", size_t(upload_buffer_.size()), size_t(n));
                 continue;
             }
             else {

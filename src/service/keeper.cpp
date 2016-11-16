@@ -168,7 +168,7 @@ public:
     }
     void get_choices(const QSharedPointer<MetadataProvider> & provider, ChoicesType type)
     {
-        qDebug() << "get_choices()";
+        qDebug() << Q_FUNC_INFO;
         bool check_empty = (type == KeeperPrivate::ChoicesType::BACKUP_CHOICES)
                             ? cached_backup_choices_.isEmpty() : cached_restore_choices_.isEmpty();
         if (check_empty)
@@ -249,7 +249,7 @@ public:
                                          QDBusMessage const & msg,
                                          quint64 n_bytes)
     {
-        qDebug("Keeper::StartBackup(n_bytes=%zu)", size_t(n_bytes));
+        qDebug() << Q_FUNC_INFO << "n_bytes:" << n_bytes;
 
         connections_.connect_oneshot(
             &task_manager_,
@@ -264,7 +264,7 @@ public:
             }
         );
 
-        qDebug() << "Asking for an storage framework socket to the task manager";
+        qDebug() << "Asking TaskManager for a socket to upload to";
         task_manager_.ask_for_uploader(n_bytes);
 
         // tell the caller that we'll be responding async
@@ -274,16 +274,16 @@ public:
 
 
     QDBusUnixFileDescriptor start_restore(QDBusConnection bus,
-                                         QDBusMessage const & msg)
+                                          QDBusMessage const & msg)
     {
-        qDebug() << "Keeper::StartRestore()";
+        qDebug() << Q_FUNC_INFO;
 
         connections_.connect_oneshot(
             &task_manager_,
             &TaskManager::socket_ready,
             std::function<void(int)>{
                 [bus,msg](int fd){
-                    qDebug("RestoreManager returned socket %d", fd);
+                    qDebug("TaskManager::ask_for_downloader() returned socket %d", fd);
                     auto reply = msg.createReply();
                     reply << QVariant::fromValue(QDBusUnixFileDescriptor(fd));
                     bus.send(reply);
@@ -291,7 +291,7 @@ public:
             }
         );
 
-        qDebug() << "Asking for an storage framework socket to the task manager";
+        qDebug() << "Asking TaskManager for a socket to download from";
         task_manager_.ask_for_downloader();
 
         // tell the caller that we'll be responding async
@@ -303,6 +303,7 @@ public:
     {
         task_manager_.cancel();
     }
+
 Q_SIGNALS:
     void backup_choices_ready();
     void restore_choices_ready();

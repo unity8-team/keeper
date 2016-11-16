@@ -27,12 +27,12 @@ class KeeperTaskRestore : public KeeperTask
 {
     Q_OBJECT
     Q_DECLARE_PRIVATE(KeeperTaskRestore)
-public:
 
+public:
     KeeperTaskRestore(TaskData & task_data,
-               QSharedPointer<HelperRegistry> const & helper_registry,
-               QSharedPointer<StorageFrameworkClient> const & storage,
-               QObject *parent = nullptr);
+                      QSharedPointer<HelperRegistry> const & helper_registry,
+                      QSharedPointer<StorageFrameworkClient> const & storage,
+                      QObject *parent = nullptr);
     virtual ~KeeperTaskRestore();
 
     Q_DISABLE_COPY(KeeperTaskRestore)

@@ -82,7 +82,8 @@ public:
 
     void ask_for_downloader()
     {
-        qDebug() << "Starting restore";
+        qDebug() << Q_FUNC_INFO;
+
         if (task_)
         {
             auto restore_task_ = qSharedPointerDynamicCast<KeeperTaskRestore>(task_);

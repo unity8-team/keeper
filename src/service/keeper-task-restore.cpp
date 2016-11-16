@@ -49,7 +49,7 @@ public:
 
     void init_helper()
     {
-        qDebug() << "Initializing a restore helper";
+        qDebug() << Q_FUNC_INFO;
         helper_.reset(new RestoreHelper(DEKKO_APP_ID), [](Helper *h){h->deleteLater();}); // TODO change this to a restore helper
         qDebug() << "Helper " <<  static_cast<void*>(helper_.data()) << " was created";
     }
