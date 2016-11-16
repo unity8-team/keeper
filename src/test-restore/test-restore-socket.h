@@ -35,7 +35,7 @@ class TestRestoreSocket : public QObject
 {
     Q_OBJECT
 public:
-    TestRestoreSocket(QObject *parent = nullptr);
+    explicit TestRestoreSocket(QObject *parent = nullptr);
     virtual ~TestRestoreSocket();
 
     void start(QString const & dir_name, QString const & file_name);
