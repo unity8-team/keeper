@@ -23,7 +23,7 @@
 #include <QCryptographicHash>
 
 //static constexpr int UPLOAD_BUFFER_MAX_ {1024*16};
-constexpr int UPLOAD_BUFFER_MAX_ = 64 * 1024;
+constexpr int UPLOAD_BUFFER_MAX_ = 16 * 1024;
 
 RestoreReader::RestoreReader(qint64 fd, QString const & file_path, QObject * parent)
     : QObject(parent)
@@ -33,40 +33,53 @@ RestoreReader::RestoreReader(qint64 fd, QString const & file_path, QObject * par
     socket_.setSocketDescriptor(fd);
     connect(&socket_, &QLocalSocket::readyRead, this, &RestoreReader::read_chunk);
     connect(&socket_, &QLocalSocket::disconnected, this, &RestoreReader::finish);
-    connect(&file_, &QIODevice::bytesWritten, this, &RestoreReader::onSocketBytesWritten);
+    connect(&file_, &QIODevice::bytesWritten, this, &RestoreReader::on_bytes_written);
     if (!file_.open(QIODevice::WriteOnly | QIODevice::Truncate))
     {
         qFatal("Error opening file");
+    }
+    if (socket_.bytesAvailable())
+    {
+        read_chunk();
     }
 }
 
 void RestoreReader::read_chunk()
 {
-    if (socket_.bytesAvailable())
+    char buffer[UPLOAD_BUFFER_MAX_];
+    int n_read = socket_.read(buffer, UPLOAD_BUFFER_MAX_);
+    if (n_read < 0)
     {
-        char buffer[UPLOAD_BUFFER_MAX_];
-        int n_read = socket_.read(buffer, UPLOAD_BUFFER_MAX_);
-        if (n_read < 0)
-        {
-            qDebug("Failed to read from server");
-            return;
-        }
-        n_bytes_read_ += n_read;
-        file_.write(buffer, n_read);
-        qDebug() << "Hash: bytes total: " << n_bytes_read_;
+        qDebug() << "Failed to read from server" << socket_.errorString();
+        return;
     }
+    n_bytes_read_ += n_read;
+    file_.write(buffer, n_read);
+
+    // THIS IS JUST FOR EXTRA DEBUG INFORMATION
+    QCryptographicHash hash(QCryptographicHash::Sha1);
+    hash.addData(buffer, 100);
+    qDebug() << "Hash: bytes total: " << n_bytes_read_ << " " << hash.result().toHex();
+    // THIS IS JUST FOR EXTRA DEBUG INFORMATION
 }
 
-void RestoreReader::onSocketBytesWritten(int64_t bytes)
+void RestoreReader::on_bytes_written(int64_t bytes)
 {
-    qDebug() << "Wrote " << bytes << " bytes";
-    read_chunk();
+    if (socket_.bytesAvailable())
+    {
+        read_chunk();
+    }
 }
 
 void RestoreReader::finish()
 {
-//    file_.write(bytes_read_);
     qDebug() << "Finishing";
+    auto avail = socket_.bytesAvailable();
+    while (avail > 0)
+    {
+       read_chunk();
+       avail = socket_.bytesAvailable();
+    }
     file_.close();
     QCoreApplication::exit();
 }

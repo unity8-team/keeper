@@ -57,6 +57,7 @@ class TestHelpers: public TestHelpersBase
 
 TEST_F(TestHelpers, StartFullTest)
 {
+    system("rm -f /tmp/restore-helper-output");
     XdgUserDirsSandbox tmp_dir;
 
     // starts the services, including keeper-service

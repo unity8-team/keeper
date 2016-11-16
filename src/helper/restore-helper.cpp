@@ -81,6 +81,8 @@ public:
 
     void set_downloader(std::shared_ptr<Downloader> const& downloader)
     {
+        qDebug() << "RestoreHelper::set_downloader";
+        downloader_ = downloader;
         n_read_ = 0;
         n_uploaded_ = 0;
         read_error_ = false;
@@ -88,20 +90,20 @@ public:
         cancelled_ = false;
 
         q_ptr->set_expected_size(downloader->file_size());
-        downloader_ = downloader;
+
+        qDebug() << "Storage framework socket is: " << static_cast<void *>(downloader_->socket().get());
+        // listen for data ready to read
+        QObject::connect(downloader_->socket().get(), &QLocalSocket::readyRead,
+            std::bind(&RestoreHelperPrivate::on_ready_read, this)
+        );
 
         connections_.remember(QObject::connect(
             &write_socket_, &QLocalSocket::bytesWritten,
             std::bind(&RestoreHelperPrivate::on_data_uploaded, this, std::placeholders::_1)
         ));
 
-        // listen for data ready to read
-        QObject::connect(downloader_->socket().get(), &QLocalSocket::readyRead,
-            std::bind(&RestoreHelperPrivate::on_ready_read, this)
-        );
-
-        // TODO xavi is going to remove this line
-        q_ptr->Helper::on_helper_started();
+        // maybe there's data already to be read
+        process_more();
 
         reset_inactivity_timer();
     }
@@ -173,18 +175,18 @@ private:
     void on_data_uploaded(qint64 n)
     {
         n_uploaded_ += n;
-        qDebug() << "Hash TOTAL :" << n_uploaded_;
         q_ptr->record_data_transferred(n);
         qDebug("n_read %zu n_uploaded %zu (newly uploaded %zu)", size_t(n_read_), size_t(n_uploaded_), size_t(n));
-//        process_more();
+        process_more();
         check_for_done();
     }
 
     void process_more()
     {
+        qDebug() << "RestoreHelper::process_more()";
         if (!downloader_)
             return;
-
+        qDebug() << "RestoreHelper::process_more() 2";
         char readbuf[UPLOAD_BUFFER_MAX_];
         auto socket = downloader_->socket();
         for(;;)
@@ -192,7 +194,7 @@ private:
             if (!socket->bytesAvailable())
                 break;
             // try to fill the upload buf
-            int max_bytes = UPLOAD_BUFFER_MAX_ - upload_buffer_.size();
+            int max_bytes = (UPLOAD_BUFFER_MAX_) - upload_buffer_.size();
             if (max_bytes > 0) {
                 const auto n = socket->read(readbuf, max_bytes);
                 if (n > 0) {
@@ -208,10 +210,13 @@ private:
                 }
             }
 
-            // try to empty the upload buf
+            // THIS IS JUST FOR EXTRA DEBUG INFORMATION
             QCryptographicHash hash(QCryptographicHash::Sha1);
-            hash.addData(upload_buffer_.left(50));
-            qDebug() << "Hash send: " << hash.result().toHex() << " Size: " << upload_buffer_.size();
+            hash.addData(upload_buffer_.left(100));
+            qDebug() << "************************************************ Hash send: " << hash.result().toHex() << " Size: " << upload_buffer_.size() << " Total: " << n_read_;
+            // THIS IS JUST FOR EXTRA DEBUG INFORMATION
+
+            // try to empty the upload buf
             const auto n = write_socket_.write(upload_buffer_);
             if (n > 0) {
                 upload_buffer_.remove(0, int(n));

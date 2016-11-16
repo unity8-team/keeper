@@ -33,6 +33,7 @@
 #include <QtGlobal>
 
 #include <unistd.h>
+#include <sys/ioctl.h>
 
 void myMessageHandler(QtMsgType type, const QMessageLogContext &, const QString & msg)
 {
@@ -94,12 +95,7 @@ main(int argc, char **argv)
 
     // write the blob
     const auto fd = ufd.fileDescriptor();
-
-    QThread reader_thread;
     qDebug() << "The file descriptor obtained is: " << fd;
     RestoreReader reader(fd, TEST_RESTORE_FILE_PATH);
-    reader.moveToThread(&reader_thread);
-    reader_thread.start();
-
     return app.exec();
 }

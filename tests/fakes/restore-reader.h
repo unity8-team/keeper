@@ -33,7 +33,7 @@ public:
 public Q_SLOTS:
     void read_chunk();
     void finish();
-    void onSocketBytesWritten(int64_t bytes);
+    void on_bytes_written(int64_t bytes);
 private:
     QLocalSocket socket_;
     QString file_path_;

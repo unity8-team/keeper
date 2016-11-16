@@ -38,31 +38,67 @@ void TestRestoreSocket::read_data()
 {
     if (socket_->bytesAvailable())
     {
-        char readbuf[UPLOAD_BUFFER_MAX_];
-        // try to fill the upload buf
-        int max_bytes = UPLOAD_BUFFER_MAX_;// - upload_buffer_.size();
-        if (max_bytes > 0) {
-            const auto n = socket_->read(readbuf, max_bytes);
-            if (n > 0) {
-                n_read_ += n;
-                qDebug() << "Read " << n << " bytes. Total: " << n_read_;
+////        char readbuf[UPLOAD_BUFFER_MAX_];
+////        const auto n = socket_->read(readbuf, sizeof(readbuf));
+////        if (n > 0) {
+////            n_read_ += n;
+////            qDebug() << "Read " << n << " bytes. Total: " << n_read_;
+//
+//        char readbuf[64 *1024];
+//        // try to fill the upload buf
+//        int max_bytes = UPLOAD_BUFFER_MAX_;// - upload_buffer_.size();
+//        if (max_bytes > 0) {
+//            const auto n = socket_->read(readbuf, max_bytes);
+//            if (n > 0) {
+//                n_read_ += n;
+//                qDebug() << "Read " << n << " bytes. Total: " << n_read_;
+//
+////                if (file_.isOpen())
+////                {
+////                    file_.write(readbuf, max_bytes);
+////                }
+////            }
+////            else if (n < 0) {
+////                qDebug() << "Read error: " << socket_->errorString();
+////                return;
+//            if (file_.isOpen())
+//            {
+//                file_.write(readbuf, n);
+//            }
+//        }
+//        else if (n < 0) {
+//            qDebug() << "Read error: " << socket_->errorString();
+//            return;
+//        }
+//    }
 
-                if (file_.isOpen())
-                {
-                    file_.write(readbuf, max_bytes);
+                char readbuf[64 *1024];
+                const auto n = socket_->read(readbuf, sizeof(readbuf));
+                if (n > 0) {
+                    n_read_ += n;
+                    qDebug() << "Read " << n << " bytes. Total: " << n_read_;
+                    if (file_.isOpen())
+                    {
+                        file_.write(readbuf, n);
+                    }
                 }
-            }
-            else if (n < 0) {
-                qDebug() << "Read error: " << socket_->errorString();
-                return;
-            }
-        }
+                else if (n < 0) {
+                    qDebug() << "Read error: " << socket_->errorString();
+                    return;
+                }
     }
 }
 
 void TestRestoreSocket::on_disconnected()
 {
     qDebug() << "Socket disconnected";
+    auto avail = socket_->bytesAvailable();
+    while (avail > 0)
+    {
+       read_data();
+       avail = socket_->bytesAvailable();
+    }
+
     if (file_.isOpen())
     {
         file_.close();
