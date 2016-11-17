@@ -35,6 +35,7 @@ public:
 public Q_SLOTS:
     QDBusUnixFileDescriptor StartBackup(quint64 nbytes);
     QDBusUnixFileDescriptor StartRestore();
+    void RestoreReady();
 
     void UpdateStatus(const QString &app_id, const QString &status, double percentage);
 

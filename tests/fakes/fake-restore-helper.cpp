@@ -77,11 +77,11 @@ main(int argc, char **argv)
     // ask the service for a socket
     auto conn = QDBusConnection::connectToBus(QDBusConnection::SessionBus, DBusTypes::KEEPER_SERVICE);
     const auto object_path = QString::fromUtf8(DBusTypes::KEEPER_HELPER_PATH);
-    DBusInterfaceKeeperHelper helper_iface (DBusTypes::KEEPER_SERVICE, object_path, conn);
+    QSharedPointer<DBusInterfaceKeeperHelper> helper_iface (new DBusInterfaceKeeperHelper(DBusTypes::KEEPER_SERVICE, object_path, conn));
 
-    qDebug() << "Is valid:" << helper_iface.isValid();
+    qDebug() << "Is valid:" << helper_iface->isValid();
 
-    auto fd_reply = helper_iface.StartRestore();
+    auto fd_reply = helper_iface->StartRestore();
     fd_reply.waitForFinished();
     if (fd_reply.isError())
     {
@@ -96,6 +96,7 @@ main(int argc, char **argv)
     // write the blob
     const auto fd = ufd.fileDescriptor();
     qDebug() << "The file descriptor obtained is: " << fd;
-    RestoreReader reader(fd, TEST_RESTORE_FILE_PATH);
+    RestoreReader reader(fd, TEST_RESTORE_FILE_PATH, helper_iface);
+
     return app.exec();
 }

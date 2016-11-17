@@ -39,6 +39,8 @@ public:
 
     void ask_for_downloader();
 
+    void restore_ready();
+
 protected:
     QStringList get_helper_urls() const override;
     void init_helper() override;

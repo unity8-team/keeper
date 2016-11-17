@@ -283,7 +283,7 @@ public:
             &TaskManager::socket_ready,
             std::function<void(int)>{
                 [bus,msg](int fd){
-                    qDebug("RestoreManager returned socket %d", fd);
+                    qDebug("GREP RestoreManager returned socket %d", fd);
                     auto reply = msg.createReply();
                     reply << QVariant::fromValue(QDBusUnixFileDescriptor(fd));
                     bus.send(reply);
@@ -297,6 +297,11 @@ public:
         // tell the caller that we'll be responding async
         msg.setDelayedReply(true);
         return QDBusUnixFileDescriptor(0);
+    }
+
+    void restore_ready()
+    {
+        task_manager_.restore_ready();
     }
 
     void cancel()
@@ -374,6 +379,14 @@ Keeper::StartRestore(QDBusConnection bus,
     Q_D(Keeper);
 
     return d->start_restore(bus, msg);
+}
+
+void
+Keeper::RestoreReady()
+{
+    Q_D(Keeper);
+
+    return d->restore_ready();
 }
 
 QVariantDictMap

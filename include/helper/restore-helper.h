@@ -48,6 +48,8 @@ public:
     static constexpr int MAX_INACTIVITY_TIME = 15000;
 
     void set_downloader(std::shared_ptr<Downloader> const& downloader);
+    void restore_ready();
+
     void start(QStringList const& urls) override;
     void stop() override;
     int get_helper_socket() const;

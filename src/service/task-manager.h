@@ -54,6 +54,8 @@ public:
 
     bool start_restore(QList<Metadata> const& tasks);
 
+    void restore_ready();
+
     QVariantDictMap get_state() const;
 
     void ask_for_uploader(quint64 n_bytes);

@@ -63,6 +63,8 @@ public:
     QDBusUnixFileDescriptor StartRestore(QDBusConnection,
                                         QDBusMessage const & message);
 
+    void RestoreReady();
+
     void start_tasks(QStringList const & uuids,
                             QDBusConnection bus,
                             QDBusMessage const & msg,
