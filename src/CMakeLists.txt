@@ -11,7 +11,6 @@ add_subdirectory(service)
 add_subdirectory(storage-framework)
 add_subdirectory(tar)
 add_subdirectory(util)
-add_subdirectory(test-restore)
 
 set(
   COVERAGE_REPORT_TARGETS
