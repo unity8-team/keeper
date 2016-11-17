@@ -30,14 +30,14 @@ public:
     RestoreReader(qint64 fd, QString const & file_path, QObject * parent = nullptr);
     ~RestoreReader() = default;
 
-public Q_SLOTS:
-    void read_chunk();
+private Q_SLOTS:
+    void read_all();
     void finish();
-    void on_bytes_written(int64_t bytes);
+
 private:
+    void check_for_done();
+
     QLocalSocket socket_;
-    QString file_path_;
     qint64 n_bytes_read_ = 0;
     QFile file_;
-    QByteArray bytes_read_;
 };
