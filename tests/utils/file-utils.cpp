@@ -198,8 +198,8 @@ FileUtils::compareFiles(QString const & filePath1, QString const & filePath2)
         qWarning() << "File to compare:" << info2.absoluteFilePath() << "does not exist";
         return false;
     }
-    qDebug() << "File 1 size: " << info1.size();
-    qDebug() << "File 2 size: " << info2.size();
+    qDebug() << "File 1 size: " << info1.size() << info1.absoluteFilePath();
+    qDebug() << "File 2 size: " << info2.size() << info2.absoluteFilePath();
     auto checksum1 = calculate_checksum(filePath1, QCryptographicHash::Md5);
     auto checksum2 = calculate_checksum(filePath2, QCryptographicHash::Md5);
     if (checksum1 != checksum2)
