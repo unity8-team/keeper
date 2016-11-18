@@ -45,21 +45,6 @@ void
 StorageFrameworkDownloader::finish()
 {
     qDebug() << Q_FUNC_INFO << "is finishing";
-
-//    connections_.connect_future(
-//        uploader_->finish_upload(),
-//        std::function<void(std::shared_ptr<unity::storage::qt::client::File> const&)>{
-//            [this](std::shared_ptr<unity::storage::qt::client::File> const& file){
-//                auto const success = bool(file);
-//                qDebug() << "commit finished with" << success;
-//                if (success)
-//                {
-//                    file_name_after_commit_ = file->name();
-//                }
-//                Q_EMIT(commit_finished(success));
-//            }
-//        }
-//    );
     downloader_->finish_download();
     Q_EMIT(download_finished()); // TODO add the code to call finish_download
 }
