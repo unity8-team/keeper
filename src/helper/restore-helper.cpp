@@ -127,7 +127,7 @@ public:
     {
         qDebug() << "GREP DISCONNECTING";
         write_socket_.disconnectFromServer();
-        helper_conn_->disconnectFromServer();
+//        helper_conn_->disconnectFromServer();
         cancelled_ = true;
         q_ptr->Helper::stop();
     }
@@ -157,7 +157,7 @@ public:
             case Helper::State::DATA_COMPLETE: {
                 qDebug() << "Restore helper finished, calling downloader_.finish()";
                 write_socket_.disconnectFromServer();
-                helper_conn_->disconnectFromServer();
+//                helper_conn_->disconnectFromServer();
                 downloader_->finish();
                 downloader_.reset();
                 break;
@@ -181,12 +181,12 @@ public:
         qDebug() << "GREP (((((((((((((((((((((((((((((((((((( HELPER IS READY: Starts sending data: TOTAL TO SEND: " << upload_buffer_.size();
         helper_is_ready_ = true;
 
-        helper_conn_.reset(server_->nextPendingConnection());
-
-        connections_.remember(QObject::connect(
-            helper_conn_.data(), &QLocalSocket::bytesWritten,
-            std::bind(&RestoreHelperPrivate::on_data_uploaded, this, std::placeholders::_1)
-        ));
+//        helper_conn_.reset(server_->nextPendingConnection());
+//
+//        connections_.remember(QObject::connect(
+//            helper_conn_.data(), &QLocalSocket::bytesWritten,
+//            std::bind(&RestoreHelperPrivate::on_data_uploaded, this, std::placeholders::_1)
+//        ));
 //        timer2_.start(10);
         send_data();
     }
@@ -206,7 +206,7 @@ private:
         {
             int bytes_to_send = upload_buffer_.size() < UPLOAD_BUFFER_MAX_ ? upload_buffer_.size() : UPLOAD_BUFFER_MAX_;
             // try to empty the upload buf
-            const auto n = helper_conn_->write(upload_buffer_, bytes_to_send);
+            const auto n = write_socket_.write(upload_buffer_, bytes_to_send);
             if (n > 0) {
                 // THIS IS JUST FOR EXTRA DEBUG INFORMATION
                 QCryptographicHash hash(QCryptographicHash::Sha1);
