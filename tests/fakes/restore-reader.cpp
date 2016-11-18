@@ -34,23 +34,14 @@ RestoreReader::RestoreReader(qint64 fd, QString const & file_path, QSharedPointe
     , helper_iface_(helper_iface)
     , socket_server_(new QLocalSocket(this))
 {
-    socket_.setSocketDescriptor(fd, QLocalSocket::ConnectedState, QIODevice::ReadOnly);
-//    connect(&socket_, &QLocalSocket::readyRead, this, &RestoreReader::read_chunk);
-//    connect(&socket_, &QLocalSocket::disconnected, this, &RestoreReader::finish);
     connect(&file_, &QIODevice::bytesWritten, this, &RestoreReader::on_bytes_written);
-    connect(&timer_, &QTimer::timeout, this, &RestoreReader::start);
     if (!file_.open(QIODevice::WriteOnly | QIODevice::Truncate))
     {
         qFatal("Error opening file");
     }
-    if (socket_.bytesAvailable())
-    {
-        read_chunk();
-    }
     connect(socket_server_.data(), &QLocalSocket::readyRead, this, &RestoreReader::read_chunk);
     connect(socket_server_.data(), &QLocalSocket::disconnected, this, &RestoreReader::finish);
 
-//    timer_.start(10);
     socket_server_->connectToServer("test_helper");
 }
 
@@ -60,7 +51,7 @@ void RestoreReader::read_chunk()
     int n_read = socket_server_->read(buffer, UPLOAD_BUFFER_MAX_);
     if (n_read < 0)
     {
-        qDebug() << "Failed to read from server" << socket_.errorString();
+        qDebug() << "Failed to read from server" << socket_server_->errorString();
         return;
     }
     n_bytes_read_ += n_read;
@@ -99,17 +90,4 @@ void RestoreReader::finish()
     }
     file_.close();
     QCoreApplication::exit(0);
-//    connect(&timer_finish_, &QTimer::timeout, this, &RestoreReader::on_end);
-//    timer_finish_.start(100);
-}
-
-void RestoreReader::on_end()
-{
-    file_.close();
-    QCoreApplication::exit(0);
-}
-void RestoreReader::start()
-{
-//    helper_iface_->RestoreReady();
-    socket_server_->connectToServer("test_helper");
 }

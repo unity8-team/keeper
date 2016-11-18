@@ -56,10 +56,6 @@ public:
             std::bind(&RestoreHelperPrivate::on_inactivity_detected, this)
         );
 
-        QObject::connect(&timer2_, &QTimer::timeout,
-            std::bind(&RestoreHelperPrivate::delay_data, this)
-        );
-
         // fire up the sockets
         int fds[2];
         int rc = socketpair(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0, fds);
@@ -72,9 +68,6 @@ public:
 
         // helper socket is for the client.
         helper_socket_.setSocketDescriptor(fds[1], QLocalSocket::ConnectedState, QIODevice::ReadOnly);
-
-        write_socket_.setSocketDescriptor(fds[0], QLocalSocket::ConnectedState, QIODevice::WriteOnly);
-
 
         QObject::connect(server_.data(), &QLocalServer::newConnection, std::bind(&RestoreHelperPrivate::restore_ready, this));
 
@@ -112,11 +105,6 @@ public:
             std::bind(&RestoreHelperPrivate::on_ready_read, this)
         );
 
-        connections_.remember(QObject::connect(
-            &write_socket_, &QLocalSocket::bytesWritten,
-            std::bind(&RestoreHelperPrivate::on_data_uploaded, this, std::placeholders::_1)
-        ));
-
         // maybe there's data already to be read
         process_more();
 
@@ -126,7 +114,6 @@ public:
     void stop()
     {
         qDebug() << "GREP DISCONNECTING";
-        write_socket_.disconnectFromServer();
         helper_conn_->disconnectFromServer();
         cancelled_ = true;
         q_ptr->Helper::stop();
@@ -156,7 +143,6 @@ public:
 
             case Helper::State::DATA_COMPLETE: {
                 qDebug() << "Restore helper finished, calling downloader_.finish()";
-                write_socket_.disconnectFromServer();
                 helper_conn_->disconnectFromServer();
                 downloader_->finish();
                 downloader_.reset();
@@ -178,7 +164,7 @@ public:
 
     void restore_ready()
     {
-        qDebug() << "GREP (((((((((((((((((((((((((((((((((((( HELPER IS READY: Starts sending data: TOTAL TO SEND: " << upload_buffer_.size();
+        qDebug() << "HELPER IS READY: Starts sending data: TOTAL TO SEND: " << upload_buffer_.size();
         helper_is_ready_ = true;
 
         helper_conn_.reset(server_->nextPendingConnection());
@@ -187,7 +173,6 @@ public:
             helper_conn_.data(), &QLocalSocket::bytesWritten,
             std::bind(&RestoreHelperPrivate::on_data_uploaded, this, std::placeholders::_1)
         ));
-//        timer2_.start(10);
         send_data();
     }
 
@@ -211,8 +196,7 @@ private:
                 // THIS IS JUST FOR EXTRA DEBUG INFORMATION
                 QCryptographicHash hash(QCryptographicHash::Sha1);
                 hash.addData(upload_buffer_.left(100));
-//                qDebug() << "GREP ************************************************ Hash send: " << hash.result().toHex() << " Size: " << n << " Total: " << upload_buffer_.size();
-//                // THIS IS JUST FOR EXTRA DEBUG INFORMATION
+               // THIS IS JUST FOR EXTRA DEBUG INFORMATION
                 upload_buffer_.remove(0, int(n));
                 qDebug() << "GREP ************************************************ Hash send: " << hash.result().toHex() << " Size: " << n << " Total: " << upload_buffer_.size();
                                 // THIS IS JUST FOR EXTRA DEBUG INFORMATION
@@ -221,12 +205,10 @@ private:
             else {
                 if (n < 0) {
                     write_error_ = true;
-                    qWarning() << "Write error:" << write_socket_.errorString();
+                    qWarning() << "Write error:" << helper_conn_->errorString();
                     stop();
                 }
             }
-//            helper_conn_->flush();
-//            timer2_.start(10);
         }
     }
 
@@ -241,18 +223,8 @@ private:
         n_uploaded_ += n;
         q_ptr->record_data_transferred(n);
 
-        qDebug() << "GREP ====================================== Bytes uploaded: " << n << "Total: " << n_uploaded_;
+        qDebug() << "Bytes uploaded: " << n << "Total: " << n_uploaded_;
         send_data();
-//        qDebug("n_read %zu n_uploaded %zu (newly uploaded %zu)", size_t(n_read_), size_t(n_uploaded_), size_t(n));
-//        process_more();
-        check_for_done();
-    }
-
-    void delay_data()
-    {
-        send_data();
-        //        qDebug("n_read %zu n_uploaded %zu (newly uploaded %zu)", size_t(n_read_), size_t(n_uploaded_), size_t(n));
-        //        process_more();
         check_for_done();
     }
 
@@ -267,7 +239,6 @@ private:
             if (!socket->bytesAvailable())
                 break;
             // try to fill the upload buf
-//            int max_bytes = UPLOAD_BUFFER_MAX_ - upload_buffer_.size();
             int max_bytes = UPLOAD_BUFFER_MAX_;
             if (max_bytes > 0) {
                 const auto n = socket->read(readbuf, max_bytes);
@@ -291,28 +262,6 @@ private:
             {
                 send_data();
             }
-
-//            // THIS IS JUST FOR EXTRA DEBUG INFORMATION
-//            QCryptographicHash hash(QCryptographicHash::Sha1);
-//            hash.addData(upload_buffer_.left(100));
-//            qDebug() << "************************************************ Hash send: " << hash.result().toHex() << " Size: " << upload_buffer_.size() << " Total: " << n_read_;
-//            // THIS IS JUST FOR EXTRA DEBUG INFORMATION
-//
-//            // try to empty the upload buf
-//            const auto n = write_socket_.write(upload_buffer_);
-//            if (n > 0) {
-//                upload_buffer_.remove(0, int(n));
-//                qDebug("upload_buffer_.size() is %zu after writing %zu to cloud", size_t(upload_buffer_.size()), size_t(n));
-//                continue;
-//            }
-//            else {
-//                if (n < 0) {
-//                    write_error_ = true;
-//                    qWarning() << "Write error:" << write_socket_.errorString();
-//                    stop();
-//                }
-//                break;
-//            }
         }
 
         reset_inactivity_timer();
@@ -369,10 +318,8 @@ private:
 
     RestoreHelper * const q_ptr;
     QTimer timer_;
-    QTimer timer2_;
     std::shared_ptr<Downloader> downloader_;
     QLocalSocket helper_socket_;
-    QLocalSocket write_socket_;
     QByteArray upload_buffer_;
     qint64 n_read_ = 0;
     qint64 n_uploaded_ = 0;
@@ -380,7 +327,6 @@ private:
     bool write_error_ = false;
     bool cancelled_ = false;
     ConnectionHelper connections_;
-    QString uploader_committed_file_name_;
 
     bool helper_is_ready_ = false;
     bool waiting_for_data_to_be_written_ = false;

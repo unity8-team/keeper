@@ -38,18 +38,14 @@ public Q_SLOTS:
     void read_chunk();
     void finish();
     void on_bytes_written(int64_t bytes);
-    void start();
-    void on_end();
+
 private:
-    QLocalSocket socket_;
     QString file_path_;
     qint64 n_bytes_read_ = 0;
     QFile file_;
     QByteArray bytes_read_;
     QSharedPointer<DBusInterfaceKeeperHelper> helper_iface_;
 
-    QTimer timer_;
-    QTimer timer_finish_;
     QSharedPointer<QLocalSocket> socket_server_;
     qint64 n_bytes_written_ = 0;
 };
