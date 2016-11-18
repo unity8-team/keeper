@@ -32,6 +32,7 @@
 #include <QVector>
 
 #include <algorithm> // std::find_if
+#include <unistd.h>
 
 namespace
 {
@@ -286,6 +287,7 @@ public:
                     qDebug("GREP RestoreManager returned socket %d", fd);
                     auto reply = msg.createReply();
                     reply << QVariant::fromValue(QDBusUnixFileDescriptor(fd));
+                    close(fd);
                     bus.send(reply);
                 }
             }
