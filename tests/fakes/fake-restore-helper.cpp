@@ -14,7 +14,7 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authors:
- *     Charles Kerr <charles.kerr@canonical.com>
+ *     Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
 
 #include "fake-restore-helper.h"
@@ -103,7 +103,8 @@ main(int argc, char **argv)
     int n_bytes_read = 0;
     QFile file(TEST_RESTORE_FILE_PATH);
     file.open(QIODevice::WriteOnly);
-    while (1) {
+    for(;;)
+    {
         // Read data into buffer.  We may not have enough to fill up buffer, so we
         // store how many bytes were actually read in bytes_read.
         int bytes_read = read(fd, buffer, sizeof(buffer));
@@ -128,11 +129,5 @@ main(int argc, char **argv)
         }
     }
     file.close();
-    // write the blob
-//    const auto fd = ufd.fileDescriptor();
-
-//    RestoreReader reader(fd, TEST_RESTORE_FILE_PATH, helper_iface);
-
     return 0;
-//    return app.exec();
 }
