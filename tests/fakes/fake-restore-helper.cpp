@@ -34,7 +34,7 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 
-constexpr int UPLOAD_BUFFER_MAX_ = 16 * 1024;
+constexpr int UPLOAD_BUFFER_MAX_ = 64 * 1024;
 
 void myMessageHandler(QtMsgType type, const QMessageLogContext &, const QString & msg)
 {
