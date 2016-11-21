@@ -63,6 +63,7 @@ public:
         }
 
         // helper socket is for the client.
+        // We don't use a QLocalSocket here as it buffers data and it makes the helper miss packets.
         helper_socket_ = fds[1];
 
         write_socket_.setSocketDescriptor(fds[0], QLocalSocket::ConnectedState, QIODevice::WriteOnly);
@@ -98,9 +99,6 @@ public:
         QObject::connect(downloader_->socket().get(), &QLocalSocket::readyRead,
             std::bind(&RestoreHelperPrivate::on_ready_read, this)
         );
-
-        // TODO xavi is going to remove this line
-        q_ptr->Helper::on_helper_started();
 
         // maybe there's data already to be read
         process_more();

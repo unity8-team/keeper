@@ -121,11 +121,6 @@ main(int argc, char **argv)
         {
             n_bytes_read += bytes_read;
             qDebug() << "Read: " << bytes_read << " Total: " << n_bytes_read;
-            // THIS IS JUST FOR EXTRA DEBUG INFORMATION
-            QCryptographicHash hash(QCryptographicHash::Sha1);
-            hash.addData(buffer, 100);
-            qDebug() << "GREP ************************************************ Hash read: " << hash.result().toHex() << " Size: " << bytes_read << " Total: " << n_bytes_read;
-            // THIS IS JUST FOR EXTRA DEBUG INFORMATION
             file.write(buffer, bytes_read);
             file.flush();
         }

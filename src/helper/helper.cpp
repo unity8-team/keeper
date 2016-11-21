@@ -301,7 +301,7 @@ private:
 
     void ual_stop()
     {
-        qDebug() << "------------------------------------------------------ Stopping helper for app:" << appid_;
+        qDebug() << "Stopping helper for app:" << appid_;
         auto backupType = ubuntu::app_launch::Helper::Type::from_raw(HELPER_TYPE);
 
         auto appid = ubuntu::app_launch::AppID::parse(appid_.toStdString());
@@ -359,7 +359,7 @@ private:
 
     void on_max_time_waiting_for_ual_started()
     {
-        qDebug() << "========================================================================== Max time reached waiting for UAL to start";
+        qDebug() << "Max time reached waiting for UAL to start";
         q_ptr->set_state(Helper::State::FAILED);
         stop_wait_for_ual_timer();
     }

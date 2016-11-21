@@ -169,7 +169,6 @@ public:
     }
     void get_choices(const QSharedPointer<MetadataProvider> & provider, ChoicesType type)
     {
-        qDebug() << "get_choices()";
         bool check_empty = (type == KeeperPrivate::ChoicesType::BACKUP_CHOICES)
                             ? cached_backup_choices_.isEmpty() : cached_restore_choices_.isEmpty();
         if (check_empty)
@@ -284,7 +283,7 @@ public:
             &TaskManager::socket_ready,
             std::function<void(int)>{
                 [bus,msg](int fd){
-                    qDebug("GREP RestoreManager returned socket %d", fd);
+                    qDebug("RestoreManager returned socket %d", fd);
                     auto reply = msg.createReply();
                     reply << QVariant::fromValue(QDBusUnixFileDescriptor(fd));
                     close(fd);
