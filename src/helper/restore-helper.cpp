@@ -49,7 +49,6 @@ public:
         RestoreHelper* backup_helper
     )
         : q_ptr(backup_helper)
-        , helper_socket_(new QLocalSocket)
         , write_socket_(new QLocalSocket)
     {
         // listen for inactivity from storage framework
@@ -68,7 +67,7 @@ public:
         }
 
         // helper socket is for the client.
-        helper_socket_->setSocketDescriptor(fds[1], QLocalSocket::ConnectedState, QIODevice::ReadOnly);
+        helper_socket_ = fds[1];
 
         write_socket_->setSocketDescriptor(fds[0], QLocalSocket::ConnectedState, QIODevice::WriteOnly);
     }
@@ -121,7 +120,7 @@ public:
 
     int get_helper_socket() const
     {
-        return int(helper_socket_->socketDescriptor());
+        return helper_socket_;
     }
 
     QString to_string(Helper::State state) const
@@ -302,7 +301,7 @@ private:
     RestoreHelper * const q_ptr;
     QTimer timer_;
     std::shared_ptr<Downloader> downloader_;
-    QSharedPointer<QLocalSocket> helper_socket_;
+    int helper_socket_ = -1;
     QSharedPointer<QLocalSocket> write_socket_;
     QByteArray upload_buffer_;
     qint64 n_read_ = 0;
