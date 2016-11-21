@@ -55,8 +55,3 @@ void KeeperHelper::UpdateStatus(const QString &app_id, const QString &status, do
 {
     qDebug() << "KeeperHelper::UpdateStatus(" << app_id << "," << status << "," << percentage << ")";
 }
-
-void KeeperHelper::RestoreReady()
-{
-    keeper_.RestoreReady();
-}

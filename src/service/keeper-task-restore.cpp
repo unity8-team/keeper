@@ -94,11 +94,6 @@ public:
         );
     }
 
-    void restore_ready()
-    {
-        auto restore_helper = qSharedPointerDynamicCast<RestoreHelper>(helper_);
-        restore_helper->restore_ready();
-    }
 private:
     ConnectionHelper connections_;
 };
@@ -132,11 +127,4 @@ void KeeperTaskRestore::ask_for_downloader()
     Q_D(KeeperTaskRestore);
 
     d->ask_for_downloader();
-}
-
-void KeeperTaskRestore::restore_ready()
-{
-    Q_D(KeeperTaskRestore);
-
-    d->restore_ready();
 }

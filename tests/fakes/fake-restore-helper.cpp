@@ -96,8 +96,6 @@ main(int argc, char **argv)
     const auto fd = ufd.fileDescriptor();
     qDebug() << "The file descriptor obtained is: " << fd;
 
-    helper_iface->RestoreReady();
-
     char buffer[UPLOAD_BUFFER_MAX_];
     int n_bytes_read = 0;
     QFile file(TEST_RESTORE_FILE_PATH);

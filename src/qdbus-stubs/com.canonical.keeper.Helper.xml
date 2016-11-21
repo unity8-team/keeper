@@ -62,8 +62,5 @@
         </arg>
     </method>
 
-    <method name="RestoreReady">
-    </method>
-
   </interface>
 </node>

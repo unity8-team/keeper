@@ -55,20 +55,6 @@ public:
         return start_tasks(tasks, Mode::RESTORE);
     }
 
-    void restore_ready()
-    {
-        if (task_)
-        {
-            auto restore_task_ = qSharedPointerDynamicCast<KeeperTaskRestore>(task_);
-            if (!restore_task_)
-            {
-                qWarning() << "The restore_ready method is only intended for restore tasks";
-                return;
-            }
-            restore_task_->restore_ready();
-        }
-    }
-
     /***
      ***  State public
     ***/
@@ -414,14 +400,6 @@ TaskManager::start_restore(QList<Metadata> const& tasks)
     Q_D(TaskManager);
 
     return d->start_restore(tasks);
-}
-
-void
-TaskManager::restore_ready()
-{
-    Q_D(TaskManager);
-
-    return d->restore_ready();
 }
 
 QVariantDictMap TaskManager::get_state() const

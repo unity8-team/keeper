@@ -301,11 +301,6 @@ public:
         return QDBusUnixFileDescriptor(0);
     }
 
-    void restore_ready()
-    {
-        task_manager_.restore_ready();
-    }
-
     void cancel()
     {
         task_manager_.cancel();
@@ -381,14 +376,6 @@ Keeper::StartRestore(QDBusConnection bus,
     Q_D(Keeper);
 
     return d->start_restore(bus, msg);
-}
-
-void
-Keeper::RestoreReady()
-{
-    Q_D(Keeper);
-
-    return d->restore_ready();
 }
 
 QVariantDictMap

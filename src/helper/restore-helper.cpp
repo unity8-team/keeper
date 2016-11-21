@@ -30,9 +30,6 @@
 #include <QString>
 #include <QTimer>
 #include <QVector>
-#include <QCryptographicHash>
-#include <QLocalServer>
-#include <QSharedPointer>
 
 #include <fcntl.h>
 #include <sys/types.h>
@@ -49,7 +46,6 @@ public:
         RestoreHelper* backup_helper
     )
         : q_ptr(backup_helper)
-        , write_socket_(new QLocalSocket)
     {
         // listen for inactivity from storage framework
         QObject::connect(&timer_, &QTimer::timeout,
@@ -69,7 +65,7 @@ public:
         // helper socket is for the client.
         helper_socket_ = fds[1];
 
-        write_socket_->setSocketDescriptor(fds[0], QLocalSocket::ConnectedState, QIODevice::WriteOnly);
+        write_socket_.setSocketDescriptor(fds[0], QLocalSocket::ConnectedState, QIODevice::WriteOnly);
     }
 
     ~RestoreHelperPrivate() = default;
@@ -84,8 +80,6 @@ public:
 
     void set_downloader(std::shared_ptr<Downloader> const& downloader)
     {
-        qDebug() << "RestoreHelper::set_downloader";
-        downloader_ = downloader;
         n_read_ = 0;
         n_uploaded_ = 0;
         read_error_ = false;
@@ -93,17 +87,20 @@ public:
         cancelled_ = false;
 
         q_ptr->set_expected_size(downloader->file_size());
+        downloader_ = downloader;
 
-        qDebug() << "Storage framework socket is: " << static_cast<void *>(downloader_->socket().get());
+        connections_.remember(QObject::connect(
+            &write_socket_, &QLocalSocket::bytesWritten,
+            std::bind(&RestoreHelperPrivate::on_data_uploaded, this, std::placeholders::_1)
+        ));
+
         // listen for data ready to read
         QObject::connect(downloader_->socket().get(), &QLocalSocket::readyRead,
             std::bind(&RestoreHelperPrivate::on_ready_read, this)
         );
 
-        connections_.remember(QObject::connect(
-            write_socket_.data(), &QLocalSocket::bytesWritten,
-            std::bind(&RestoreHelperPrivate::on_data_uploaded, this, std::placeholders::_1)
-        ));
+        // TODO xavi is going to remove this line
+        q_ptr->Helper::on_helper_started();
 
         // maybe there's data already to be read
         process_more();
@@ -113,7 +110,7 @@ public:
 
     void stop()
     {
-        write_socket_->disconnectFromServer();
+        write_socket_.disconnectFromServer();
         cancelled_ = true;
         q_ptr->Helper::stop();
     }
@@ -142,7 +139,7 @@ public:
 
             case Helper::State::DATA_COMPLETE: {
                 qDebug() << "Restore helper finished, calling downloader_.finish()";
-                write_socket_->disconnectFromServer();
+                write_socket_.disconnectFromServer();
                 downloader_->finish();
                 downloader_.reset();
                 break;
@@ -161,13 +158,6 @@ public:
         check_for_done();
     }
 
-    void restore_ready()
-    {
-        qDebug() << "HELPER IS READY: Starts sending data: TOTAL TO SEND: " << upload_buffer_.size();
-        helper_is_ready_ = true;
-        send_data();
-    }
-
 private:
 
     void on_inactivity_detected()
@@ -177,30 +167,6 @@ private:
         stop();
     }
 
-    void send_data()
-    {
-        if (upload_buffer_.size())
-        {
-            int bytes_to_send = upload_buffer_.size() < UPLOAD_BUFFER_MAX_ ? upload_buffer_.size() : UPLOAD_BUFFER_MAX_;
-            // try to empty the upload buf
-            const auto n = write_socket_->write(upload_buffer_, bytes_to_send);
-            if (n > 0)
-            {
-                upload_buffer_.remove(0, int(n));
-                waiting_for_data_to_be_written_ = true;
-            }
-            else
-            {
-                if (n < 0)
-                {
-                    write_error_ = true;
-                    qWarning() << "Write error:" << write_socket_->errorString();
-                    stop();
-                }
-            }
-        }
-    }
-
     void on_ready_read()
     {
         process_more();
@@ -208,10 +174,10 @@ private:
 
     void on_data_uploaded(qint64 n)
     {
-        waiting_for_data_to_be_written_ = false;
         n_uploaded_ += n;
         q_ptr->record_data_transferred(n);
-        send_data();
+        qDebug("n_read %zu n_uploaded %zu (newly uploaded %zu)", size_t(n_read_), size_t(n_uploaded_), size_t(n));
+        process_more();
         check_for_done();
     }
 
@@ -219,6 +185,7 @@ private:
     {
         if (!downloader_)
             return;
+
         char readbuf[UPLOAD_BUFFER_MAX_];
         auto socket = downloader_->socket();
         for(;;)
@@ -226,7 +193,7 @@ private:
             if (!socket->bytesAvailable())
                 break;
             // try to fill the upload buf
-            int max_bytes = UPLOAD_BUFFER_MAX_;
+            int max_bytes = UPLOAD_BUFFER_MAX_ - upload_buffer_.size();
             if (max_bytes > 0) {
                 const auto n = socket->read(readbuf, max_bytes);
                 if (n > 0) {
@@ -242,9 +209,20 @@ private:
                 }
             }
 
-            if (helper_is_ready_ && ! waiting_for_data_to_be_written_)
-            {
-                send_data();
+            // try to empty the upload buf
+            const auto n = write_socket_.write(upload_buffer_);
+            if (n > 0) {
+                upload_buffer_.remove(0, int(n));
+                qDebug("upload_buffer_.size() is %zu after writing %zu to cloud", size_t(upload_buffer_.size()), size_t(n));
+                continue;
+            }
+            else {
+                if (n < 0) {
+                    write_error_ = true;
+                    qWarning() << "Write error:" << write_socket_.errorString();
+                    stop();
+                }
+                break;
             }
         }
 
@@ -296,13 +274,13 @@ private:
     ****
     ***/
 
-    static constexpr int UPLOAD_BUFFER_MAX_ {1024*64};
+    static constexpr int UPLOAD_BUFFER_MAX_ {1024*16};
 
     RestoreHelper * const q_ptr;
     QTimer timer_;
     std::shared_ptr<Downloader> downloader_;
     int helper_socket_ = -1;
-    QSharedPointer<QLocalSocket> write_socket_;
+    QLocalSocket write_socket_;
     QByteArray upload_buffer_;
     qint64 n_read_ = 0;
     qint64 n_uploaded_ = 0;
@@ -310,9 +288,6 @@ private:
     bool write_error_ = false;
     bool cancelled_ = false;
     ConnectionHelper connections_;
-
-    bool helper_is_ready_ = false;
-    bool waiting_for_data_to_be_written_ = false;
 };
 
 /***
@@ -386,11 +361,4 @@ void RestoreHelper::on_helper_finished()
 
     Helper::on_helper_finished();
     d->on_helper_finished();
-}
-
-void RestoreHelper::restore_ready()
-{
-    Q_D(RestoreHelper);
-
-    d->restore_ready();
 }
