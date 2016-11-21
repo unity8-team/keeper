@@ -57,8 +57,6 @@ public:
         return get_helper_urls(task, "restore");
     }
 
-
-
 private:
 
     QStringList get_helper_urls(Metadata const& task, QString const & prop)
