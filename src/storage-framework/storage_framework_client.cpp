@@ -127,10 +127,12 @@ StorageFrameworkClient::get_new_uploader(int64_t n_bytes, QString const & dir_na
                         }
                         else
                         {
+                            qDebug() << "-------------------------- Creating keeper uploader";
                             connection_helper_.connect_future(
                                 keeper_root->create_file(file_name, n_bytes),
                                 std::function<void(std::shared_ptr<sf::Uploader> const&)>{
                                     [this, fi](std::shared_ptr<sf::Uploader> const& sf_uploader){
+                                        qDebug() << "*************** Creating keeper uploader finished *********************88";
                                         qDebug() << "keeper_root->create_file() finished";
                                         std::shared_ptr<Uploader> ret;
                                         if (sf_uploader) {
@@ -138,6 +140,8 @@ StorageFrameworkClient::get_new_uploader(int64_t n_bytes, QString const & dir_na
                                                 new StorageFrameworkUploader(sf_uploader, this),
                                                 [](Uploader* u){u->deleteLater();}
                                             );
+                                        } else {
+                                            qDebug() << "*************** Error creating uploader";
                                         }
                                         QFutureInterface<decltype(ret)> qfi(fi);
                                         qfi.reportResult(ret);
@@ -314,6 +318,7 @@ StorageFrameworkClient::get_storage_framework_folder(sf::Folder::SPtr const & ro
 {
     QFutureInterface<sf::Folder::SPtr> fi;
 
+    qDebug() << "--------- SF_CLIENT Looking for folder " << dir_name << " in storage framework";
     connection_helper_.connect_future(
         root->lookup(dir_name),
         std::function<void(QVector<sf::Item::SPtr> const &)>{
@@ -338,11 +343,13 @@ StorageFrameworkClient::get_storage_framework_folder(sf::Folder::SPtr const & ro
                     }
                     else
                     {
+                        qDebug() << "========== SF_CLIENT Creating sf folder " << dir_name;
                         // we need to create the folder
                         connection_helper_.connect_future(
                             root->create_folder(dir_name),
                             std::function<void(sf::Folder::SPtr const &)>{
                                 [this, fi, res](sf::Folder::SPtr const & folder){
+                                    qDebug() << "========= SF_CLIENT The folder returned is: " << static_cast<void *>(folder.get());
                                     QFutureInterface<decltype(res)> qfi(fi);
                                     qfi.reportResult(folder);
                                     qfi.reportFinished();
