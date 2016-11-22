@@ -88,48 +88,6 @@ main(int argc, char **argv)
             qWarning() << "Error starting backup:" << backup_reply.error().message();
         }
     }
-    else if(argc == 2 && QStringLiteral("--restore") == argv[1])
-    {
-        QScopedPointer<DBusInterfaceKeeperUser> user_iface(new DBusInterfaceKeeperUser(
-                                                                DBusTypes::KEEPER_SERVICE,
-                                                                DBusTypes::KEEPER_USER_PATH,
-                                                                QDBusConnection::sessionBus()
-                                                            ) );
-        QDBusPendingReply<QVariantDictMap> choices = user_iface->call("GetRestoreChoices");
-        choices.waitForFinished();
-        if (choices.isError())
-        {
-            qFatal("Call to '%s.GetRestoreChoices() at '%s' call failed: %s",
-                DBusTypes::KEEPER_SERVICE,
-                qPrintable(DBusTypes::KEEPER_USER_PATH),
-                qPrintable(choices.error().message())
-            );
-        }
-
-        QStringList uuids;
-        auto choices_values = choices.value();
-        for(auto iter = choices_values.begin(); iter != choices_values.end(); ++iter)
-        {
-            const auto& values = iter.value();
-            auto iter_values = values.find("type");
-            if (iter_values != values.end())
-            {
-                if (iter_values.value().toString() == "folder")
-                {
-                    qDebug() << "Adding uuid" << iter.key() << "with type:" << "folder";
-                    uuids << iter.key();
-                }
-            }
-        }
-
-        QStringList restoreUUids{uuids.at(0)};
-        QDBusPendingReply<void> backup_reply = user_iface->call("StartRestore", restoreUUids);
-
-        if (!backup_reply.isValid())
-        {
-            qWarning() << "Error starting restore:" << backup_reply.error().message();
-        }
-    }
     else
     {
         qWarning() << "FIXME";

@@ -28,9 +28,9 @@ StorageFrameworkDownloader::StorageFrameworkDownloader(
     qint64 file_size,
     QObject *parent
 ):
-    Downloader(parent),
-    downloader_(downloader),
-    file_size_(file_size)
+    Downloader{parent},
+    downloader_{downloader},
+    file_size_{file_size}
 {
     qDebug() << "StorageFrameworkDownloader";
 }

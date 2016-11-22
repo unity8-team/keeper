@@ -85,17 +85,8 @@ public:
 
     void start_tasks(QStringList const & uuids,
                      QDBusConnection bus,
-                     QDBusMessage const & msg,
-                     bool reset_cached_choices)
+                     QDBusMessage const & msg)
     {
-        if (reset_cached_choices)
-        {
-            // if we start a restore right after a backup the uuid
-            // will be found as a backup uuid.
-            // Just clear the backup cache to avoid that.
-            cached_backup_choices_.clear();
-        }
-
         auto get_tasks = [](const QVector<Metadata>& pool, QStringList const& keys){
             QMap<QString,Metadata> tasks;
             for (auto const& key : keys) {
@@ -195,7 +186,6 @@ public:
         }
         else
         {
-            qDebug() << "emit choices_ready()";
             emit_choices_ready(type);
         }
     }
@@ -264,7 +254,7 @@ public:
             }
         );
 
-        qDebug() << "Asking for an storage framework socket to the task manager";
+        qDebug() << "Asking for a storage framework socket from the task manager";
         task_manager_.ask_for_uploader(n_bytes);
 
         // tell the caller that we'll be responding async
@@ -274,7 +264,7 @@ public:
 
 
     QDBusUnixFileDescriptor start_restore(QDBusConnection bus,
-                                         QDBusMessage const & msg)
+                                          QDBusMessage const & msg)
     {
         qDebug() << "Keeper::StartRestore()";
 
@@ -292,7 +282,7 @@ public:
             }
         );
 
-        qDebug() << "Asking for an storage framework socket to the task manager";
+        qDebug() << "Asking for a storage framework socket from the task manager";
         task_manager_.ask_for_downloader();
 
         // tell the caller that we'll be responding async
@@ -304,6 +294,12 @@ public:
     {
         task_manager_.cancel();
     }
+
+    void invalidate_choices_cache()
+    {
+        cached_backup_choices_.clear();
+    }
+
 Q_SIGNALS:
     void backup_choices_ready();
     void restore_choices_ready();
@@ -350,12 +346,11 @@ Keeper::~Keeper() = default;
 void
 Keeper::start_tasks(QStringList const & uuids,
                     QDBusConnection bus,
-                    QDBusMessage const & msg,
-                    bool reset_cached_choices)
+                    QDBusMessage const & msg)
 {
     Q_D(Keeper);
 
-    d->start_tasks(uuids, bus, msg, reset_cached_choices);
+    d->start_tasks(uuids, bus, msg);
 }
 
 QDBusUnixFileDescriptor
@@ -370,7 +365,7 @@ Keeper::StartBackup(QDBusConnection bus,
 
 QDBusUnixFileDescriptor
 Keeper::StartRestore(QDBusConnection bus,
-                    QDBusMessage const & msg)
+                     QDBusMessage const & msg)
 {
     Q_D(Keeper);
 
@@ -409,6 +404,14 @@ Keeper::cancel()
     Q_D(Keeper);
 
     return d->cancel();
+}
+
+void
+Keeper::invalidate_choices_cache()
+{
+    Q_D(Keeper);
+
+    d->invalidate_choices_cache();
 }
 
 #include "keeper.moc"

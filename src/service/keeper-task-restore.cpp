@@ -33,9 +33,9 @@ class KeeperTaskRestorePrivate : public KeeperTaskPrivate
     Q_DECLARE_PUBLIC(KeeperTaskRestore)
 public:
     KeeperTaskRestorePrivate(KeeperTask * keeper_task,
-                            KeeperTask::TaskData & task_data,
-                            QSharedPointer<HelperRegistry> const & helper_registry,
-                            QSharedPointer<StorageFrameworkClient> const & storage)
+                             KeeperTask::TaskData & task_data,
+                             QSharedPointer<HelperRegistry> const & helper_registry,
+                             QSharedPointer<StorageFrameworkClient> const & storage)
         : KeeperTaskPrivate(keeper_task, task_data, helper_registry, storage)
     {
     }
@@ -50,7 +50,7 @@ public:
     void init_helper()
     {
         qDebug() << "Initializing a restore helper";
-        helper_.reset(new RestoreHelper(DEKKO_APP_ID), [](Helper *h){h->deleteLater();}); // TODO change this to a restore helper
+        helper_.reset(new RestoreHelper(DEKKO_APP_ID), [](Helper *h){h->deleteLater();});
         qDebug() << "Helper " <<  static_cast<void*>(helper_.data()) << " was created";
     }
 
@@ -99,9 +99,9 @@ private:
 };
 
 KeeperTaskRestore::KeeperTaskRestore(TaskData & task_data,
-           QSharedPointer<HelperRegistry> const & helper_registry,
-           QSharedPointer<StorageFrameworkClient> const & storage,
-           QObject *parent)
+                                     QSharedPointer<HelperRegistry> const & helper_registry,
+                                     QSharedPointer<StorageFrameworkClient> const & storage,
+                                     QObject *parent)
     : KeeperTask(*new KeeperTaskRestorePrivate(this, task_data, helper_registry, storage), parent)
 {
 }

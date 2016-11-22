@@ -57,7 +57,6 @@ TEST_F(TestHelpers, StartHelper)
 
 TEST_F(TestHelpers, StartFullTest)
 {
-    system("rm -f /tmp/restore-helper-output");
     XdgUserDirsSandbox tmp_dir;
 
     // starts the services, including keeper-service
@@ -84,7 +83,7 @@ TEST_F(TestHelpers, StartFullTest)
     qDebug() << "USER DIR:" << user_dir;
 
     // fill something in the music dir
-    FileUtils::fillTemporaryDirectory(user_dir, qrand() % 10);
+    FileUtils::fillTemporaryDirectory(user_dir, qrand() % 100);
 
     // search for the user folder uuid
     auto user_folder_uuid = get_uuid_for_xdg_folder_path(user_dir, choices.value());
@@ -103,7 +102,7 @@ TEST_F(TestHelpers, StartFullTest)
     qDebug() << "USER DIR 2:" << user_dir_2;
 
     // fill something in the music dir
-    FileUtils::fillTemporaryDirectory(user_dir_2, qrand() % 10);
+    FileUtils::fillTemporaryDirectory(user_dir_2, qrand() % 100);
 
     // search for the user folder uuid
     auto user_folder_uuid_2 = get_uuid_for_xdg_folder_path(user_dir_2, choices.value());
@@ -173,7 +172,8 @@ TEST_F(TestHelpers, StartFullTest)
     QFileInfo sf_file_info(storage_framework_file_path);
     EXPECT_EQ(sf_file_info.fileName(), QStringLiteral("%1.keeper").arg(get_display_name_for_xdg_folder_path(user_dir, choices.value())));
 
-    system("cat /tmp/restore-helper-output");
+    auto show_helper_ouput_cmd = QStringLiteral("cat %1").arg(TEST_RESTORE_LOG_FILE_PATH);
+    system(show_helper_ouput_cmd.toStdString().c_str());
 }
 
 TEST_F(TestHelpers, StartFullTestCancelling)

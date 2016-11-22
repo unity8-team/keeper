@@ -53,8 +53,8 @@ void myMessageHandler(QtMsgType type, const QMessageLogContext &, const QString 
         txt = QString("Fatal: %1").arg(msg);
         abort();
     }
-    QFile outFile("/tmp/restore-helper-output");
-    outFile.open(QIODevice::WriteOnly | QIODevice::Append);
+    QFile outFile(TEST_RESTORE_LOG_FILE_PATH);
+    outFile.open(QIODevice::WriteOnly);
     QTextStream ts(&outFile);
     ts << txt << endl;
 }

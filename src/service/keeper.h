@@ -65,12 +65,13 @@ public:
 
     void start_tasks(QStringList const & uuids,
                             QDBusConnection bus,
-                            QDBusMessage const & msg,
-                            bool reset_cached_choices = false);
+                            QDBusMessage const & msg);
 
     QVariantDictMap get_state() const;
 
     void cancel();
+
+    void invalidate_choices_cache();
 
 private:
     QScopedPointer<KeeperPrivate> const d_ptr;

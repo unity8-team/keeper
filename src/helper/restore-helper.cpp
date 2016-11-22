@@ -186,41 +186,45 @@ private:
 
         char readbuf[UPLOAD_BUFFER_MAX_];
         auto socket = downloader_->socket();
-        for(;;)
+        while(socket->bytesAvailable() || upload_buffer_.size())
         {
-            if (!socket->bytesAvailable())
-                break;
-            // try to fill the upload buf
-            int max_bytes = UPLOAD_BUFFER_MAX_ - upload_buffer_.size();
-            if (max_bytes > 0) {
-                const auto n = socket->read(readbuf, max_bytes);
-                if (n > 0) {
-                    n_read_ += n;
-                    upload_buffer_.append(readbuf, int(n));
-                    qDebug("upload_buffer_.size() is %zu after reading %zu from helper", size_t(upload_buffer_.size()), size_t(n));
-                }
-                else if (n < 0) {
-                    read_error_ = true;
-                    qDebug() << "Read error in restore helper: " << socket->errorString();
-                    stop();
-                    return;
+            if (socket->bytesAvailable())
+            {
+                // try to fill the upload buf
+                int max_bytes = UPLOAD_BUFFER_MAX_ - upload_buffer_.size();
+                if (max_bytes > 0) {
+                    const auto n = socket->read(readbuf, max_bytes);
+                    if (n > 0) {
+                        n_read_ += n;
+                        upload_buffer_.append(readbuf, int(n));
+                        qDebug("upload_buffer_.size() is %zu after reading %zu from helper", size_t(upload_buffer_.size()), size_t(n));
+                    }
+                    else if (n < 0) {
+                        read_error_ = true;
+                        qDebug() << "Read error in restore helper: " << socket->errorString();
+                        stop();
+                        return;
+                    }
                 }
             }
 
-            // try to empty the upload buf
-            const auto n = write_socket_.write(upload_buffer_);
-            if (n > 0) {
-                upload_buffer_.remove(0, int(n));
-                qDebug("upload_buffer_.size() is %zu after writing %zu to cloud", size_t(upload_buffer_.size()), size_t(n));
-                continue;
-            }
-            else {
-                if (n < 0) {
-                    write_error_ = true;
-                    qWarning() << "Write error:" << write_socket_.errorString();
-                    stop();
+            if (upload_buffer_.size())
+            {
+                // try to empty the upload buf
+                const auto n = write_socket_.write(upload_buffer_);
+                if (n > 0) {
+                    upload_buffer_.remove(0, int(n));
+                    qDebug("upload_buffer_.size() is %zu after writing %zu to cloud", size_t(upload_buffer_.size()), size_t(n));
+                    continue;
                 }
-                break;
+                else {
+                    if (n < 0) {
+                        write_error_ = true;
+                        qWarning() << "Write error:" << write_socket_.errorString();
+                        stop();
+                    }
+                    break;
+                }
             }
         }
 

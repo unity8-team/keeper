@@ -170,13 +170,13 @@ private:
             if (error.error != QJsonParseError::NoError)
                 qCritical() << path << "parse error at offset" << error.offset << error.errorString();
 
-            auto obj = doc.object();
+            const auto obj = doc.object();
             for (auto tit=obj.begin(), tend=obj.end(); tit!=tend; ++tit)
             {
                 auto const type = tit.key();
                 auto const props = tit.value().toObject();
 
-                auto const urls_jsonval = props["backup-urls"];
+                auto const &urls_jsonval = props["backup-urls"];
                 if (urls_jsonval.isArray())
                 {
                     auto& info = registry_[std::make_pair(type,QStringLiteral("backup"))];
@@ -189,7 +189,7 @@ private:
                         qDebug() << "\turl:" << url;
                 }
 
-                auto const urls_jsonval_restore = props["restore-urls"];
+                auto const &urls_jsonval_restore = props["restore-urls"];
                 if (urls_jsonval_restore.isArray())
                 {
                     auto& info = registry_[std::make_pair(type,QStringLiteral("restore"))];

@@ -22,5 +22,6 @@
 namespace
 {
 static char const TEST_RESTORE_FILE_PATH[] = "/tmp/test-restore-helper";
+static char const TEST_RESTORE_LOG_FILE_PATH[] = "/tmp/restore-helper-output";
 
 }
