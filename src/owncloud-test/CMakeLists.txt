@@ -6,6 +6,8 @@ include_directories("${CMAKE_SOURCE_DIR}/src")
 
 set(OWNCLOUD_EXEC_SOURCES
   main.cpp
+  owncloud-test.cpp
+  owncloud-test.h
 )
 
 add_executable(

@@ -48,7 +48,7 @@ public:
     QFuture<QVector<QString>> get_keeper_dirs();
 
     static QString const KEEPER_FOLDER;
-private:
+//private:
 
     void add_accounts_task(std::function<void(QVector<unity::storage::qt::client::Account::SPtr> const&)> task);
     void add_roots_task(std::function<void(QVector<unity::storage::qt::client::Root::SPtr> const&)> task);

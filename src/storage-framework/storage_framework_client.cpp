@@ -130,6 +130,7 @@ StorageFrameworkClient::get_new_uploader(int64_t n_bytes, QString const & dir_na
                             qDebug() << "-------------------------- Creating keeper uploader";
                             connection_helper_.connect_future(
                                 keeper_root->create_file(file_name, n_bytes),
+//                                root->create_file(file_name, n_bytes),
                                 std::function<void(std::shared_ptr<sf::Uploader> const&)>{
                                     [this, fi](std::shared_ptr<sf::Uploader> const& sf_uploader){
                                         qDebug() << "*************** Creating keeper uploader finished *********************88";
@@ -289,20 +290,24 @@ StorageFrameworkClient::get_keeper_folder(sf::Folder::SPtr const & root, QString
                 }
                 else
                 {
-                    connection_helper_.connect_future(
-                        get_storage_framework_folder(keeper_folder, dir_name, create_if_not_exists),
-                        std::function<void(sf::Folder::SPtr const &)>{
-                            [this, fi, root](sf::Folder::SPtr const & timestamp_folder){
-                                if (!timestamp_folder)
-                                {
-                                    qWarning() << "Error creating keeper time stamp folder";
-                                }
-                                QFutureInterface<sf::Folder::SPtr> qfi(fi);
-                                qfi.reportResult(timestamp_folder);
-                                qfi.reportFinished();
-                            }
-                        }
-                    );
+                    QFutureInterface<sf::Folder::SPtr> qfi(fi);
+                    qfi.reportResult(keeper_folder);
+                    qfi.reportFinished();
+                    qDebug() << "Keeper folder was created: " << static_cast<void *>(keeper_folder.get());
+//                    connection_helper_.connect_future(
+//                        get_storage_framework_folder(keeper_folder, dir_name, create_if_not_exists),
+//                        std::function<void(sf::Folder::SPtr const &)>{
+//                            [this, fi, root](sf::Folder::SPtr const & timestamp_folder){
+//                                if (!timestamp_folder)
+//                                {
+//                                    qWarning() << "Error creating keeper time stamp folder";
+//                                }
+//                                QFutureInterface<sf::Folder::SPtr> qfi(fi);
+//                                qfi.reportResult(timestamp_folder);
+//                                qfi.reportFinished();
+//                            }
+//                        }
+//                    );
                 }
             }
         }

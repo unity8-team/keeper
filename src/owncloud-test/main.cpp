@@ -1,19 +1,22 @@
 #include "storage-framework/storage_framework_client.h"
+#include "owncloud-test.h"
 
 #include <QCoreApplication>
+#include <QSharedPointer>
+
+namespace sf = unity::storage::qt::client;
 
 int main(int argc, char **argv)
 {
     QCoreApplication app(argc, argv);
 
-    StorageFrameworkClient sf_client;
+    QSharedPointer<StorageFrameworkClient> sf_client (new StorageFrameworkClient);
 
-    auto const now = QDateTime::currentDateTime();
-    auto backup_dir_name = now.toString(Qt::ISODate);
-    QFutureWatcher<std::shared_ptr<Uploader>> uploader_watcher;
-    QObject::connect(&uploader_watcher, &QFutureWatcher<std::shared_ptr<Uploader>>::finished, []{ qDebug() << "get uploader finished";});
+    // change to create a folder first and create the file in it
+    bool want_to_create_uploader_in_folder = false;
 
-    uploader_watcher.setFuture(sf_client.get_new_uploader(100, backup_dir_name, backup_dir_name));
 
+    OwnCloudTest test(sf_client, want_to_create_uploader_in_folder);
+    test.get_root_and_start();
     return app.exec();
 }
