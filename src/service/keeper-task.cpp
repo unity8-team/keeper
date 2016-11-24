@@ -28,7 +28,7 @@
 #include <QString>
 
 KeeperTaskPrivate::KeeperTaskPrivate(KeeperTask * keeper_task,
-                  KeeperTask::TaskData const & task_data,
+                  KeeperTask::TaskData & task_data,
                   QSharedPointer<HelperRegistry> const & helper_registry,
                   QSharedPointer<StorageFrameworkClient> const & storage)
     : q_ptr(keeper_task)
@@ -132,7 +132,7 @@ QVariantMap KeeperTaskPrivate::calculate_task_state()
     auto const percent_done = helper_->percent_done();
     ret.insert(QStringLiteral("percent-done"), double(percent_done));
 
-    if (task_data_.action == "failed")
+    if (task_data_.action == "failed" || task_data_.action == "cancelled")
         ret.insert(QStringLiteral("error"), task_data_.error);
 
     ret.insert(QStringLiteral("uuid"), uuid);
@@ -145,8 +145,13 @@ QVariantMap KeeperTaskPrivate::calculate_task_state()
 
 void KeeperTaskPrivate::calculate_and_notify_state(Helper::State state)
 {
-    state_ = calculate_task_state();
+    recalculate_task_state();
     Q_EMIT(q_ptr->task_state_changed(state));
+}
+
+void KeeperTaskPrivate::recalculate_task_state()
+{
+    state_ = calculate_task_state();
 }
 
 void KeeperTaskPrivate::cancel()
@@ -175,7 +180,20 @@ QVariantMap KeeperTaskPrivate::get_initial_state(KeeperTask::TaskData const &td)
     return ret;
 }
 
-KeeperTask::KeeperTask(TaskData const & task_data,
+QString KeeperTaskPrivate::to_string(Helper::State state)
+{
+    if (helper_)
+    {
+        return helper_->to_string(state);
+    }
+    else
+    {
+        qWarning() << "Asking for the string of a state when the helper is not initialized yet";
+        return "bug";
+    }
+}
+
+KeeperTask::KeeperTask(TaskData & task_data,
                        QSharedPointer<HelperRegistry> const & helper_registry,
                        QSharedPointer<StorageFrameworkClient> const & storage,
                        QObject *parent)
@@ -207,6 +225,14 @@ QVariantMap KeeperTask::state() const
     return d->state();
 }
 
+void KeeperTask::recalculate_task_state()
+{
+    Q_D(KeeperTask);
+
+    return d->recalculate_task_state();
+}
+
+
 QVariantMap KeeperTask::get_initial_state(KeeperTask::TaskData const &td)
 {
     return KeeperTaskPrivate::get_initial_state(td);
@@ -217,4 +243,11 @@ void KeeperTask::cancel()
     Q_D(KeeperTask);
 
     return d->cancel();
+}
+
+QString KeeperTask::to_string(Helper::State state)
+{
+    Q_D(KeeperTask);
+
+    return d->to_string(state);
 }

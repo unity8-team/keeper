@@ -86,7 +86,7 @@ TEST(SF, CreateUploaderWithCommitAndDispose)
     // create a downloader
     auto downloader_fut = sf_client.get_new_downloader(test_dir, test_file_name);
     {
-        QFutureWatcher<sf::Downloader::SPtr> w;
+        QFutureWatcher<std::shared_ptr<Downloader>> w;
         QSignalSpy spy(&w, &decltype(w)::finished);
         w.setFuture(downloader_fut);
         assert(spy.wait());
@@ -107,14 +107,13 @@ TEST(SF, CreateUploaderWithCommitAndDispose)
 
     EXPECT_EQ(downloader_content, test_content);
 
-    auto finish_downloader_fut = downloader->finish_download();
+    QSignalSpy spy_downloader(downloader.get(), &Downloader::download_finished);
+    downloader->finish();
+    if (!spy_downloader.count())
     {
-        QFutureWatcher<void> w;
-        QSignalSpy spy(&w, &decltype(w)::finished);
-        w.setFuture(finish_downloader_fut);
-        assert(spy.wait());
-        ASSERT_EQ(spy.count(), 1);
+        spy_downloader.wait();
     }
+    EXPECT_EQ(1, spy_downloader.count());
 
     // get another uploader
     QString test_file_name_2 = QStringLiteral("test_file2");

@@ -14,24 +14,33 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authors:
- *     Charles Kerr <charles.kerr@canonical.com>
+ *   Xavi Garcia <xavi.garcia.mena@canonical.com>
+ *   Charles Kerr <charles.kerr@canonical.com>
  */
-
 #pragma once
 
-#include "helper/metadata.h"
+#include "keeper-task.h"
 
-#include <QString>
+class KeeperTaskRestorePrivate;
 
-class HelperRegistry
+class KeeperTaskRestore : public KeeperTask
 {
+    Q_OBJECT
+    Q_DECLARE_PRIVATE(KeeperTaskRestore)
 public:
-    virtual ~HelperRegistry() =default;
-    Q_DISABLE_COPY(HelperRegistry)
 
-    virtual QStringList get_backup_helper_urls(Metadata const& task) =0;
-    virtual QStringList get_restore_helper_urls(Metadata const& task) =0;
+    KeeperTaskRestore(TaskData & task_data,
+               QSharedPointer<HelperRegistry> const & helper_registry,
+               QSharedPointer<StorageFrameworkClient> const & storage,
+               QObject *parent = nullptr);
+    virtual ~KeeperTaskRestore();
+
+    Q_DISABLE_COPY(KeeperTaskRestore)
+
+    void ask_for_downloader();
 
 protected:
-    HelperRegistry() =default;
+    QStringList get_helper_urls() const override;
+    void init_helper() override;
+
 };

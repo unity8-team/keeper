@@ -4,5 +4,10 @@
             "@FOLDER_BACKUP_EXEC@",
             "${subtype}"
         ]
-    }
+        ,
+        "restore-urls": [
+            "@FOLDER_RESTORE_EXEC@",
+            "${subtype}"
+        ]
+     }
 }

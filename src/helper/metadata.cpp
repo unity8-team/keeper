@@ -42,6 +42,7 @@ const QString Metadata::PACKAGE_KEY = QStringLiteral("package");
 const QString Metadata::TITLE_KEY = QStringLiteral("title");
 const QString Metadata::VERSION_KEY = QStringLiteral("version");
 const QString Metadata::FILE_NAME_KEY = QStringLiteral("file-name");
+const QString Metadata::DIR_NAME_KEY = QStringLiteral("dir-name");
 const QString Metadata::DISPLAY_NAME_KEY = QStringLiteral("display-name");
 
 // Metadata values

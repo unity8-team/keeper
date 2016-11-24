@@ -15,6 +15,7 @@ set(SERVICE_LIB_SOURCES
   task-manager.cpp
   keeper-task.cpp
   keeper-task-backup.cpp
+  keeper-task-restore.cpp
   manifest.cpp
   metadata-provider.h
 )

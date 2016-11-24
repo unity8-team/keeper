@@ -20,6 +20,11 @@ set(
 )
 
 set(
+    RESTORE_HELPER
+    fake-restore-helper
+)
+
+set(
     BACKUP_HELPER_FAILURE
     fake-backup-helper-failure
 )
@@ -27,6 +32,7 @@ set(
 set(KEEPER_TAR_CREATE_BIN ${CMAKE_BINARY_DIR}/src/tar/keeper-tar-create)
 set(KEEPER_HELPER_TEST_LOCATION ${CMAKE_BINARY_DIR}/tests/fakes/helpers-test.sh)
 set(BACKUP_HELPER_FAILURE_LOCATION ${CMAKE_BINARY_DIR}/tests/fakes/${BACKUP_HELPER_FAILURE})
+set(RESTORE_HELPER_TEST_LOCATION ${CMAKE_BINARY_DIR}/tests/fakes/${RESTORE_HELPER})
 
 add_definitions(
   -DCMAKE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"

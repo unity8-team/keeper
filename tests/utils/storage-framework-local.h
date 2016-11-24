@@ -41,4 +41,8 @@ namespace StorageFrameworkLocalUtils
     QFileInfoList get_storage_framework_files();
 
     QString get_storage_framework_dir_name();
+
+    bool get_storage_frameowork_file_equal_to(QString const & file_path, QString & path);
+
+    bool get_storage_frameowork_file_equal_in_size_to(QString const & file_path, QString & path);
 }

@@ -48,10 +48,12 @@ add_library(
   ${HELPER_LIB}
   STATIC
   backup-helper.cpp
+  restore-helper.cpp
   data-dir-registry.cpp
   helper.cpp
   metadata.cpp
   ${CMAKE_SOURCE_DIR}/include/helper/backup-helper.h
+  ${CMAKE_SOURCE_DIR}/include/helper/restore-helper.h
   ${CMAKE_SOURCE_DIR}/include/helper/data-dir-registry.h
   ${CMAKE_SOURCE_DIR}/include/helper/helper.h
   ${CMAKE_SOURCE_DIR}/include/helper/registry.h

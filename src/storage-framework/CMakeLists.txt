@@ -11,6 +11,9 @@ add_library(
   uploader.h
   sf-uploader.cpp
   sf-uploader.h
+  downloader.h
+  sf-downloader.cpp
+  sf-downloader.h
 )
 
 set_target_properties(
