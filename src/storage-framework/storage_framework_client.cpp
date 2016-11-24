@@ -116,8 +116,8 @@ StorageFrameworkClient::get_new_uploader(int64_t n_bytes, QString const & dir_na
             connection_helper_.connect_future(
                 get_keeper_folder(root, dir_name, true),
                 std::function<void(sf::Folder::SPtr const&)>{
-                    [this, fi, n_bytes, file_name](sf::Folder::SPtr const& keeper_root){
-                        if (!keeper_root)
+                    [this, fi, n_bytes, file_name,root](sf::Folder::SPtr const& keeper_folder){
+                        if (!keeper_folder)
                         {
                             qWarning() << "Error creating keeper root folder";
                             std::shared_ptr<Uploader> ret;
@@ -128,9 +128,9 @@ StorageFrameworkClient::get_new_uploader(int64_t n_bytes, QString const & dir_na
                         else
                         {
                             connection_helper_.connect_future(
-                                keeper_root->create_file(file_name, n_bytes),
+                                keeper_folder->create_file(file_name, n_bytes),
                                 std::function<void(std::shared_ptr<sf::Uploader> const&)>{
-                                    [this, fi](std::shared_ptr<sf::Uploader> const& sf_uploader){
+                                    [this, fi, keeper_folder](std::shared_ptr<sf::Uploader> const& sf_uploader){
                                         qDebug() << "keeper_root->create_file() finished";
                                         std::shared_ptr<Uploader> ret;
                                         if (sf_uploader) {
@@ -342,7 +342,7 @@ StorageFrameworkClient::get_storage_framework_folder(sf::Folder::SPtr const & ro
                         connection_helper_.connect_future(
                             root->create_folder(dir_name),
                             std::function<void(sf::Folder::SPtr const &)>{
-                                [this, fi, res](sf::Folder::SPtr const & folder){
+                                [this, fi, res, root](sf::Folder::SPtr const & folder){
                                     QFutureInterface<decltype(res)> qfi(fi);
                                     qfi.reportResult(folder);
                                     qfi.reportFinished();
