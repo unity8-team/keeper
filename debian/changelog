@@ -1,3 +1,10 @@
+keeper (0.1.0+16.10.20161124-0ubuntu1) yakkety; urgency=medium
+
+  [ Xavi Garcia Mena ]
+  * First version of restore.
+
+ -- Xavi Garcia <xavi.garcia.mena@canonical.com>  Thu, 24 Nov 2016 14:58:54 +0000
+
 keeper (0.1.0+16.10.20160915.3-0ubuntu1) yakkety; urgency=medium
 
   * Initial release. 
