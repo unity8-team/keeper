@@ -20,6 +20,7 @@
 
 #include "helper/metadata.h"
 #include "keeper-task-backup.h"
+#include "keeper-task-restore.h"
 #include "manifest.h"
 #include "storage-framework/storage_framework_client.h"
 #include "task-manager.h"
@@ -50,6 +51,7 @@ public:
 
     bool start_restore(QList<Metadata> const& tasks)
     {
+        qDebug() << "Starting restore...";
         return start_tasks(tasks, Mode::RESTORE);
     }
 
@@ -75,6 +77,22 @@ public:
                 return;
             }
             backup_task_->ask_for_uploader(n_bytes, backup_dir_name_);
+        }
+    }
+
+    void ask_for_downloader()
+    {
+        qDebug() << "Starting restore";
+        if (task_)
+        {
+            auto restore_task_ = qSharedPointerDynamicCast<KeeperTaskRestore>(task_);
+            if (!restore_task_)
+            {
+                qWarning() << "Only restore tasks are allowed to ask for storage framework downloaders";
+                // TODO Mark this as an error at the current task and move to the next task
+                return;
+            }
+            restore_task_->ask_for_downloader();
         }
     }
 
@@ -140,19 +158,40 @@ private:
         return success;
     }
 
+    void manifest_stored(bool success)
+    {
+        qDebug() << "Manifest upload finished success = " << success << " current task=" << current_task_;
+        auto& td = task_data_[current_task_];
+        if (success)
+        {
+            update_task_state(td);
+        }
+        else
+        {
+            td.error = "Error storing manifest file";
+            set_current_task_action(task_->to_string(Helper::State::FAILED));
+        }
+        active_manifest_.reset();
+    }
+
     void on_helper_state_changed(Helper::State state)
     {
-        qDebug() << "Task State changed";
+        auto backup_task_ = qSharedPointerDynamicCast<KeeperTaskBackup>(task_);
         auto& td = task_data_[current_task_];
         update_task_state(td);
 
+        // for the last completed backup task we delay updating the
+        // state until the manifest file is stored
+        if (remaining_tasks_.size() || state != Helper::State::COMPLETE)
+            update_task_state(td);
+
         if (state == Helper::State::COMPLETE || state == Helper::State::FAILED)
         {
-            auto backup_task_ = qSharedPointerDynamicCast<KeeperTaskBackup>(task_);
             if (backup_task_ && state == Helper::State::COMPLETE && active_manifest_)
             {
                 qDebug() << "Backup task finished. The file created in storage framework is: [" << backup_task_->get_file_name() << "]";
                 td.metadata.set_property(Metadata::FILE_NAME_KEY, backup_task_->get_file_name());
+                td.metadata.set_property(Metadata::DIR_NAME_KEY, backup_dir_name_);
                 active_manifest_->add_entry(td.metadata);
             }
             if (remaining_tasks_.size())
@@ -162,9 +201,6 @@ private:
             }
             else
             {
-                // TODO we should revisit this.
-                // TODO Maybe we could treat the manifest storage as a new task (with a different task type) to check
-                // TODO when all tasks are finished and prompt something to the user.
                 if (active_manifest_ && active_manifest_->get_entries().size())
                 {
                     qDebug() << "STORING MANIFEST------------";
@@ -172,11 +208,7 @@ private:
                         active_manifest_.data(),
                         &Manifest::finished,
                         std::function<void(bool)>{[this](bool success){
-                            if (!success)
-                                qWarning() << "Manifest store finished with error: " << active_manifest_->error();
-                            else
-                                qDebug() << "Manifest store finished successfully";
-                            active_manifest_.reset();
+                            manifest_stored(success);
                         }}
                     );
                     active_manifest_->store();
@@ -203,14 +235,16 @@ private:
         qDebug() << "Creating task for uuid = " << uuid;
         // initialize a new task
 
-        task_.data()->disconnect();
+        if (task_)
+            task_.data()->disconnect();
+
         if (mode_ == Mode::BACKUP)
         {
             task_.reset(new KeeperTaskBackup(td, helper_registry_, storage_));
         }
         else
         {
-            // TODO initialize a Restore task
+            task_.reset(new KeeperTaskRestore(td, helper_registry_, storage_));
         }
 
         qDebug() << "task created: " << state_;
@@ -311,6 +345,7 @@ private:
     {
         auto& td = task_data_[current_task_];
         td.action = action;
+        task_->recalculate_task_state();
         update_task_state(td);
     }
 
@@ -379,6 +414,13 @@ void TaskManager::ask_for_uploader(quint64 n_bytes)
     Q_D(TaskManager);
 
     d->ask_for_uploader(n_bytes);
+}
+
+void TaskManager::ask_for_downloader()
+{
+    Q_D(TaskManager);
+
+    d->ask_for_downloader();
 }
 
 void TaskManager::cancel()

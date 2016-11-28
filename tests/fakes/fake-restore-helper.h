@@ -19,19 +19,9 @@
 
 #pragma once
 
-#include "helper/metadata.h"
-
-#include <QString>
-
-class HelperRegistry
+namespace
 {
-public:
-    virtual ~HelperRegistry() =default;
-    Q_DISABLE_COPY(HelperRegistry)
+static char const TEST_RESTORE_FILE_PATH[] = "/tmp/test-restore-helper";
+static char const TEST_RESTORE_LOG_FILE_PATH[] = "/tmp/restore-helper-output";
 
-    virtual QStringList get_backup_helper_urls(Metadata const& task) =0;
-    virtual QStringList get_restore_helper_urls(Metadata const& task) =0;
-
-protected:
-    HelperRegistry() =default;
-};
+}

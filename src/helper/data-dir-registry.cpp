@@ -49,15 +49,27 @@ public:
 
     QStringList get_backup_helper_urls(Metadata const& task)
     {
+        return get_helper_urls(task, "backup");
+    }
+
+    QStringList get_restore_helper_urls(Metadata const& task)
+    {
+        return get_helper_urls(task, "restore");
+    }
+
+private:
+
+    QStringList get_helper_urls(Metadata const& task, QString const & prop)
+    {
         QStringList ret;
 
         QString type;
         if (task.get_property(Metadata::TYPE_KEY, type))
         {
-            auto it = registry_.find(std::make_pair(type,QStringLiteral("backup")));
+            auto it = registry_.find(std::make_pair(type,prop));
             if (it == registry_.end())
             {
-                qCritical() << "can't get backup helper urls for unhandled type" << type;
+                qCritical() << "can't get " << prop << " helper urls for unhandled type" << type;
             }
             else
             {
@@ -72,8 +84,6 @@ public:
 
         return ret;
     }
-
-private:
 
     // replace "${key}" with task.get_property("key")
     QStringList perform_url_substitution(Metadata const& task, QStringList const& urls_in)
@@ -139,6 +149,10 @@ private:
              *         "backup-urls": [
              *             "/path/to/helper.sh",
              *             "${subtype}"
+             *         ],
+             *         "restore-urls": [
+             *             "/path/to/helper.sh",
+             *             "${subtype}"
              *         ]
              *     }
              * }
@@ -156,25 +170,37 @@ private:
             if (error.error != QJsonParseError::NoError)
                 qCritical() << path << "parse error at offset" << error.offset << error.errorString();
 
-            auto obj = doc.object();
+            const auto obj = doc.object();
             for (auto tit=obj.begin(), tend=obj.end(); tit!=tend; ++tit)
             {
                 auto const type = tit.key();
-                auto& info = registry_[std::make_pair(type,QStringLiteral("backup"))];
-
                 auto const props = tit.value().toObject();
-                auto const urls_jsonval = props["backup-urls"];
+
+                auto const &urls_jsonval = props["backup-urls"];
                 if (urls_jsonval.isArray())
                 {
+                    auto& info = registry_[std::make_pair(type,QStringLiteral("backup"))];
                     for (auto url_jsonval : urls_jsonval.toArray())
                     {
                         info.urls.push_back(url_jsonval.toString());
                     }
+                    qDebug() << "loaded" << type << "backup urls from" << path;
+                    for(auto const& url : info.urls)
+                        qDebug() << "\turl:" << url;
                 }
 
-                qDebug() << "loaded" << type << "backup urls from" << path;
-                for(auto const& url : info.urls)
-                    qDebug() << "\turl:" << url;
+                auto const &urls_jsonval_restore = props["restore-urls"];
+                if (urls_jsonval_restore.isArray())
+                {
+                    auto& info = registry_[std::make_pair(type,QStringLiteral("restore"))];
+                    for (auto url_jsonval : urls_jsonval_restore.toArray())
+                    {
+                        info.urls.push_back(url_jsonval.toString());
+                    }
+                    qDebug() << "loaded" << type << "restore urls from" << path;
+                    for(auto const& url : info.urls)
+                        qDebug() << "\turl:" << url;
+                }
             }
         }
     }
@@ -197,4 +223,10 @@ QStringList
 DataDirRegistry::get_backup_helper_urls(Metadata const& task)
 {
     return impl_->get_backup_helper_urls(task);
+}
+
+QStringList
+DataDirRegistry::get_restore_helper_urls(Metadata const& task)
+{
+    return impl_->get_restore_helper_urls(task);
 }

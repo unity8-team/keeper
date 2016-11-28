@@ -14,24 +14,33 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authors:
- *     Charles Kerr <charles.kerr@canonical.com>
+ *   Charles Kerr <charles.kerr@canonical.com>
+ *   Xavi Garcia Mena <xavi.garcia.mena@canonical.com>
  */
 
 #pragma once
 
-#include "helper/metadata.h"
+#include <QLocalSocket>
+#include <QObject>
 
-#include <QString>
+#include <memory>
 
-class HelperRegistry
+class Downloader: public QObject
 {
+    Q_OBJECT
+
 public:
-    virtual ~HelperRegistry() =default;
-    Q_DISABLE_COPY(HelperRegistry)
 
-    virtual QStringList get_backup_helper_urls(Metadata const& task) =0;
-    virtual QStringList get_restore_helper_urls(Metadata const& task) =0;
+    Q_DISABLE_COPY(Downloader)
 
-protected:
-    HelperRegistry() =default;
+    Downloader(QObject *parent=nullptr): QObject(parent) {}
+    virtual ~Downloader() =default;
+
+    virtual std::shared_ptr<QLocalSocket> socket() =0;
+    virtual void finish() =0;
+    virtual qint64 file_size() const =0;
+
+Q_SIGNALS:
+
+    void download_finished();
 };

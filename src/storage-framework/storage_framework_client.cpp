@@ -19,6 +19,7 @@
  */
 
 #include "storage-framework/storage_framework_client.h"
+#include "storage-framework/sf-downloader.h"
 #include "storage-framework/sf-uploader.h"
 
 #include <QDateTime>
@@ -39,7 +40,7 @@ StorageFrameworkClient::StorageFrameworkClient(QObject *parent)
 {
 }
 
-StorageFrameworkClient::~StorageFrameworkClient() =default;
+StorageFrameworkClient::~StorageFrameworkClient() = default;
 
 /***
 ****
@@ -115,8 +116,8 @@ StorageFrameworkClient::get_new_uploader(int64_t n_bytes, QString const & dir_na
             connection_helper_.connect_future(
                 get_keeper_folder(root, dir_name, true),
                 std::function<void(sf::Folder::SPtr const&)>{
-                    [this, fi, n_bytes, file_name](sf::Folder::SPtr const& keeper_root){
-                        if (!keeper_root)
+                    [this, fi, n_bytes, file_name,root](sf::Folder::SPtr const& keeper_folder){
+                        if (!keeper_folder)
                         {
                             qWarning() << "Error creating keeper root folder";
                             std::shared_ptr<Uploader> ret;
@@ -127,9 +128,9 @@ StorageFrameworkClient::get_new_uploader(int64_t n_bytes, QString const & dir_na
                         else
                         {
                             connection_helper_.connect_future(
-                                keeper_root->create_file(file_name, n_bytes),
+                                keeper_folder->create_file(file_name, n_bytes),
                                 std::function<void(std::shared_ptr<sf::Uploader> const&)>{
-                                    [this, fi](std::shared_ptr<sf::Uploader> const& sf_uploader){
+                                    [this, fi, keeper_folder](std::shared_ptr<sf::Uploader> const& sf_uploader){
                                         qDebug() << "keeper_root->create_file() finished";
                                         std::shared_ptr<Uploader> ret;
                                         if (sf_uploader) {
@@ -154,10 +155,10 @@ StorageFrameworkClient::get_new_uploader(int64_t n_bytes, QString const & dir_na
     return fi.future();
 }
 
-QFuture<sf::Downloader::SPtr>
+QFuture<std::shared_ptr<Downloader>>
 StorageFrameworkClient::get_new_downloader(QString const & dir_name, QString const & file_name)
 {
-    QFutureInterface<sf::Downloader::SPtr> fi;
+    QFutureInterface<std::shared_ptr<Downloader>> fi;
 
     add_roots_task([this, fi, dir_name, file_name](QVector<sf::Root::SPtr> const& roots)
     {
@@ -171,7 +172,7 @@ StorageFrameworkClient::get_new_downloader(QString const & dir_name, QString con
                         if (!keeper_root)
                         {
                             qWarning() << "Error accessing keeper root folder";
-                            sf::Downloader::SPtr ret;
+                            std::shared_ptr<Downloader> ret;
                             QFutureInterface<decltype(ret)> qfi(fi);
                             qfi.reportResult(ret);
                             qfi.reportFinished();
@@ -183,27 +184,27 @@ StorageFrameworkClient::get_new_downloader(QString const & dir_name, QString con
                                 get_storage_framework_file(keeper_root, file_name),
                                 std::function<void(sf::File::SPtr const&)>{
                                     [this, fi](sf::File::SPtr const& sf_file){
-                                        sf::Downloader::SPtr ret_null;
                                         if (sf_file) {
                                             connection_helper_.connect_future(
                                                 sf_file->create_downloader(),
                                                 std::function<void(sf::Downloader::SPtr const&)>{
-                                                    [this, fi, ret_null](sf::Downloader::SPtr const& sf_downloader){
-                                                        QFutureInterface<decltype(ret_null)> qfi(fi);
+                                                    [this, fi, sf_file](sf::Downloader::SPtr const& sf_downloader){
+                                                        std::shared_ptr<Downloader> ret;
                                                         if (sf_downloader)
                                                         {
-                                                            qfi.reportResult(sf_downloader);
-                                                            qfi.reportFinished();
+                                                            ret.reset(
+                                                                new StorageFrameworkDownloader(sf_downloader, sf_file->size(), this),
+                                                                [](Downloader* d){d->deleteLater();}
+                                                            );
                                                         }
-                                                        else
-                                                        {
-                                                            qfi.reportResult(ret_null);
-                                                            qfi.reportFinished();
-                                                        }
+                                                        QFutureInterface<decltype(ret)> qfi(fi);
+                                                        qfi.reportResult(ret);
+                                                        qfi.reportFinished();
                                                     }
                                                 }
                                             );
                                         } else {
+                                            std::shared_ptr<Downloader> ret_null;
                                             QFutureInterface<decltype(ret_null)> qfi(fi);
                                             qfi.reportResult(ret_null);
                                             qfi.reportFinished();
@@ -341,7 +342,7 @@ StorageFrameworkClient::get_storage_framework_folder(sf::Folder::SPtr const & ro
                         connection_helper_.connect_future(
                             root->create_folder(dir_name),
                             std::function<void(sf::Folder::SPtr const &)>{
-                                [this, fi, res](sf::Folder::SPtr const & folder){
+                                [this, fi, res, root](sf::Folder::SPtr const & folder){
                                     QFutureInterface<decltype(res)> qfi(fi);
                                     qfi.reportResult(folder);
                                     qfi.reportFinished();

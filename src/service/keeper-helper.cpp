@@ -44,8 +44,11 @@ QDBusUnixFileDescriptor KeeperHelper::StartBackup(quint64 n_bytes)
 
 QDBusUnixFileDescriptor KeeperHelper::StartRestore()
 {
-    // TODO get the file descriptor of the item in storage framework
-    return QDBusUnixFileDescriptor();
+    // pass it back to Keeper to do the work
+    Q_ASSERT(calledFromDBus());
+    auto bus = connection();
+    auto& msg = message();
+    return keeper_.StartRestore(bus, msg);
 }
 
 void KeeperHelper::UpdateStatus(const QString &app_id, const QString &status, double percentage)

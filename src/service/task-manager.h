@@ -58,6 +58,8 @@ public:
 
     void ask_for_uploader(quint64 n_bytes);
 
+    void ask_for_downloader();
+
     void cancel();
 
 Q_SIGNALS:
