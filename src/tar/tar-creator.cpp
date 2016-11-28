@@ -139,7 +139,7 @@ public:
             {
                 // loop to next file
                 step_file_.reset();
-                continue;
+                break;
             }
         }
 
