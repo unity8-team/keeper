@@ -170,4 +170,38 @@ QString get_storage_framework_dir_name()
             : "";
 }
 
+bool get_storage_frameowork_file_equal_to(QString const & file_path, QString & path)
+{
+    auto const backups = get_storage_framework_files();
+    for (auto const& backup : backups)
+    {
+        auto const backup_filename = backup.absoluteFilePath();
+        if (FileUtils::compareFiles(file_path, backup_filename))
+        {
+            path = backup_filename;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool get_storage_frameowork_file_equal_in_size_to(QString const & file_path, QString & path)
+{
+    auto const backups = get_storage_framework_files();
+    for (auto const& backup : backups)
+    {
+        auto const backup_filename = backup.absoluteFilePath();
+        QFileInfo info1(backup_filename);
+        QFileInfo info2(file_path);
+        qDebug() << "File 1 size = " << info1.size();
+        qDebug() << "File 2 size = " << info2.size();
+        if (info1.size() == info2.size())
+        {
+            path = backup_filename;
+            return true;
+        }
+    }
+    return false;
+}
+
 } // namespace StorageFrameworkLocalUtils

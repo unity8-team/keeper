@@ -42,6 +42,7 @@ public:
     static QString const TITLE_KEY;
     static QString const VERSION_KEY;
     static QString const FILE_NAME_KEY;
+    static QString const DIR_NAME_KEY;
     static QString const DISPLAY_NAME_KEY;
 
     // metadata values

@@ -59,6 +59,10 @@ public:
                                         QDBusMessage const & message,
                                         quint64 nbytes);
 
+
+    QDBusUnixFileDescriptor StartRestore(QDBusConnection,
+                                        QDBusMessage const & message);
+
     void start_tasks(QStringList const & uuids,
                             QDBusConnection bus,
                             QDBusMessage const & msg);
@@ -66,6 +70,8 @@ public:
     QVariantDictMap get_state() const;
 
     void cancel();
+
+    void invalidate_choices_cache();
 
 private:
     QScopedPointer<KeeperPrivate> const d_ptr;

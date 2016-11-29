@@ -20,6 +20,7 @@
  */
 
 #include "test-helpers-base.h"
+#include "tests/fakes/fake-restore-helper.h"
 
 class TestHelpers: public TestHelpersBase
 {
@@ -140,6 +141,39 @@ TEST_F(TestHelpers, StartFullTest)
 
     // finally check that we have a valid manifest file.
     EXPECT_TRUE(check_manifest_file(backup_items));
+
+    QDBusPendingReply<QVariantDictMap> restore_choices_reply = user_iface->call("GetRestoreChoices");
+    restore_choices_reply.waitForFinished();
+    EXPECT_TRUE(restore_choices_reply.isValid()) << qPrintable(choices.error().message());
+
+    const auto restore_choices = restore_choices_reply.value();
+    EXPECT_EQ(2, restore_choices.size());
+
+    // check that we have the first uuid that we did the backup
+    const auto iter_restore = restore_choices.find(user_folder_uuid);
+    EXPECT_NE(iter_restore, restore_choices.end());
+    EXPECT_EQ(user_folder_uuid, iter_restore.key());
+
+    // ask to restore that uuid
+    QDBusPendingReply<void> restore_reply = user_iface->call("StartRestore", QStringList{iter_restore.key()});
+    restore_reply.waitForFinished();
+    ASSERT_TRUE(restore_reply.isValid()) << qPrintable(dbus_test_runner.sessionConnection().lastError().message());
+
+    // waits until all tasks are complete, recording PropertiesChanged signals
+    // and checks all the recorded values
+    EXPECT_TRUE(capture_and_check_state_until_all_tasks_complete(spy, {iter_restore.key()}, "complete"));
+
+    // verify that the file that the fake restore helper creates is one of the ones in storage framework
+    QString storage_framework_file_path;
+    EXPECT_TRUE(StorageFrameworkLocalUtils::get_storage_frameowork_file_equal_to(TEST_RESTORE_FILE_PATH, storage_framework_file_path));
+
+    // Finally check that the storage framework file that matched is the right one
+    // Keeper uses the display name plus .keeper extension for the files it creates
+    QFileInfo sf_file_info(storage_framework_file_path);
+    EXPECT_EQ(sf_file_info.fileName(), QStringLiteral("%1.keeper").arg(get_display_name_for_xdg_folder_path(user_dir, choices.value())));
+
+    auto show_helper_ouput_cmd = QStringLiteral("cat %1").arg(TEST_RESTORE_LOG_FILE_PATH);
+    system(show_helper_ouput_cmd.toStdString().c_str());
 }
 
 TEST_F(TestHelpers, StartFullTestCancelling)

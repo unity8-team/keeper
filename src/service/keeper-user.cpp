@@ -70,9 +70,15 @@ KeeperUser::GetRestoreChoices()
 void
 KeeperUser::StartRestore (const QStringList& keys)
 {
-    // FIXME: writeme
+    Q_ASSERT(calledFromDBus());
 
-    qDebug() << keys;
+    auto bus = connection();
+    auto& msg = message();
+    // if we start a restore right after a backup the uuid
+    // will be found as a backup uuid.
+    // Just clear the backup cache to avoid that.
+    keeper_.invalidate_choices_cache();
+    keeper_.start_tasks(keys, bus, msg);
 }
 
 QVariantDictMap

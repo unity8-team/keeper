@@ -110,8 +110,8 @@ public:
     {
         connections_.connect_future(
             storage_->get_new_downloader(dir_, MANIFEST_FILE_NAME),
-            std::function<void(sf::Downloader::SPtr const&)>{
-                [this](sf::Downloader::SPtr const& downloader){
+            std::function<void(std::shared_ptr<Downloader> const&)>{
+                [this](std::shared_ptr<Downloader> const& downloader){
                     qDebug() << "Manifest downloader is" << static_cast<void*>(downloader.get());
                     if (downloader)
                     {
@@ -125,7 +125,7 @@ public:
                         }
                         auto json_content = socket->readAll();
                         from_json(json_content);
-                        downloader->finish_download();
+                        downloader->finish();
                         finish();
                     }
                     else
