@@ -168,7 +168,7 @@ StorageFrameworkClient::get_new_downloader(QString const & dir_name, QString con
             connection_helper_.connect_future(
                 get_keeper_folder(root, dir_name, false),
                 std::function<void(sf::Folder::SPtr const&)>{
-                    [this, fi, file_name](sf::Folder::SPtr const& keeper_root){
+                    [this, fi, file_name, root](sf::Folder::SPtr const& keeper_root){
                         if (!keeper_root)
                         {
                             qWarning() << "Error accessing keeper root folder";
@@ -183,12 +183,12 @@ StorageFrameworkClient::get_new_downloader(QString const & dir_name, QString con
                             connection_helper_.connect_future(
                                 get_storage_framework_file(keeper_root, file_name),
                                 std::function<void(sf::File::SPtr const&)>{
-                                    [this, fi](sf::File::SPtr const& sf_file){
+                                    [this, fi, root, keeper_root](sf::File::SPtr const& sf_file){
                                         if (sf_file) {
                                             connection_helper_.connect_future(
                                                 sf_file->create_downloader(),
                                                 std::function<void(sf::Downloader::SPtr const&)>{
-                                                    [this, fi, sf_file](sf::Downloader::SPtr const& sf_downloader){
+                                                    [this, fi, sf_file, keeper_root, root](sf::Downloader::SPtr const& sf_downloader){
                                                         std::shared_ptr<Downloader> ret;
                                                         if (sf_downloader)
                                                         {

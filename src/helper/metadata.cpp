@@ -23,6 +23,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 
+#include <uuid/uuid.h>
 ///
 ///
 
@@ -32,6 +33,15 @@ namespace
     constexpr const char UUID_KEY[]         = "uuid";
     constexpr const char DISPLAY_NAME_KEY[] = "display-name";
     constexpr const char PROPERTIES_KEY[]   = "properties";
+
+    QString generate_new_uuid()
+    {
+        uuid_t keyuu;
+        uuid_generate(keyuu);
+        char keybuf[37];
+        uuid_unparse(keyuu, keybuf);
+        return QString::fromUtf8(keybuf);
+    }
 }
 
 // Metadata keys
@@ -106,6 +116,12 @@ Metadata::get_public_properties() const
     return ret;
 }
 
+void
+Metadata::set_generate_new_uuids_for_json(bool generate_new_uuids)
+{
+    generate_new_uuids_for_json_ = generate_new_uuids;
+}
+
 QJsonObject
 Metadata::json() const
 {
@@ -116,9 +132,10 @@ Metadata::json() const
         properties_obj[iter.key()] = (*iter);
     }
 
+    auto uuid = generate_new_uuids_for_json_ ? generate_new_uuid() : uuid_;
     QJsonObject ret
     {
-        { UUID_KEY, uuid_ },
+        { UUID_KEY, uuid },
         { DISPLAY_NAME_KEY, display_name_ },
         { PROPERTIES_KEY, properties_obj }
     };

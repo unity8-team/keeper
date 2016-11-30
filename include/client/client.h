@@ -58,6 +58,7 @@ public:
 // C++
 public:
     QMap<QString, QVariantMap> getBackupChoices() const;
+    QMap<QString, QVariantMap> getRestoreChoices() const;
     void startBackup(QStringList const& uuids) const;
 
     QMap<QString, QVariantMap> getState() const;
@@ -67,6 +68,8 @@ Q_SIGNALS:
     void progressChanged();
     void readyToBackupChanged();
     void backupBusyChanged();
+
+    void taskStatusChanged(QString const & displayName, QString const & status, double percentage);
 
 private Q_SLOTS:
     void stateUpdated();

@@ -213,6 +213,7 @@ public:
     QVariantDictMap get_restore_choices_var_dict_map(QDBusConnection bus,
                                                      QDBusMessage const & msg)
     {
+        cached_restore_choices_.clear();
         connections_.connect_oneshot(
             this,
             &KeeperPrivate::restore_choices_ready,
