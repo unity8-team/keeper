@@ -21,6 +21,8 @@
 
 #include <client/client.h>
 
+#include <QCoreApplication>
+
 #include <iostream>
 #include <iomanip>
 
@@ -31,6 +33,7 @@ CommandLineClient::CommandLineClient(QObject * parent)
 {
     connect(keeper_client_.data(), &KeeperClient::statusChanged, this, &CommandLineClient::on_status_changed);
     connect(keeper_client_.data(), &KeeperClient::progressChanged, this, &CommandLineClient::on_progress_changed);
+    connect(keeper_client_.data(), &KeeperClient::finished, this, &CommandLineClient::on_keeper_client_finished);
     connect(keeper_client_.data(), &KeeperClient::taskStatusChanged, view_.data(), &CommandLineClientView::on_task_state_changed);
 }
 
@@ -178,4 +181,12 @@ void CommandLineClient::on_progress_changed()
 void CommandLineClient::on_status_changed()
 {
     view_->status_changed(keeper_client_->status());
+}
+
+void CommandLineClient::on_keeper_client_finished()
+{
+    QCoreApplication::processEvents();
+    view_->show_info();
+    view_->clear_all();
+    QCoreApplication::exit(0);
 }

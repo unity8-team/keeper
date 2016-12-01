@@ -42,6 +42,7 @@ public:
 public Q_SLOTS:
     void on_progress_changed();
     void on_status_changed();
+    void on_keeper_client_finished();
 
 private:
     void list_backup_sections(QMap<QString, QVariantMap> const & choices);

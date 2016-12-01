@@ -70,6 +70,7 @@ Q_SIGNALS:
     void backupBusyChanged();
 
     void taskStatusChanged(QString const & displayName, QString const & status, double percentage);
+    void finished();
 
 private Q_SLOTS:
     void stateUpdated();

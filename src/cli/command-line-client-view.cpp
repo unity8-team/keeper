@@ -67,6 +67,7 @@ void CommandLineClientView::start_printing_tasks()
 void CommandLineClientView::clear_all()
 {
     timer_status_.stop();
+    std::cout << std::endl;
 }
 
 void CommandLineClientView::print_sections(QStringList const & sections)
