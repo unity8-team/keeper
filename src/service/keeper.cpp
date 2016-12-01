@@ -75,6 +75,9 @@ public:
         , restore_choices_(restore_choices)
         , task_manager_{helper_registry, storage_}
     {
+        QObject::connect(&task_manager_, &TaskManager::finished,
+            std::bind(&KeeperPrivate::on_task_manager_finished, this)
+        );
     }
 
     enum class ChoicesType { BACKUP_CHOICES, RESTORES_CHOICES };
@@ -213,6 +216,7 @@ public:
     QVariantDictMap get_restore_choices_var_dict_map(QDBusConnection bus,
                                                      QDBusMessage const & msg)
     {
+        cached_restore_choices_.clear();
         connections_.connect_oneshot(
             this,
             &KeeperPrivate::restore_choices_ready,
@@ -305,6 +309,13 @@ Q_SIGNALS:
     void restore_choices_ready();
 
 private:
+
+    void on_task_manager_finished()
+    {
+        // force a backup choices regeneration to avoid repeating uuids
+        // between backups
+        invalidate_choices_cache();
+    }
 
     void check_for_unhandled_tasks(QSet<QString> const & unhandled,
                                    QDBusConnection bus,

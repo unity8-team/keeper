@@ -22,34 +22,62 @@
 #include <client/client.h>
 
 #include <qdbus-stubs/keeper_user_interface.h>
+#include <qdbus-stubs/DBusPropertiesInterface.h>
 
 struct KeeperClientPrivate final
 {
     Q_DISABLE_COPY(KeeperClientPrivate)
 
-    KeeperClientPrivate(QObject* parent)
+    KeeperClientPrivate(QObject* /* parent */)
         : userIface(new DBusInterfaceKeeperUser(
                           DBusTypes::KEEPER_SERVICE,
                           DBusTypes::KEEPER_USER_PATH,
                           QDBusConnection::sessionBus()
-                          )),
-        status(""),
-        progress(0),
-        readyToBackup(false),
-        backupBusy(false),
-        stateTimer(parent)
+                          ))
+        , propertiesIface(new DBusPropertiesInterface(
+                           DBusTypes::KEEPER_SERVICE,
+                           DBusTypes::KEEPER_USER_PATH,
+                           QDBusConnection::sessionBus()
+                         ))
+        , status("")
+        , progress(0)
+        , readyToBackup(false)
+        , backupBusy(false)
     {
     }
 
     ~KeeperClientPrivate() = default;
 
+    struct TaskStatus
+    {
+        QString status;
+        double percentage;
+    };
+
+    bool stateIsFinal(QString const & stateString) const
+    {
+        return (stateString == "complete" || stateString == "cancelled" || stateString == "failed");
+    }
+
+    bool checkAllTasksFinished(QMap<QString, QVariantMap> const & state) const
+    {
+        bool ret = true;
+        for (auto iter = state.begin(); iter != state.end(); ++iter)
+        {
+            auto statusString = (*iter).value("action").toString();
+            ret = (ret && stateIsFinal(statusString));
+        }
+        return ret;
+    }
+
     QScopedPointer<DBusInterfaceKeeperUser> userIface;
+    QScopedPointer<DBusPropertiesInterface> propertiesIface;
     QString status;
     QMap<QString, QVariantMap> backups;
     double progress;
     bool readyToBackup;
     bool backupBusy;
-    QTimer stateTimer;
+    QMap<QString, TaskStatus> task_status;
 };
 
 KeeperClient::KeeperClient(QObject* parent) :
@@ -66,7 +94,7 @@ KeeperClient::KeeperClient(QObject* parent) :
         iter.value()["enabled"] = false;
     }
 
-    connect(&d->stateTimer, &QTimer::timeout, this, &KeeperClient::stateUpdated);
+    connect(d->propertiesIface.data(), &DBusPropertiesInterface::PropertiesChanged, this, &KeeperClient::stateUpdated);
 }
 
 KeeperClient::~KeeperClient() = default;
@@ -120,17 +148,13 @@ void KeeperClient::enableBackup(QString uuid, bool enabled)
         }
     }
 
+    d->task_status[uuid] = KeeperClientPrivate::TaskStatus{"", 0.0};
+
     Q_EMIT readyToBackupChanged();
 }
 
 void KeeperClient::startBackup()
 {
-    // TODO: Instead of polling for state, we should be listening to a stateChanged signal
-    if (!d->stateTimer.isActive())
-    {
-        d->stateTimer.start(200);
-    }
-
     // Determine which backups are enabled, and start only those
     QStringList backupList;
     for(auto iter = d->backups.begin(); iter != d->backups.end(); ++iter)
@@ -170,6 +194,20 @@ QMap<QString, QVariantMap> KeeperClient::getBackupChoices() const
     return choices.value();
 }
 
+QMap<QString, QVariantMap> KeeperClient::getRestoreChoices() const
+{
+    QDBusPendingReply<QMap<QString, QVariantMap>> choices = d->userIface->call("GetRestoreChoices");
+
+    choices.waitForFinished();
+    if (!choices.isValid())
+    {
+        qWarning() << "Error getting restore choices:" << choices.error().message();
+        return QMap<QString, QVariantMap>();
+    }
+
+    return choices.value();
+}
+
 void KeeperClient::startBackup(const QStringList& uuids) const
 {
     QDBusReply<void> backupReply = d->userIface->call("StartBackup", uuids);
@@ -191,9 +229,26 @@ void KeeperClient::stateUpdated()
 
     if (!states.empty())
     {
-        // Calculate current total progress
-        // TODO: May be better to monitor each backup's progress separately instead of total
-        //       to avoid irregular jumps in progress between larger and smaller backups
+        for (auto const & uuid : d->task_status.keys())
+        {
+            auto iter_state = states.find(uuid);
+            if (iter_state == states.end())
+            {
+                qWarning() << "State for uuid: " << uuid << " was not found";
+            }
+            auto state = (*iter_state);
+            double progress = state.value("percent-done").toDouble();
+            auto status = state.value("action").toString();
+
+            auto current_state = d->task_status[uuid];
+            if (current_state.status != status || current_state.percentage < progress)
+            {
+                d->task_status[uuid].status = status;
+                d->task_status[uuid].percentage = progress;
+                Q_EMIT(taskStatusChanged(state.value("display-name").toString(), status, progress));
+            }
+        }
+
         double totalProgress = 0;
         for (auto const& state : states)
         {
@@ -203,6 +258,7 @@ void KeeperClient::stateUpdated()
         d->progress = totalProgress / states.count();
         Q_EMIT progressChanged();
 
+        auto allTasksFinished = d->checkAllTasksFinished(states);
         // Update backup status
         if (d->progress > 0 && d->progress < 1)
         {
@@ -212,19 +268,26 @@ void KeeperClient::stateUpdated()
             d->backupBusy = true;
             Q_EMIT backupBusyChanged();
         }
-        else if (d->progress >= 1)
+        else if (d->progress >= 1 && !allTasksFinished)
+        {
+            d->status = "Backup Finishing...";
+            Q_EMIT statusChanged();
+
+            d->backupBusy = true;
+            Q_EMIT backupBusyChanged();
+        }
+        else if (allTasksFinished)
         {
             d->status = "Backup Complete";
             Q_EMIT statusChanged();
 
             d->backupBusy = false;
             Q_EMIT backupBusyChanged();
+        }
 
-            // Stop state timer
-            if (d->stateTimer.isActive())
-            {
-                d->stateTimer.stop();
-            }
+        if (d->checkAllTasksFinished(states))
+        {
+            Q_EMIT(finished());
         }
     }
 }

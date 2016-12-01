@@ -11,6 +11,9 @@ add_executable(
 target_link_libraries(
   ${TEST_NAME}
   ${UNIT_TEST_LIBRARIES}
+  storage-framework
+  backup-helper
+  ${SERVICE_DEVEL_SF_DEPS_LIBRARIES}
   Qt5::Core
   Qt5::DBus
   Qt5::Test
