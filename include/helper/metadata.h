@@ -57,7 +57,6 @@ public:
 
     QMap<QString,QString> get_public_properties() const;
 
-    void set_generate_new_uuids_for_json(bool generate_new_uuids);
     QJsonObject json() const;
 
 private:
@@ -65,5 +64,4 @@ private:
     QString uuid_;
     QString display_name_;
     QMap<QString,QString> properties_{};
-    bool generate_new_uuids_for_json_ = false;
 };

@@ -152,7 +152,6 @@ public:
         QJsonArray json_array;
         for (auto metadata : entries_)
         {
-            metadata.set_generate_new_uuids_for_json(true);
             json_array.append(metadata.json());
         }
         QJsonObject json_root;
