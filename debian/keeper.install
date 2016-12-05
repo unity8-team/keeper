@@ -1,4 +1,5 @@
 /usr/lib/*/keeper/folder-backup.sh
+/usr/lib/*/keeper/folder-restore.sh
 /usr/lib/*/keeper/keeper-service
 /usr/lib/*/keeper/keeper-tar-create
 /usr/lib/*/ubuntu-app-launch/backup-helper/exec-tool
