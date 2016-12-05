@@ -30,7 +30,7 @@ struct KeeperClientPrivate final
 
     enum class TasksMode { IDLE_MODE, BACKUP_MODE, RESTORE_MODE };
 
-    KeeperClientPrivate(QObject* /* parent */)
+    explicit KeeperClientPrivate(QObject* /* parent */)
         : userIface(new DBusInterfaceKeeperUser(
                           DBusTypes::KEEPER_SERVICE,
                           DBusTypes::KEEPER_USER_PATH,
