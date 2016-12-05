@@ -55,11 +55,15 @@ public:
     Q_INVOKABLE void enableBackup(QString uuid, bool enabled);
     Q_INVOKABLE void startBackup();
 
+    Q_INVOKABLE void enableRestore(QString uuid, bool enabled);
+    Q_INVOKABLE void startRestore();
+
 // C++
 public:
     QMap<QString, QVariantMap> getBackupChoices() const;
     QMap<QString, QVariantMap> getRestoreChoices() const;
     void startBackup(QStringList const& uuids) const;
+    void startRestore(QStringList const& uuids) const;
 
     QMap<QString, QVariantMap> getState() const;
 

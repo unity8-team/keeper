@@ -100,6 +100,11 @@ public:
             std::bind(&RestoreHelperPrivate::on_ready_read, this)
         );
 
+        // TODO investigate why UAL takes so long to call the helper started callback
+        // At this point we are sure that the helper started, as it is the helper
+        // the ones that asks for a downloader socket.
+        q_ptr->Helper::on_helper_started();
+
         // maybe there's data already to be read
         process_more();
 

@@ -45,6 +45,7 @@ public Q_SLOTS:
     void on_keeper_client_finished();
 
 private:
+    bool find_choice_value(QVariantMap const & choice, QString const & id, QVariant & value);
     void list_backup_sections(QMap<QString, QVariantMap> const & choices);
     void list_restore_sections(QMap<QString, QVariantMap> const & choices);
     QScopedPointer<KeeperClient> keeper_client_;

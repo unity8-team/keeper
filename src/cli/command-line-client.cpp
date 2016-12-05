@@ -22,6 +22,7 @@
 #include <client/client.h>
 
 #include <QCoreApplication>
+#include <QDebug>
 
 #include <iostream>
 #include <iomanip>
@@ -102,8 +103,57 @@ void CommandLineClient::run_backup(QStringList & sections)
     view_->start_printing_tasks();
 }
 
-void CommandLineClient::run_restore(QStringList & /*sections*/)
+void CommandLineClient::run_restore(QStringList & sections)
 {
+    auto unhandled_sections = sections;
+    auto choices_values = keeper_client_->getRestoreChoices();
+    QStringList uuids;
+    for(auto iter = choices_values.begin(); iter != choices_values.end(); ++iter)
+    {
+        const auto& values = iter.value();
+
+        QVariant choice_value;
+        auto has_type = find_choice_value(values, "type", choice_value);
+        if (has_type && choice_value.toString() == "folder")
+        {
+            QVariant display_name;
+            auto has_display_name = find_choice_value(values, "display-name", display_name);
+            if (!has_display_name)
+                continue;
+
+            QVariant dir_name;
+            auto has_dir_name = find_choice_value(values, "dir-name", dir_name);
+            if (!has_dir_name)
+                continue;
+
+            auto section_name = QStringLiteral("%1:%2").arg(display_name.toString()).arg(dir_name.toString());
+            auto index = unhandled_sections.indexOf(section_name);
+            if (index != -1)
+            {
+                // we have to restore this section
+                uuids << iter.key();
+                unhandled_sections.removeAt(index);
+                view_->add_task(display_name.toString(), "waiting", 0.0);
+            }
+        }
+    }
+    if (!unhandled_sections.isEmpty())
+    {
+        QString error_message("The following sections were not found: \n");
+        for (auto const & section : unhandled_sections)
+        {
+            error_message += QStringLiteral("\t %1 \n").arg(section);
+        }
+        view_->print_error_message(error_message);
+        exit(1);
+    }
+
+    for (auto const & uuid: uuids)
+    {
+        keeper_client_->enableRestore(uuid, true);
+    }
+    keeper_client_->startRestore();
+    view_->start_printing_tasks();
 }
 
 void CommandLineClient::list_backup_sections(QMap<QString, QVariantMap> const & choices_values)
@@ -112,16 +162,15 @@ void CommandLineClient::list_backup_sections(QMap<QString, QVariantMap> const & 
     for(auto iter = choices_values.begin(); iter != choices_values.end(); ++iter)
     {
         const auto& values = iter.value();
-        auto iter_values = values.find("type");
-        if (iter_values != values.end())
+
+        QVariant choice_value;
+        auto has_type = find_choice_value(values, "type", choice_value);
+        if (has_type && choice_value.toString() == "folder")
         {
-            if (iter_values.value().toString() == "folder")
+            auto has_display_name = find_choice_value(values, "display-name", choice_value);
+            if (has_display_name)
             {
-                auto iter_display_name = values.find("display-name");
-                if (iter_display_name != values.end())
-                {
-                    sections << (*iter_display_name).toString();
-                }
+                 sections << choice_value.toString();
             }
         }
     }
@@ -135,17 +184,15 @@ void CommandLineClient::list_restore_sections(QMap<QString, QVariantMap> const &
     for(auto iter = choices_values.begin(); iter != choices_values.end(); ++iter)
     {
         const auto& values = iter.value();
-        auto iter_values = values.find("type");
-        if (iter_values != values.end())
+
+        QVariant choice_value;
+        auto has_type = find_choice_value(values, "type", choice_value);
+        if (has_type && choice_value.toString() == "folder")
         {
-            if (iter_values.value().toString() == "folder")
-            {
-                auto iter_dir_name = values.find("dir-name");
-                if (iter_dir_name != values.end())
-                {
-                    values_per_dir[(*iter_dir_name).toString()].push_back(values);
-                }
-            }
+            auto has_dir_name = find_choice_value(values, "dir-name", choice_value);
+            if (!has_dir_name)
+                continue;
+            values_per_dir[choice_value.toString()].push_back(values);
         }
     }
 
@@ -155,16 +202,15 @@ void CommandLineClient::list_restore_sections(QMap<QString, QVariantMap> const &
         for(auto iter_items = (*iter).begin(); iter_items != (*iter).end(); ++iter_items)
         {
             const auto& values = (*iter_items);
-            auto iter_values = values.find("type");
-            if (iter_values != values.end())
+
+            QVariant choice_value;
+            auto has_type = find_choice_value(values, "type", choice_value);
+            if (has_type && choice_value.toString() == "folder")
             {
-                if (iter_values.value().toString() == "folder")
+                auto has_display_name = find_choice_value(values, "display-name", choice_value);
+                if (has_display_name)
                 {
-                    auto iter_display_name = values.find("display-name");
-                    if (iter_display_name != values.end())
-                    {
-                        sections << QStringLiteral("%1:%2").arg((*iter_display_name).toString()).arg(iter.key());
-                    }
+                    sections << QStringLiteral("%1:%2").arg(choice_value.toString()).arg(iter.key());
                 }
             }
         }
@@ -189,4 +235,13 @@ void CommandLineClient::on_keeper_client_finished()
     view_->show_info();
     view_->clear_all();
     QCoreApplication::exit(0);
+}
+
+bool CommandLineClient::find_choice_value(QVariantMap const & choice, QString const & id, QVariant & value)
+{
+    auto iter = choice.find(id);
+    if (iter == choice.end())
+        return false;
+    value = (*iter);
+    return true;
 }

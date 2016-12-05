@@ -28,6 +28,8 @@ struct KeeperClientPrivate final
 {
     Q_DISABLE_COPY(KeeperClientPrivate)
 
+    enum class TasksMode { IDLE_MODE, BACKUP_MODE, RESTORE_MODE };
+
     KeeperClientPrivate(QObject* /* parent */)
         : userIface(new DBusInterfaceKeeperUser(
                           DBusTypes::KEEPER_SERVICE,
@@ -43,6 +45,7 @@ struct KeeperClientPrivate final
         , progress(0)
         , readyToBackup(false)
         , backupBusy(false)
+        , mode(TasksMode::IDLE_MODE)
     {
     }
 
@@ -74,10 +77,12 @@ struct KeeperClientPrivate final
     QScopedPointer<DBusPropertiesInterface> propertiesIface;
     QString status;
     QMap<QString, QVariantMap> backups;
+    QMap<QString, QVariantMap> restores;
     double progress;
     bool readyToBackup;
     bool backupBusy;
     QMap<QString, TaskStatus> task_status;
+    TasksMode mode;
 };
 
 KeeperClient::KeeperClient(QObject* parent) :
@@ -153,6 +158,12 @@ void KeeperClient::enableBackup(QString uuid, bool enabled)
     Q_EMIT readyToBackupChanged();
 }
 
+void KeeperClient::enableRestore(QString uuid, bool enabled)
+{
+    // Until we re-design the client we treat restores as backups
+    enableBackup(uuid, enabled);
+}
+
 void KeeperClient::startBackup()
 {
     // Determine which backups are enabled, and start only those
@@ -169,7 +180,32 @@ void KeeperClient::startBackup()
     {
         startBackup(backupList);
 
+        d->mode = KeeperClientPrivate::TasksMode::BACKUP_MODE;
         d->status = "Preparing Backup...";
+        Q_EMIT statusChanged();
+        d->backupBusy = true;
+        Q_EMIT backupBusyChanged();
+    }
+}
+
+void KeeperClient::startRestore()
+{
+    // Determine which restores are enabled, and start only those
+    QStringList restoreList;
+    for(auto iter = d->backups.begin(); iter != d->backups.end(); ++iter)
+    {
+        if (iter.value().value("enabled").toBool())
+        {
+            restoreList.append(iter.key());
+        }
+    }
+
+    if (!restoreList.empty())
+    {
+        startRestore(restoreList);
+
+        d->mode = KeeperClientPrivate::TasksMode::RESTORE_MODE;
+        d->status = "Preparing Restore...";
         Q_EMIT statusChanged();
         d->backupBusy = true;
         Q_EMIT backupBusyChanged();
@@ -218,6 +254,16 @@ void KeeperClient::startBackup(const QStringList& uuids) const
     }
 }
 
+void KeeperClient::startRestore(const QStringList& uuids) const
+{
+    QDBusReply<void> backupReply = d->userIface->call("StartRestore", uuids);
+
+    if (!backupReply.isValid())
+    {
+        qWarning() << "Error starting restore:" << backupReply.error().message();
+    }
+}
+
 QMap<QString, QVariantMap> KeeperClient::getState() const
 {
     return d->userIface->state();
@@ -260,9 +306,18 @@ void KeeperClient::stateUpdated()
 
         auto allTasksFinished = d->checkAllTasksFinished(states);
         // Update backup status
+        QString statusString;
+        if (d->mode == KeeperClientPrivate::TasksMode::BACKUP_MODE)
+        {
+            statusString = QStringLiteral("Backup");
+        }
+        else if (d->mode == KeeperClientPrivate::TasksMode::RESTORE_MODE)
+        {
+            statusString = QStringLiteral("Restore");
+        }
         if (d->progress > 0 && d->progress < 1)
         {
-            d->status = "Backup In Progress...";
+            d->status = statusString + QStringLiteral(" In Progress...");
             Q_EMIT statusChanged();
 
             d->backupBusy = true;
@@ -270,7 +325,7 @@ void KeeperClient::stateUpdated()
         }
         else if (d->progress >= 1 && !allTasksFinished)
         {
-            d->status = "Backup Finishing...";
+            d->status = statusString + QStringLiteral(" Finishing...");
             Q_EMIT statusChanged();
 
             d->backupBusy = true;
@@ -278,7 +333,7 @@ void KeeperClient::stateUpdated()
         }
         else if (allTasksFinished)
         {
-            d->status = "Backup Complete";
+            d->status = statusString + QStringLiteral(" Complete");
             Q_EMIT statusChanged();
 
             d->backupBusy = false;

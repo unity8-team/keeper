@@ -151,7 +151,6 @@ bool CommandLineParser::handle_backup(QCoreApplication const & app, CommandLineP
 
 bool CommandLineParser::handle_restore(QCoreApplication const & app, CommandLineParser::CommandArgs & cmd_args)
 {
-    qDebug() << "Handling backup";
     parser_->clearPositionalArguments();
     parser_->addPositionalArgument(ARGUMENT_RESTORE, QCoreApplication::translate("main", ARGUMENT_RESTORE_DESCRIPTION));
 
