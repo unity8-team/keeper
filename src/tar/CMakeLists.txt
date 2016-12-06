@@ -3,6 +3,7 @@ set(APP_NAME "keeper-tar-create")
 
 set(LIB_SOURCES
   tar-creator.cpp
+  untar.cpp
 )
 add_library(
   ${LIB_NAME}

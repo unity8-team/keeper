@@ -56,10 +56,38 @@ target_link_libraries(
   Qt5::Test
 )
 
-#add_test(
-#  ${TAR_CREATOR_TEST}
-#  ${TAR_CREATOR_TEST}
-#)
+add_test(
+  ${TAR_CREATOR_TEST}
+  ${TAR_CREATOR_TEST}
+)
+
+
+#
+# untar-test
+#
+
+set(
+  UNTAR_TEST
+  untar-test
+)
+
+add_executable(
+  ${UNTAR_TEST}
+  untar-test.cpp
+)
+
+target_link_libraries(
+  ${UNTAR_TEST}
+  ${UNIT_TEST_LIBRARIES}
+  Qt5::Core
+  Qt5::DBus
+  Qt5::Test
+)
+
+add_test(
+  ${UNTAR_TEST}
+  ${UNTAR_TEST}
+)
 
 
 #
@@ -134,6 +162,7 @@ add_test(
 set(
   COVERAGE_TEST_TARGETS
   ${COVERAGE_TEST_TARGETS}
+  ${UNTAR_TEST}
   ${TAR_CREATOR_TEST}
   ${TAR_CREATOR_LIBARCHIVE_FAILURE_TEST}
   ${KEEPER_TAR_CREATE_TEST}
