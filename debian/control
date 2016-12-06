@@ -45,6 +45,9 @@ Architecture: any
 Depends: ${shlibs:Depends}, 
          ${misc:Depends},
          systemd | systemd-shim,
+         tar,
+         xz-utils
+
 Description: Backup Tool
  A backup/restore utility for Ubuntu
 
@@ -53,6 +56,8 @@ Architecture: any
 Depends: ${shlibs:Depends},
          ${misc:Depends},
          systemd | systemd-shim,
+         tar,
+         xz-utils
 Description: Backup Tool
  A backup/restore utility for Ubuntu (client application)
 
