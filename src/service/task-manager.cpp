@@ -147,6 +147,7 @@ private:
                 auto& td = task_data_[uuid];
                 td.metadata = metadata;
                 td.action = QStringLiteral("queued"); // TODO i18n
+                td.error = KeeperError::OK;
                 set_initial_task_state(td);
             }
 
@@ -169,7 +170,7 @@ private:
         }
         else
         {
-            td.error = "Error storing manifest file";
+            td.error = KeeperError::MANIFEST_STORAGE_ERROR;
             set_current_task_action(task_->to_string(Helper::State::FAILED));
         }
         active_manifest_.reset();

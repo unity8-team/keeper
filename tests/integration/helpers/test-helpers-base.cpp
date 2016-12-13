@@ -368,6 +368,7 @@ void TestHelpersBase::start_tasks()
 void TestHelpersBase::SetUp()
 {
     Helper::registerMetaTypes();
+    qRegisterMetaType<KeeperError>("KeeperError");
 
     g_setenv("XDG_DATA_DIRS", CMAKE_SOURCE_DIR, true);
     g_setenv("XDG_CACHE_HOME", CMAKE_SOURCE_DIR "/libertine-data", true);

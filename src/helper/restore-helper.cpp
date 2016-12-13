@@ -57,8 +57,8 @@ public:
         int rc = socketpair(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0, fds);
         if (rc == -1)
         {
-            // TODO throw exception.
-            qWarning() << "RestoreHelperPrivate: error creating socket pair to communicate with helper ";
+            qWarning() <<  QStringLiteral("Error creating socket to communicate with helper");;
+            Q_EMIT(q_ptr->error(KeeperError::HELPER_SOCKET_ERROR));
             return;
         }
 
@@ -167,6 +167,7 @@ private:
     {
         stop_inactivity_timer();
         qWarning() << "Inactivity detected in the helper...stopping it";
+        Q_EMIT(q_ptr->error(KeeperError::HELPER_INACTIVITY_DETECTED));
         stop();
     }
 
@@ -207,6 +208,7 @@ private:
                     else if (n < 0) {
                         read_error_ = true;
                         qDebug() << "Read error in restore helper: " << socket->errorString();
+                        Q_EMIT(q_ptr->error(KeeperError::HELPER_READ_ERROR));
                         stop();
                         return;
                     }
@@ -226,6 +228,7 @@ private:
                     if (n < 0) {
                         write_error_ = true;
                         qWarning() << "Write error:" << write_socket_.errorString();
+                        Q_EMIT(q_ptr->error(KeeperError::HELPER_WRITE_ERROR));
                         stop();
                     }
                     break;
@@ -257,6 +260,10 @@ private:
         {
             if (!q_ptr->is_helper_running())
             {
+                if (n_uploaded_ > q_ptr->expected_size())
+                {
+                    Q_EMIT(q_ptr->error(KeeperError::HELPER_WRITE_ERROR));
+                }
                 q_ptr->set_state(Helper::State::FAILED);
             }
         }

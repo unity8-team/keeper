@@ -49,6 +49,7 @@ set(
   storage-framework
   util
   qdbus-stubs
+  keeper-errors-lib
 )
 
 target_link_libraries(

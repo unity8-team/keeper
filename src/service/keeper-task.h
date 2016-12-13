@@ -20,6 +20,7 @@
 
 #pragma once
 
+#include "client/keeper-errors.h"
 #include "helper/metadata.h"
 #include "helper/backup-helper.h"
 #include "helper/helper.h"
@@ -40,7 +41,8 @@ public:
     struct TaskData
     {
         QString action;
-        QString error;
+//        QString error;
+        KeeperError error;
         Metadata metadata;
     };
 
@@ -61,6 +63,8 @@ public:
     void cancel();
 
     QString to_string(Helper::State state);
+
+    KeeperError error() const;
 Q_SIGNALS:
     void task_state_changed(Helper::State state);
     void task_socket_ready(int socket_descriptor);

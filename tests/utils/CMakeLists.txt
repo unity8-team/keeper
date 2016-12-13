@@ -19,6 +19,7 @@ add_library(
 target_link_libraries(
   ${LIB_NAME}
   backup-helper
+  keeper-errors-lib
   util
   Qt5::Core
 )
