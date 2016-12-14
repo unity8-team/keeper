@@ -41,7 +41,6 @@ public:
     struct TaskData
     {
         QString action;
-//        QString error;
         keeper::KeeperError error;
         Metadata metadata;
     };

@@ -141,10 +141,8 @@ QVariantMap KeeperTaskPrivate::calculate_task_state()
     if (task_data_.action == "failed" || task_data_.action == "cancelled")
     {
         auto error = error_;
-        qDebug() << "Error is: " << static_cast<int>(error);
         if (task_data_.error != keeper::KeeperError::OK)
         {
-            qDebug() << "setting error---------------- " << static_cast<int>(task_data_.error);
             error = task_data_.error;
         }
         ret.insert(QStringLiteral("error"), qVariantFromValue(error));
