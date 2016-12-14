@@ -22,6 +22,9 @@
 #include <QDBusArgument>
 #include <QMetaType>
 
+namespace keeper
+{
+
 enum class KeeperError
 {
     OK,
@@ -33,10 +36,14 @@ enum class KeeperError
     NO_HELPER_INFORMATION_IN_REGISTRY,
     HELPER_BAD_URL,
     MANIFEST_STORAGE_ERROR,
+    COMMITTING_DATA_ERROR,
     ERROR_UNKNOWN
 };
 
-QDBusArgument &operator<<(QDBusArgument &argument, KeeperError value);
-const QDBusArgument &operator>>(const QDBusArgument &argument, KeeperError &val);
+KeeperError convertFromDBusVariant(const QVariant & value, bool *conversion_ok = nullptr);
+} // namespace keeper
 
-Q_DECLARE_METATYPE(KeeperError)
+QDBusArgument &operator<<(QDBusArgument &argument, keeper::KeeperError value);
+const QDBusArgument &operator>>(const QDBusArgument &argument, keeper::KeeperError &val);
+
+Q_DECLARE_METATYPE(keeper::KeeperError)

@@ -42,7 +42,7 @@ public:
     {
         QString action;
 //        QString error;
-        KeeperError error;
+        keeper::KeeperError error;
         Metadata metadata;
     };
 
@@ -64,7 +64,7 @@ public:
 
     QString to_string(Helper::State state);
 
-    KeeperError error() const;
+    keeper::KeeperError error() const;
 Q_SIGNALS:
     void task_state_changed(Helper::State state);
     void task_socket_ready(int socket_descriptor);

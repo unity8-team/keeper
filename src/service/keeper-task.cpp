@@ -35,7 +35,7 @@ KeeperTaskPrivate::KeeperTaskPrivate(KeeperTask * keeper_task,
     , task_data_(task_data)
     , helper_registry_(helper_registry)
     , storage_(storage)
-    , error_(KeeperError::OK)
+    , error_(keeper::KeeperError::OK)
 {
 }
 
@@ -50,7 +50,7 @@ bool KeeperTaskPrivate::start()
     if (urls.isEmpty())
     {
         task_data_.action = helper_->to_string(Helper::State::FAILED);
-        error_ = KeeperError::HELPER_BAD_URL;
+        error_ = keeper::KeeperError::HELPER_BAD_URL;
         qWarning() << QStringLiteral("Error: uuid %1 has no url").arg(task_data_.metadata.uuid());
         calculate_and_notify_state(Helper::State::FAILED);
         return false;
@@ -65,6 +65,10 @@ bool KeeperTaskPrivate::start()
     QObject::connect(helper_.data(), &Helper::percent_done_changed,
         std::bind(&KeeperTaskPrivate::on_helper_percent_done_changed, this, std::placeholders::_1)
     );
+
+    QObject::connect(helper_.data(), &Helper::error, [this](keeper::KeeperError error){
+        error_ = error;
+    });
 
     helper_->start(urls);
     return true;
@@ -133,11 +137,14 @@ QVariantMap KeeperTaskPrivate::calculate_task_state()
     auto const percent_done = helper_->percent_done();
     ret.insert(QStringLiteral("percent-done"), double(percent_done));
 
+    qDebug() << "task_data_.action = " << task_data_.action;
     if (task_data_.action == "failed" || task_data_.action == "cancelled")
     {
         auto error = error_;
-        if (task_data_.error != KeeperError::OK)
+        qDebug() << "Error is: " << static_cast<int>(error);
+        if (task_data_.error != keeper::KeeperError::OK)
         {
+            qDebug() << "setting error---------------- " << static_cast<int>(task_data_.error);
             error = task_data_.error;
         }
         ret.insert(QStringLiteral("error"), qVariantFromValue(error));
@@ -201,7 +208,7 @@ QString KeeperTaskPrivate::to_string(Helper::State state)
     }
 }
 
-KeeperError KeeperTaskPrivate::error() const
+keeper::KeeperError KeeperTaskPrivate::error() const
 {
     return error_;
 }
@@ -265,7 +272,7 @@ QString KeeperTask::to_string(Helper::State state)
     return d->to_string(state);
 }
 
-KeeperError KeeperTask::error() const
+keeper::KeeperError KeeperTask::error() const
 {
     Q_D(const KeeperTask);
 

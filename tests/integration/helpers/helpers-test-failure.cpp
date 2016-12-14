@@ -90,6 +90,13 @@ TEST_F(TestHelpers, BackupHelperWritesTooMuch)
     // this one uses pooling so it should just call Get once
     EXPECT_TRUE(wait_for_all_tasks_have_action_state({user_folder_uuid}, "failed", user_iface));
 
+    QVariant error_value;
+    EXPECT_TRUE(get_task_property_now(user_folder_uuid, user_iface, "error", error_value));
+    bool conversion_ok;
+    auto keeper_error = keeper::convertFromDBusVariant(error_value, &conversion_ok);
+    EXPECT_TRUE(conversion_ok);
+    EXPECT_EQ(keeper_error, keeper::KeeperError::HELPER_WRITE_ERROR);
+
     // check that the content of the file is the expected
     EXPECT_EQ(0, StorageFrameworkLocalUtils::check_storage_framework_nb_files());
 

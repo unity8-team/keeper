@@ -36,11 +36,11 @@ namespace DBusTypes
     {
         qRegisterMetaType<QVariantDictMap>("QVariantDictMap");
         qRegisterMetaType<QStringMap>("QStringMap");
-        qRegisterMetaType<KeeperError>("KeeperError");
+        qRegisterMetaType<keeper::KeeperError>("keeper::KeeperError");
 
         qDBusRegisterMetaType<QVariantDictMap>();
         qDBusRegisterMetaType<QStringMap>();
-        qDBusRegisterMetaType<KeeperError>();
+        qDBusRegisterMetaType<keeper::KeeperError>();
     }
 
     constexpr const char KEEPER_SERVICE[] = "com.canonical.keeper";

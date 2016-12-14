@@ -19,7 +19,9 @@
 
 #include <client/keeper-errors.h>
 
-QDBusArgument &operator<<(QDBusArgument &argument, KeeperError value)
+#include <QDebug>
+
+QDBusArgument &operator<<(QDBusArgument &argument, keeper::KeeperError value)
 {
     argument.beginStructure();
     argument << static_cast<int>(value);
@@ -27,12 +29,46 @@ QDBusArgument &operator<<(QDBusArgument &argument, KeeperError value)
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, KeeperError &val)
+const QDBusArgument &operator>>(const QDBusArgument &argument, keeper::KeeperError &val)
 {
     int int_val;
     argument.beginStructure();
     argument >> int_val;
-    val = static_cast<KeeperError>(int_val);
+    val = static_cast<keeper::KeeperError>(int_val);
     argument.endStructure();
     return argument;
+}
+
+namespace keeper
+{
+KeeperError convertFromDBusVariant(const QVariant & value, bool *conversion_ok)
+{
+    if (value.typeName() != QStringLiteral("QDBusArgument"))
+    {
+        qWarning() << Q_FUNC_INFO
+                   << " Error converting dbus QVariant to KeeperError, expected type is [ QDBusArgument ] and current type is: ["
+                   << value.typeName() << "]";
+        if (conversion_ok)
+            *conversion_ok = false;
+        return KeeperError();
+    }
+    auto dbus_arg = value.value<QDBusArgument>();
+
+    if (dbus_arg.currentSignature() != "(i)")
+    {
+        qWarning() << Q_FUNC_INFO
+                   << " Error converting dbus QVariant to KeeperError, expected signature is \"(i)\" and current signature is: \""
+                   << dbus_arg.currentSignature() << "\"";
+        if (conversion_ok)
+            *conversion_ok = false;
+        return KeeperError();
+    }
+    KeeperError ret;
+    dbus_arg >> ret;
+
+    if (conversion_ok)
+        *conversion_ok = true;
+
+    return ret;
+}
 }

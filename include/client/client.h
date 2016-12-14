@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include "keeper-errors.h"
+
 #include <QObject>
 #include <QScopedPointer>
 #include <QStringList>
@@ -73,7 +75,7 @@ Q_SIGNALS:
     void readyToBackupChanged();
     void backupBusyChanged();
 
-    void taskStatusChanged(QString const & displayName, QString const & status, double percentage);
+    void taskStatusChanged(QString const & displayName, QString const & status, double percentage, keeper::KeeperError error);
     void finished();
 
 private Q_SLOTS:

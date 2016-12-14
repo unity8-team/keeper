@@ -42,7 +42,7 @@ public:
 
     QString to_string(Helper::State state);
 
-    KeeperError error() const;
+    keeper::KeeperError error() const;
 
 protected:
     void set_current_task_action(QString const& action);
@@ -60,5 +60,5 @@ protected:
     QSharedPointer<StorageFrameworkClient> storage_;
     QSharedPointer<Helper> helper_;
     QVariantMap state_;
-    KeeperError error_;
+    keeper::KeeperError error_;
 };
