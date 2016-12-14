@@ -169,7 +169,8 @@ def user_start_next_task(user):
             helper_cwd = os.getcwd()
 
         # spawn the helper
-        user.log('starting %s for %s, env %s' % (helper_exec, uuid, henv))
+        user.log('starting %s for %s in %s, env %s' %
+                 (helper_exec, uuid, helper_cwd, henv))
         user.process = subprocess.Popen(
             [helper_exec, HELPER_PATH],
             env=henv, stdout=sys.stdout, stderr=sys.stderr,
@@ -200,15 +201,27 @@ def user_periodic_func(user):
         td.action = ACTION_FAILED
         done = True
 
-    # try to read the socket
+    # try to operate on the socket
     if td.sock and not td.error:
-        chunk = td.sock.recv(4096*2)
-        chunk_len = len(chunk)
-        if chunk_len:
-            got_data_this_pass = True
-            td.chunks.append(chunk)
-            td.n_left -= chunk_len
-            user.log('got %s more bytes; %s left' % (chunk_len, td.n_left))
+
+        if td.action == ACTION_SAVING:
+            chunk = td.sock.recv(4096*2)
+            chunk_len = len(chunk)
+            if chunk_len:
+                got_data_this_pass = True
+                td.chunks.append(chunk)
+                td.n_left -= chunk_len
+                user.log('got %s more bytes; %s left' % (chunk_len, td.n_left))
+
+        if td.action == ACTION_RESTORING:
+            begin = td.n_bytes - td.n_left
+            chunklen = min(td.n_left, 4096*2)
+            end = begin + chunklen
+            chunk = td.blob[begin:end]
+            n_sent = td.sock.send(chunk, socket.MSG_DONTWAIT)
+            if n_sent > 0:
+                td.n_left -= n_sent
+
         if td.n_left <= 0:
             done = True
 
@@ -219,12 +232,17 @@ def user_periodic_func(user):
         td.sock.close()
         td.sock = None
 
-    # if done successfully, save the blob
-    if done and not td.error:
+    # if backup done successfully, update state & save blob
+    if done and td.action == ACTION_SAVING and not td.error:
         user.log('setting blob')
         blob = b''.join(td.chunks)
         td.blob = blob
-        user.log('backup %s done; %s bytes' % (uuid, len(blob)))
+        user.log('backup %s done; %s bytes' % (uuid, len(td.blob)))
+        td.action = ACTION_COMPLETE
+
+    # if restore done successfully, update state
+    if done and td.action == ACTION_RESTORING:
+        user.log('restore %s done; %s bytes' % (uuid, len(td.blob)))
         td.action = ACTION_COMPLETE
 
     # maybe update the task's state
@@ -363,7 +381,7 @@ def helper_start_backup(helper, n_bytes):
 
     helper.log("got start_backup request for %s bytes" % (n_bytes))
 
-    parent, child = socket.socketpair()
+    sock1, sock2 = socket.socketpair()
 
     user = mockobject.objects[USER_PATH]
     uuid = user.current_task
@@ -371,15 +389,31 @@ def helper_start_backup(helper, n_bytes):
     td = user.task_data[uuid]
     td.n_bytes = n_bytes
     td.n_left = n_bytes
-    td.sock = parent
+    td.sock = sock1
 
-    return dbus.types.UnixFd(child.fileno())
+    ret = dbus.types.UnixFd(sock2)
+    sock2.close()
+    return ret
 
 
 def helper_start_restore(helper):
-    helper.parent, child = socket.socketpair()
-    return child
 
+    user = mockobject.objects[USER_PATH]
+    uuid = user.current_task
+    blob = user.restore_choices[uuid][KEY_BLOB]
+
+    sock1, sock2 = socket.socketpair()
+
+    td = user.task_data[uuid]
+    td.blob = bytes([int(byte) for byte in blob])
+    td.n_bytes = len(td.blob)
+    td.n_left = td.n_bytes
+    td.sock = sock1
+    td.sock.setblocking(0)
+
+    ret = dbus.types.UnixFd(sock2)
+    sock2.close()
+    return ret
 
 #
 #  Controlling the mock
