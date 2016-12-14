@@ -19,11 +19,8 @@
 
 #pragma once
 
-#include <QStringList>
-
-#include <cstddef> // ssize_t
+#include <cstddef> // size_t
 #include <memory> // shared_ptr
-#include <vector>
 
 
 class Untar
@@ -31,7 +28,7 @@ class Untar
 public:
     explicit Untar(std::string const& target_path);
     ~Untar();
-    bool step(std::vector<char>&);
+    bool step(char const * buf, size_t n_bytes);
 
 private:
     class Impl;

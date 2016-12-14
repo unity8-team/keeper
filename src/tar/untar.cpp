@@ -43,16 +43,15 @@ public:
     ~Impl()
     {
         uncompress_.closeWriteChannel();
-        uncompress_.waitForFinished();
-        untar_.waitForFinished();
+        if (!uncompress_.waitForFinished() || !untar_.waitForFinished())
+            qWarning() << Q_FUNC_INFO << "processes not finished";
     }
 
-    bool step(std::vector<char>& input)
+    bool step(char const * buf, size_t buflen)
     {
         bool success = true;
 
-        auto n_left = input.size();
-        auto buf = &input.front();
+        auto n_left = buflen;
         while (n_left > 0)
         {
             auto const n_written_this_pass = uncompress_.write(buf, n_left);
@@ -88,7 +87,7 @@ Untar::Untar(std::string const& path)
 Untar::~Untar() =default;
 
 bool
-Untar::step(std::vector<char>& input)
+Untar::step(char const * buf, size_t buflen)
 {
-    return impl_->step(input);
+    return impl_->step(buf, buflen);
 }

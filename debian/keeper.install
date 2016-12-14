@@ -1,6 +1,7 @@
 /usr/lib/*/keeper/folder-backup.sh
 /usr/lib/*/keeper/keeper-service
-/usr/lib/*/keeper/keeper-tar-create
+/usr/lib/*/keeper/keeper-tar
+/usr/lib/*/keeper/keeper-untar
 /usr/lib/*/ubuntu-app-launch/backup-helper/exec-tool
 /usr/share/keeper/helper-registry.json
 /usr/share/dbus-1/services/com.canonical.keeper.service

@@ -142,6 +142,7 @@ protected:
             bool all_done = true;
             for(const auto& properties : state) {
                 const auto action = properties.value(KEY_ACTION);
+                qInfo() << Q_FUNC_INFO << "action is" << action;
                 bool task_done = (action == ACTION_CANCELLED) || (action == ACTION_FAILED) || (action == ACTION_COMPLETE);
                 if (!task_done)
                     all_done = false;
@@ -156,6 +157,14 @@ protected:
     {
         const auto uuid = QUuid::createUuid().toString();
         auto msg = mock_iface_->call(QStringLiteral("AddBackupChoice"), uuid, properties);
+        EXPECT_NE(QDBusMessage::ErrorMessage, msg.type()) << qPrintable(msg.errorMessage());
+        return uuid;
+    }
+
+    QString add_restore_choice(const QMap<QString,QVariant>& properties)
+    {
+        const auto uuid = QUuid::createUuid().toString();
+        auto msg = mock_iface_->call(QStringLiteral("AddRestoreChoice"), uuid, properties);
         EXPECT_NE(QDBusMessage::ErrorMessage, msg.type()) << qPrintable(msg.errorMessage());
         return uuid;
     }

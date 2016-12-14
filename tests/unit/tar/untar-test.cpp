@@ -58,7 +58,7 @@ protected:
 TEST_F(UntarFixture, Untar)
 {
     static constexpr int n_runs {5};
-    static constexpr std::array<int,4> step_sizes = { 1024, 2048, 4096, INT_MAX };
+    static constexpr std::array<size_t,4> step_sizes = { 1024, 2048, 4096, INT_MAX };
     //static constexpr std::array<int,1> step_sizes = { 1024 };
 
     for (int i=0; i<n_runs; ++i)
@@ -70,18 +70,23 @@ TEST_F(UntarFixture, Untar)
         FileUtils::fillTemporaryDirectory(in.path(), 3, 3, 4096, 1);
 
         // tar it up
-        EXPECT_TRUE(QDir::setCurrent(in.path()));
-        QStringList files;
-        for (auto file : FileUtils::getFilesRecursively(in.path()))
-            files += indir.relativeFilePath(file);
-        TarCreator tar_creator(files, false);
-        std::vector<char> contents, step;
-        while (tar_creator.step(step))
-            contents.insert(contents.end(), step.begin(), step.end());
+        std::vector<char> contents;
+        {
+            EXPECT_TRUE(QDir::setCurrent(in.path()));
+            QStringList files;
+            for (auto file : FileUtils::getFilesRecursively(in.path()))
+                files += indir.relativeFilePath(file);
+            TarCreator tar_creator(files, false);
+            std::vector<char> step;
+            while (tar_creator.step(step))
+                contents.insert(contents.end(), step.begin(), step.end());
+        }
 
+        // walk through an untar test for each of the step sizes
         for (auto const& step_size : step_sizes)
         {
-            auto unprocessed = contents;
+            char const * walk = &contents.front();
+            auto n_left = contents.size();
 
             // untar it
             QTemporaryDir out;
@@ -91,21 +96,23 @@ TEST_F(UntarFixture, Untar)
                 Untar untar(out.path().toStdString());
                 do
                 {
-                    auto const max = std::min(step_size, int(unprocessed.size()));
-                    step.clear();
-                    step.insert(step.end(), unprocessed.begin(), unprocessed.begin()+max);
-                    unprocessed.erase(unprocessed.begin(), unprocessed.begin()+max);
-                    EXPECT_TRUE(untar.step(step));
+                    auto const current_step_size = std::min(step_size, n_left);
+                    EXPECT_TRUE(untar.step(walk, current_step_size));
+                    n_left -= current_step_size;
+                    walk += current_step_size;
                 }
-                while(!unprocessed.empty());
+                while(n_left > 0);
             }
 
             // compare it to the original
             EXPECT_TRUE(FileUtils::compareDirectories(in.path(), out.path()));
+
+            // if the test failed, keep the outdir for manual inspection
             auto const passed = ::testing::UnitTest::GetInstance()->current_test_info()->result()->Passed();
             out.setAutoRemove(passed);
         }
 
+        // if the test failed, keep the indir for manual inspection
         auto const passed = ::testing::UnitTest::GetInstance()->current_test_info()->result()->Passed();
         in.setAutoRemove(passed);
     }
