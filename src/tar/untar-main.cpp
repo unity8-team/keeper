@@ -100,9 +100,10 @@ get_socket_from_keeper(const QString& bus_path)
     return ret;
 }
 
-void
+bool
 untar_from_socket(Untar& untar, int fd)
 {
+    bool success = false;
     static constexpr int STEP_BUFSIZE = 4096*4; // arbitrary
     char buf[STEP_BUFSIZE];
 
@@ -112,11 +113,13 @@ untar_from_socket(Untar& untar, int fd)
 
         if (n_read > 0)
         {
-            untar.step(buf, n_read);
+            if (!untar.step(buf, n_read))
+                break;
         }
         else if (n_read == 0) // eof
         {
             qDebug() << Q_FUNC_INFO << "eof reached";
+            success = true;
             break;
         }
         else if (errno == EAGAIN)
@@ -130,6 +133,8 @@ untar_from_socket(Untar& untar, int fd)
             break;
         }
     }
+
+    return success;
 }
 
 } // anonymous namespace
@@ -154,7 +159,7 @@ qInfo() << Q_FUNC_INFO << "HELLO WORLD";
     // do it!
     auto const cwd = QDir::currentPath().toStdString();
     Untar untar{cwd};
-    untar_from_socket(untar, qfd.fileDescriptor());
-
-    return EXIT_SUCCESS;
+    return untar_from_socket(untar, qfd.fileDescriptor())
+        ? EXIT_SUCCESS
+        : EXIT_FAILURE;
 }
