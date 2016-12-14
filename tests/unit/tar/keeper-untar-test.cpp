@@ -70,6 +70,31 @@ protected:
 
         return blob;
     }
+
+    QMap<QString,QVariant> build_folder_restore_choice(
+        QTemporaryDir& source,
+        QTemporaryDir& target,
+        char const* helper_exec,
+        std::vector<char> const& blob)
+    {
+
+        return QMap<QString,QVariant>{
+            { KEY_NAME, QDir(source.path()).dirName() },
+            { KEY_TYPE, QStringLiteral("folder") },
+            { KEY_SUBTYPE, target.path() },
+            { KEY_HELPER, QString::fromUtf8(helper_exec) },
+            { KEY_SIZE, quint64(blob.size()) },
+            { KEY_CTIME, quint64(time(nullptr)) },
+            { KEY_BLOB, QByteArray{&blob.front(), blob.size()} }
+        };
+    }
+
+    void restore(QString const& uuid)
+    {
+        QDBusReply<void> reply = user_iface_->call("StartRestore", QStringList{uuid});
+        ASSERT_TRUE(reply.isValid()) << qPrintable(reply.error().message());
+        ASSERT_TRUE(wait_for_tasks_to_finish());
+    }
 };
 
 /***
@@ -89,23 +114,12 @@ TEST_F(KeeperUntarFixture, RestoreRun)
         // tar it up
         auto const blob = tar_directory_into_memory(in.path());
 
-        QTemporaryDir out;
-
         // tell keeper that's a restore choice
-        const auto uuid = add_restore_choice(QMap<QString,QVariant>{
-            { KEY_NAME, QDir(in.path()).dirName() },
-            { KEY_TYPE, QStringLiteral("folder") },
-            { KEY_SUBTYPE, out.path() }, // path to run the helper in
-            { KEY_HELPER, QString::fromUtf8(KU_INVOKE) },
-            { KEY_SIZE, quint64(blob.size()) },
-            { KEY_CTIME, quint64(time(nullptr)) },
-            { KEY_BLOB, QByteArray{&blob.front(), blob.size()} }
-        });
+        QTemporaryDir out;
+        const auto uuid = add_restore_choice(build_folder_restore_choice(in, out, KU_INVOKE, blob));
 
-        // start the restore
-        QDBusReply<void> reply = user_iface_->call("StartRestore", QStringList{uuid});
-        ASSERT_TRUE(reply.isValid()) << qPrintable(reply.error().message());
-        ASSERT_TRUE(wait_for_tasks_to_finish());
+        // now run the restore
+        restore(uuid);
 
         // after restore, the source and restore dirs should match
         EXPECT_TRUE(FileUtils::compareDirectories(in.path(), out.path()));
@@ -134,23 +148,12 @@ TEST_F(KeeperUntarFixture, BadArgNoBus)
         // tar it up
         auto const blob = tar_directory_into_memory(in.path());
 
-        QTemporaryDir out;
-
         // tell keeper that's a restore choice
-        const auto uuid = add_restore_choice(QMap<QString,QVariant>{
-            { KEY_NAME, QDir(in.path()).dirName() },
-            { KEY_TYPE, QStringLiteral("folder") },
-            { KEY_SUBTYPE, out.path() }, // path to run the helper in
-            { KEY_HELPER, QString::fromUtf8(KU_INVOKE_NOBUS) },
-            { KEY_SIZE, quint64(blob.size()) },
-            { KEY_CTIME, quint64(time(nullptr)) },
-            { KEY_BLOB, QByteArray{&blob.front(), blob.size()} }
-        });
+        QTemporaryDir out;
+        const auto uuid = add_restore_choice(build_folder_restore_choice(in, out, KU_INVOKE_NOBUS, blob));
 
-        // start the restore
-        QDBusReply<void> reply = user_iface_->call("StartRestore", QStringList{uuid});
-        ASSERT_TRUE(reply.isValid()) << qPrintable(reply.error().message());
-        ASSERT_TRUE(wait_for_tasks_to_finish());
+        // now run the restore
+        restore(uuid);
 
         // confirm that the backup ended in error
         const auto state = user_iface_->state();
