@@ -15,6 +15,7 @@ add_library(
 set(
   CLIENT_HEADERS
   ${CMAKE_SOURCE_DIR}/include/client/client.h
+  ${CMAKE_SOURCE_DIR}/include/client/keeper-errors.h
 )
 
 add_library(
