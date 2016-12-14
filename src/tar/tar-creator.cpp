@@ -78,24 +78,20 @@ public:
             step_filenum_ = -1;
         }
 
-        for(;;)
+        // if we don't have a file we're working on, then get one
+        if (!step_file_)
         {
-            // if we don't have a file we're working on, then get one
-            if (!step_file_)
+            if (step_filenum_ >= filenames_.size()) // tried to read past the end
             {
-                if (step_filenum_ >= filenames_.size()) // tried to read past the end
-                {
-                    success = false;
-                    break;
-                }
-
-                // step to next file
-                if (++step_filenum_ == filenames_.size()) // we made it to the end!
-                {
-                    archive_write_close(step_archive_.get());
-                    break;
-                }
-
+                success = false;
+            }
+            // step to next file
+            else if (++step_filenum_ == filenames_.size()) // we made it to the end!
+            {
+                archive_write_close(step_archive_.get());
+            }
+            else
+            {
                 // write the file's header
                 const auto& filename = filenames_[step_filenum_];
                 add_file_header_to_archive(step_archive_.get(), filename);
@@ -104,15 +100,24 @@ public:
                 step_file_.reset(new QFile(filename));
                 step_file_->open(QIODevice::ReadOnly);
             }
+        }
 
+        if (step_file_)
+        {
             static constexpr int BUFSIZE {1024*10};
             char inbuf[BUFSIZE];
-            const auto n = step_file_->read(inbuf, sizeof(inbuf));
-            if (n > 0) // got data
+            auto inbuf_len = step_file_->read(inbuf, sizeof(inbuf));
+            if (inbuf_len > 0) // got data
             {
-                for(;;) {
-                    if (archive_write_data(step_archive_.get(), inbuf, size_t(n)) != -1)
-                        break;
+                decltype(inbuf_len) offset = 0;
+                while(offset < inbuf_len) {
+                    auto const n_written = archive_write_data(step_archive_.get(), inbuf+offset, inbuf_len-offset);
+                    if (n_written > 0) {
+                        offset += n_written;
+                        if (offset == inbuf_len)
+                            break;
+                        continue;
+                    }
                     const auto err = archive_errno(step_archive_.get());
                     if (err == ARCHIVE_RETRY)
                         continue;
@@ -125,22 +130,19 @@ public:
                         throw std::runtime_error(errstr.toStdString());
                 }
             }
-            else if (n < 0) // read error
+            else if (inbuf_len < 0) // read error
             {
                 success = false;
                 auto errstr = QStringLiteral("read()ing %1 returned %2 (%3)")
                                   .arg(step_file_->fileName())
-                                  .arg(n)
+                                  .arg(inbuf_len)
                                   .arg(step_file_->errorString());
                 qWarning() << errstr;
                 throw std::runtime_error(errstr.toStdString());
             }
-            else if (step_file_->atEnd()) // eof
-            {
-                // loop to next file
+
+            if (step_file_->atEnd()) // if we're done with the file, close it
                 step_file_.reset();
-                continue;
-            }
         }
 
         std::swap(fillme,step_buf_);
