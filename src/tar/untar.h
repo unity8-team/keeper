@@ -29,6 +29,7 @@ public:
     explicit Untar(std::string const& target_path);
     ~Untar();
     bool step(char const * buf, size_t n_bytes);
+    bool finish();
 
 private:
     class Impl;

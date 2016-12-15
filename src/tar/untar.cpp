@@ -42,9 +42,7 @@ public:
 
     ~Impl()
     {
-        uncompress_.closeWriteChannel();
-        if (!uncompress_.waitForFinished() || !untar_.waitForFinished())
-            qWarning() << Q_FUNC_INFO << "processes not finished";
+        finish();
     }
 
     bool step(char const * buf, size_t buflen)
@@ -68,7 +66,54 @@ public:
         return success;
     }
 
+    bool finish ()
+    {
+        bool ok = true;
+
+        uncompress_.closeWriteChannel();
+        if (!finish(uncompress_, "xz"))
+            ok = false;
+
+        if (!finish(untar_, "untar"))
+            ok = false;
+
+        return ok;
+    }
+
 private:
+
+    bool finish (QProcess& proc, QString const& name)
+    {
+        if (proc.state() != QProcess::NotRunning)
+        {
+            proc.waitForFinished();
+        }
+
+        bool ok;
+
+        if (proc.state() != QProcess::NotRunning)
+        {
+            qCritical() << name << "did not finish";
+            ok = false;
+        }
+        else if (proc.exitStatus() != QProcess::NormalExit)
+        {
+            qCritical() << name << "exited abnormally";
+            ok = false;
+        }
+        else if (proc.exitCode() != 0)
+        {
+            qCritical() << name << "exited with error code" << proc.exitCode();
+            ok = false;
+        }
+        else
+        {
+            qDebug() << name << "finished ok";
+            ok = true;
+        }
+
+        return ok;
+    }
 
     std::string const path_;
     QProcess uncompress_;
@@ -90,4 +135,10 @@ bool
 Untar::step(char const * buf, size_t buflen)
 {
     return impl_->step(buf, buflen);
+}
+
+bool
+Untar::finish()
+{
+    return impl_->finish();
 }
