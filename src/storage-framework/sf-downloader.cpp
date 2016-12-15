@@ -32,7 +32,6 @@ StorageFrameworkDownloader::StorageFrameworkDownloader(
     downloader_{downloader},
     file_size_{file_size}
 {
-    qDebug() << "StorageFrameworkDownloader";
 }
 
 std::shared_ptr<QLocalSocket>
@@ -44,7 +43,6 @@ StorageFrameworkDownloader::socket()
 void
 StorageFrameworkDownloader::finish()
 {
-    qDebug() << Q_FUNC_INFO << "is finishing";
     downloader_->finish_download();
     Q_EMIT(download_finished()); // TODO add the code to call finish_download
 }

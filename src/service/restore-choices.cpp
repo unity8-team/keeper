@@ -59,7 +59,7 @@ RestoreChoices::get_backups_async()
                             manifest.data(),
                             &Manifest::finished,
                             std::function<void(bool)>{[this, dirs, manifest, i](bool success){
-                                qDebug() << "Finished reading manifest in dir: " << dirs.at(i) << " success=" << success;
+                                qDebug() << "Finished reading manifest in dir: " << dirs.at(i) << " success =" << success;
                                 if (success)
                                 {
                                     this->backups_ += manifest->get_entries();

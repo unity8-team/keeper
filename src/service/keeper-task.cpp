@@ -137,7 +137,6 @@ QVariantMap KeeperTaskPrivate::calculate_task_state()
     auto const percent_done = helper_->percent_done();
     ret.insert(QStringLiteral("percent-done"), double(percent_done));
 
-    qDebug() << "task_data_.action = " << task_data_.action;
     if (task_data_.action == "failed" || task_data_.action == "cancelled")
     {
         auto error = error_;

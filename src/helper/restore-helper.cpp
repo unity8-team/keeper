@@ -180,7 +180,6 @@ private:
     {
         n_uploaded_ += n;
         q_ptr->record_data_transferred(n);
-        qDebug("n_read %zu n_uploaded %zu (newly uploaded %zu)", size_t(n_read_), size_t(n_uploaded_), size_t(n));
         process_more();
         check_for_done();
     }
@@ -203,7 +202,6 @@ private:
                     if (n > 0) {
                         n_read_ += n;
                         upload_buffer_.append(readbuf, int(n));
-                        qDebug("upload_buffer_.size() is %zu after reading %zu from helper", size_t(upload_buffer_.size()), size_t(n));
                     }
                     else if (n < 0) {
                         read_error_ = true;
@@ -221,7 +219,6 @@ private:
                 const auto n = write_socket_.write(upload_buffer_);
                 if (n > 0) {
                     upload_buffer_.remove(0, int(n));
-                    qDebug("upload_buffer_.size() is %zu after writing %zu to cloud", size_t(upload_buffer_.size()), size_t(n));
                     continue;
                 }
                 else {

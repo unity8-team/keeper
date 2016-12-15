@@ -70,7 +70,6 @@ public:
                 signal,
                 [this, receiver, tag](FunctionArgs... args){
                     receiver(args...);
-                    qDebug() << "erasing tag" << tag;
                     connections_.erase(tag);
                 }
             ),
@@ -94,7 +93,7 @@ public:
                 callme(ResultType{});
             }
         };
-        std::function<void()> closure = [watcher](){qDebug() << "calling watcher->deleteLater"; watcher->deleteLater();};
+        std::function<void()> closure = [watcher](){ watcher->deleteLater();};
 
         connect_oneshot(watcher,
                         &std::remove_reference<decltype(*watcher)>::type::finished,
@@ -117,7 +116,6 @@ private:
         connections_[tag] = std::shared_ptr<QMetaObject::Connection>(
             new QMetaObject::Connection(connection),
             [closure, tag](QMetaObject::Connection* c){
-                qDebug() << "deleting connection" << c << "for tag" << tag;
                 QObject::disconnect(*c);
                 delete c;
                 closure();

@@ -112,7 +112,6 @@ public:
             storage_->get_new_downloader(dir_, MANIFEST_FILE_NAME),
             std::function<void(std::shared_ptr<Downloader> const&)>{
                 [this](std::shared_ptr<Downloader> const& downloader){
-                    qDebug() << "Manifest downloader is" << static_cast<void*>(downloader.get());
                     if (downloader)
                     {
                         auto socket = downloader->socket();
