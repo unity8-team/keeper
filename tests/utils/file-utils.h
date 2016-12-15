@@ -33,4 +33,4 @@ namespace FileUtils
     bool checkPathIsDir(QString const & dirPath);
 
     QStringList getFilesRecursively(QString const & dirPath);
-};
+}
