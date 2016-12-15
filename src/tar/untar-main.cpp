@@ -134,6 +134,9 @@ untar_from_socket(Untar& untar, int fd)
         }
     }
 
+    if (success)
+        success = untar.finish();
+
     return success;
 }
 
@@ -142,7 +145,6 @@ untar_from_socket(Untar& untar, int fd)
 int
 main(int argc, char **argv)
 {
-qInfo() << Q_FUNC_INFO << "HELLO WORLD";
     QCoreApplication app(argc, argv);
 
     // get the inputs
@@ -159,7 +161,9 @@ qInfo() << Q_FUNC_INFO << "HELLO WORLD";
     // do it!
     auto const cwd = QDir::currentPath().toStdString();
     Untar untar{cwd};
-    return untar_from_socket(untar, qfd.fileDescriptor())
+    auto const ret = untar_from_socket(untar, qfd.fileDescriptor())
         ? EXIT_SUCCESS
         : EXIT_FAILURE;
+    qInfo() << Q_FUNC_INFO << "returning" << ret;
+    return ret;
 }
