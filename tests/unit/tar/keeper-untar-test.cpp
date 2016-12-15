@@ -40,7 +40,7 @@ class KeeperUntarFixture: public KeeperDBusMockFixture
     {
         parent::SetUp();
 
-        qsrand(time(nullptr));
+        qsrand(unsigned(time(nullptr)));
     }
 
     void TearDown() override
@@ -85,7 +85,7 @@ protected:
             { KEY_HELPER, QString::fromUtf8(helper_exec) },
             { KEY_SIZE, quint64(blob.size()) },
             { KEY_CTIME, quint64(time(nullptr)) },
-            { KEY_BLOB, QByteArray{&blob.front(), blob.size()} }
+            { KEY_BLOB, QByteArray{&blob.front(), int(blob.size())} }
         };
     }
 
@@ -151,6 +151,73 @@ TEST_F(KeeperUntarFixture, BadArgNoBus)
         // tell keeper that's a restore choice
         QTemporaryDir out;
         const auto uuid = add_restore_choice(build_folder_restore_choice(in, out, KU_INVOKE_NOBUS, blob));
+
+        // now run the restore
+        restore(uuid);
+
+        // confirm that the backup ended in error
+        const auto state = user_iface_->state();
+        const auto& properties = state[uuid];
+        EXPECT_EQ(QString::fromUtf8("failed"), properties.value(KEY_ACTION))
+            << qPrintable(properties.value(KEY_ACTION).toString());
+        EXPECT_FALSE(properties.value(KEY_ERROR).toString().isEmpty());
+    }
+}
+
+/***
+****
+***/
+
+TEST_F(KeeperUntarFixture, BadData)
+{
+    static constexpr int n_runs {1};
+
+    for (int i=0; i<n_runs; ++i)
+    {
+        // build a directory full of random files
+        QTemporaryDir in;
+        FileUtils::fillTemporaryDirectory(in.path());
+
+        // make a junk blob
+	std::vector<char> blob { 'n', 'o', 't', 'a', 't', 'a', 'r' };
+
+        // tell keeper that's a restore choice
+        QTemporaryDir out;
+        const auto uuid = add_restore_choice(build_folder_restore_choice(in, out, KU_INVOKE, blob));
+
+        // now run the restore
+        restore(uuid);
+
+        // confirm that the backup ended in error
+        const auto state = user_iface_->state();
+        const auto& properties = state[uuid];
+        EXPECT_EQ(QString::fromUtf8("failed"), properties.value(KEY_ACTION))
+            << qPrintable(properties.value(KEY_ACTION).toString());
+        EXPECT_FALSE(properties.value(KEY_ERROR).toString().isEmpty());
+    }
+}
+
+/***
+****
+***/
+
+TEST_F(KeeperUntarFixture, IncompleteData)
+{
+    static constexpr int n_runs {1};
+
+    for (int i=0; i<n_runs; ++i)
+    {
+        // build a directory full of random files
+        QTemporaryDir in;
+        FileUtils::fillTemporaryDirectory(in.path());
+
+        // make a truncated backup of it
+        auto blob = tar_directory_into_memory(in.path());
+        blob.resize(511);
+
+        // tell keeper that's a restore choice
+        QTemporaryDir out;
+        const auto uuid = add_restore_choice(build_folder_restore_choice(in, out, KU_INVOKE, blob));
 
         // now run the restore
         restore(uuid);
