@@ -183,7 +183,6 @@ def user_start_next_task(user):
 
 def user_periodic_func(user):
 
-    done = False
     got_data_this_pass = False
 
     if not user.process:
@@ -192,26 +191,20 @@ def user_periodic_func(user):
     uuid = user.current_task
     td = user.task_data[uuid]
 
-    # did the helper exit with an error code?
-    returncode = user.process.poll()
-    if returncode:
-        error = 'helper exited with a returncode of %s' % (str(returncode))
-        user.log(error)
-        td.error = error
-        td.action = ACTION_FAILED
-        done = True
-
-    # try to operate on the socket
-    if td.sock and not td.error:
+    # check the socket
+    socket_done = td.n_left == 0 or not td.sock
+    if not socket_done:
 
         if td.action == ACTION_SAVING:
             chunk = td.sock.recv(4096*2)
-            chunk_len = len(chunk)
-            if chunk_len:
-                got_data_this_pass = True
-                td.chunks.append(chunk)
-                td.n_left -= chunk_len
-                user.log('got %s more bytes; %s left' % (chunk_len, td.n_left))
+            if chunk == '':  # eof
+                socket_done = True
+            else:
+                chunk_len = len(chunk)
+                if chunk_len:
+                    got_data_this_pass = True
+                    td.chunks.append(chunk)
+                    td.n_left -= chunk_len
 
         if td.action == ACTION_RESTORING:
             begin = td.n_bytes - td.n_left
@@ -220,30 +213,40 @@ def user_periodic_func(user):
             chunk = td.blob[begin:end]
             n_sent = td.sock.send(chunk, socket.MSG_DONTWAIT)
             if n_sent > 0:
+                got_data_this_pass = True
                 td.n_left -= n_sent
 
-        if td.n_left <= 0:
-            done = True
+        user.log('after socket pass, n_left==%s' % (td.n_left))
+        if td.n_left == 0:
+            user.log('cleaning up socket because no data left')
+            td.sock.shutdown(socket.SHUT_RDWR)
+            td.sock.close()
+            td.sock = None
+            socket_done = True
 
-    # if done, clean up the socket
-    if done and td.sock:
-        user.log('cleaning up sock')
-        td.sock.shutdown(socket.SHUT_RDWR)
-        td.sock.close()
-        td.sock = None
+    # check the process
+    returncode = user.process.poll()
+    process_done = returncode != None
+    if process_done:
+        exitmsg = 'helper exited with a returncode of %s' % (str(returncode))
+        user.log(exitmsg)
+        td.error = exitmsg
 
-    # if backup done successfully, update state & save blob
-    if done and td.action == ACTION_SAVING and not td.error:
-        user.log('setting blob')
-        blob = b''.join(td.chunks)
-        td.blob = blob
-        user.log('backup %s done; %s bytes' % (uuid, len(td.blob)))
-        td.action = ACTION_COMPLETE
+    # are we done yet?
+    done = process_done and socket_done
+    if done:
 
-    # if restore done successfully, update state
-    if done and td.action == ACTION_RESTORING:
-        user.log('restore %s done; %s bytes' % (uuid, len(td.blob)))
-        td.action = ACTION_COMPLETE
+        # update td.action
+        if returncode != 0:
+            td.action = ACTION_FAILED
+        else:
+            if td.action == ACTION_SAVING:
+                user.log('setting blob')
+                blob = b''.join(td.chunks)
+                td.blob = blob
+                user.log('backup task %s done; %s bytes' % (uuid, len(td.blob)))
+            td.action = ACTION_COMPLETE
+
 
     # maybe update the task's state
     if done or got_data_this_pass:
@@ -340,10 +343,8 @@ def user_build_state(user):
             n_bytes = 0
             too_old = time.time() - n_secs
             for key in td.bytes_per_second:
-                helper.log('key is %s' % (str(key)))
                 if key > too_old:
                     n_bytes += td.bytes_per_second[key]
-            helper.log('n_bytes is %s' % (str(n_bytes)))
             bytes_per_second = n_bytes / n_secs
         else:
             bytes_per_second = 0
