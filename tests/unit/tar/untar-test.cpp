@@ -42,7 +42,7 @@ protected:
 
     void SetUp() override
     {
-        qsrand(time(nullptr));
+        qsrand(unsigned(time(nullptr)));
     }
 
     void TearDown() override
@@ -102,6 +102,7 @@ TEST_F(UntarFixture, Untar)
                     walk += current_step_size;
                 }
                 while(n_left > 0);
+                EXPECT_TRUE(untar.finish());
             }
 
             // compare it to the original
