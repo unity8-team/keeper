@@ -226,7 +226,7 @@ def user_periodic_func(user):
 
     # check the process
     returncode = user.process.poll()
-    process_done = returncode != None
+    process_done = returncode is not None
     if process_done:
         exitmsg = 'helper exited with a returncode of %s' % (str(returncode))
         user.log(exitmsg)
@@ -244,9 +244,8 @@ def user_periodic_func(user):
                 user.log('setting blob')
                 blob = b''.join(td.chunks)
                 td.blob = blob
-                user.log('backup task %s done; %s bytes' % (uuid, len(td.blob)))
+                user.log('backup %s done; %s bytes' % (uuid, len(td.blob)))
             td.action = ACTION_COMPLETE
-
 
     # maybe update the task's state
     if done or got_data_this_pass:
@@ -337,7 +336,6 @@ def user_build_state(user):
         task_state[KEY_PERCENT_DONE] = p
 
         # speed
-        helper = mockobject.objects[HELPER_PATH]
         if uuid == user.current_task:
             n_secs = 2
             n_bytes = 0
