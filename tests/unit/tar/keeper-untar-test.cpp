@@ -179,7 +179,7 @@ TEST_F(KeeperUntarFixture, BadData)
         FileUtils::fillTemporaryDirectory(in.path());
 
         // make a junk blob
-	std::vector<char> blob { 'n', 'o', 't', 'a', 't', 'a', 'r' };
+        std::vector<char> blob { 'n', 'o', 't', 'a', 't', 'a', 'r' };
 
         // tell keeper that's a restore choice
         QTemporaryDir out;
