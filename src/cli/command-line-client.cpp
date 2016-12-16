@@ -66,7 +66,7 @@ void CommandLineClient::run_backup(QStringList & sections)
         auto iter_values = values.find("type");
         if (iter_values != values.end())
         {
-            if (iter_values.value().toString() == "folder")
+            if (iter_values.value() == "folder")
             {
                 auto iter_display_name = values.find("display-name");
                 if (iter_display_name != values.end())
@@ -114,7 +114,7 @@ void CommandLineClient::run_restore(QStringList & sections)
 
         QVariant choice_value;
         auto has_type = find_choice_value(values, "type", choice_value);
-        if (has_type && choice_value.toString() == "folder")
+        if (has_type && choice_value == "folder")
         {
             QVariant display_name;
             auto has_display_name = find_choice_value(values, "display-name", display_name);
@@ -165,7 +165,7 @@ void CommandLineClient::list_backup_sections(QMap<QString, QVariantMap> const & 
 
         QVariant choice_value;
         auto has_type = find_choice_value(values, "type", choice_value);
-        if (has_type && choice_value.toString() == "folder")
+        if (has_type && choice_value == "folder")
         {
             auto has_display_name = find_choice_value(values, "display-name", choice_value);
             if (has_display_name)
@@ -187,7 +187,7 @@ void CommandLineClient::list_restore_sections(QMap<QString, QVariantMap> const &
 
         QVariant choice_value;
         auto has_type = find_choice_value(values, "type", choice_value);
-        if (has_type && choice_value.toString() == "folder")
+        if (has_type && choice_value == "folder")
         {
             auto has_dir_name = find_choice_value(values, "dir-name", choice_value);
             if (!has_dir_name)
@@ -205,7 +205,7 @@ void CommandLineClient::list_restore_sections(QMap<QString, QVariantMap> const &
 
             QVariant choice_value;
             auto has_type = find_choice_value(values, "type", choice_value);
-            if (has_type && choice_value.toString() == "folder")
+            if (has_type && choice_value == "folder")
             {
                 auto has_display_name = find_choice_value(values, "display-name", choice_value);
                 if (has_display_name)

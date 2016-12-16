@@ -41,11 +41,6 @@ struct KeeperClientPrivate final
                            DBusTypes::KEEPER_USER_PATH,
                            QDBusConnection::sessionBus()
                          ))
-        , status("")
-        , progress(0)
-        , readyToBackup(false)
-        , backupBusy(false)
-        , mode(TasksMode::IDLE_MODE)
     {
     }
 
@@ -57,18 +52,18 @@ struct KeeperClientPrivate final
         double percentage;
     };
 
-    bool stateIsFinal(QString const & stateString) const
+    static bool stateIsFinal(QString const & stateString)
     {
         return (stateString == "complete" || stateString == "cancelled" || stateString == "failed");
     }
 
-    bool checkAllTasksFinished(QMap<QString, QVariantMap> const & state) const
+    static bool checkAllTasksFinished(QMap<QString, QVariantMap> const & state)
     {
         bool ret = true;
-        for (auto iter = state.begin(); iter != state.end(); ++iter)
+        for (auto iter = state.begin(); ret && (iter != state.end()); ++iter)
         {
             auto statusString = (*iter).value("action").toString();
-            ret = (ret && stateIsFinal(statusString));
+            ret = stateIsFinal(statusString);
         }
         return ret;
     }
@@ -78,11 +73,11 @@ struct KeeperClientPrivate final
     QString status;
     QMap<QString, QVariantMap> backups;
     QMap<QString, QVariantMap> restores;
-    double progress;
-    bool readyToBackup;
-    bool backupBusy;
+    double progress = 0;
+    bool readyToBackup = false;
+    bool backupBusy = false;
     QMap<QString, TaskStatus> task_status;
-    TasksMode mode;
+    TasksMode mode = TasksMode::IDLE_MODE;
 };
 
 KeeperClient::KeeperClient(QObject* parent) :

@@ -108,8 +108,8 @@ bool CommandLineParser::handle_list_sections(QCoreApplication const & app, Comma
     parser_->process(app);
 
     // it didn't exit... we're good
-    cmd_args.sections = QStringList();
-    cmd_args.storage = QString();
+    cmd_args.sections.clear();
+    cmd_args.storage.clear();
     if (parser_->isSet(OPTION_STORAGE))
     {
         cmd_args.cmd = CommandLineParser::Command::LIST_REMOTE_SECTIONS;
@@ -136,8 +136,8 @@ bool CommandLineParser::handle_backup(QCoreApplication const & app, CommandLineP
     parser_->process(app);
 
     // it didn't exit... we're good
-    cmd_args.sections = QStringList();
-    cmd_args.storage = QString();
+    cmd_args.sections.clear();
+    cmd_args.storage.clear();
     cmd_args.cmd = CommandLineParser::Command::BACKUP;
     if (!parser_->isSet(OPTION_SECTIONS))
     {

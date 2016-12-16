@@ -39,13 +39,13 @@ public:
     void run_backup(QStringList & sections);
     void run_restore(QStringList & sections);
 
-public Q_SLOTS:
+private Q_SLOTS:
     void on_progress_changed();
     void on_status_changed();
     void on_keeper_client_finished();
 
 private:
-    bool find_choice_value(QVariantMap const & choice, QString const & id, QVariant & value);
+    static bool find_choice_value(QVariantMap const & choice, QString const & id, QVariant & value);
     void list_backup_sections(QMap<QString, QVariantMap> const & choices);
     void list_restore_sections(QMap<QString, QVariantMap> const & choices);
     QScopedPointer<KeeperClient> keeper_client_;
