@@ -6,8 +6,7 @@ set(
 add_definitions(-DKEEPER_MAJOR=${KEEPER_MAJOR})
 add_definitions(-DKEEPER_MINOR=${KEEPER_MINOR})
 
-include(QmlPlugins)
-
+find_package(QmlPlugins)
 find_package(Qt5Quick REQUIRED)
 
 include_directories(
