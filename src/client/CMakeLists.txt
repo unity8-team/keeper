@@ -11,6 +11,11 @@ add_library(
   ${CLIENT_HEADERS}
 )
 
+set_target_properties(${KEEPER_CLIENT_LIB} PROPERTIES
+  AUTOMOC TRUE
+  LINK_FLAGS "-Wl,--no-undefined"
+)
+
 target_link_libraries(
   ${KEEPER_CLIENT_LIB}
   qdbus-stubs

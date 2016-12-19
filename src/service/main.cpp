@@ -20,6 +20,7 @@
 
 #include "dbus-types.h"
 #include "helper/data-dir-registry.h"
+#include "helper/helper.h"
 #include "service/backup-choices.h"
 #include "service/restore-choices.h"
 #include "service/keeper.h"
@@ -45,7 +46,7 @@ main(int argc, char **argv)
 
     QCoreApplication app(argc, argv);
     DBusTypes::registerMetaTypes();
-//    Variant::registerMetaTypes();
+    Helper::registerMetaTypes();
     std::srand(unsigned(std::time(nullptr)));
 
     util::UnixSignalHandler handler([]{

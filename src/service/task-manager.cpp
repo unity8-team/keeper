@@ -111,6 +111,7 @@ public:
         // notify the initial state once for all tasks
         notify_state_changed();
         remaining_tasks_.clear();
+        Q_EMIT(q_ptr->finished());
     }
 
 private:
@@ -172,17 +173,18 @@ private:
             set_current_task_action(task_->to_string(Helper::State::FAILED));
         }
         active_manifest_.reset();
+
+        Q_EMIT(q_ptr->finished());
     }
 
     void on_helper_state_changed(Helper::State state)
     {
         auto backup_task_ = qSharedPointerDynamicCast<KeeperTaskBackup>(task_);
         auto& td = task_data_[current_task_];
-        update_task_state(td);
 
         // for the last completed backup task we delay updating the
         // state until the manifest file is stored
-        if (remaining_tasks_.size() || state != Helper::State::COMPLETE)
+        if (remaining_tasks_.size() || (state != Helper::State::COMPLETE && state != Helper::State::FAILED))
             update_task_state(td);
 
         if (state == Helper::State::COMPLETE || state == Helper::State::FAILED)
@@ -212,6 +214,10 @@ private:
                         }}
                     );
                     active_manifest_->store();
+                }
+                else
+                {
+                    update_task_state(td);
                 }
             }
         }

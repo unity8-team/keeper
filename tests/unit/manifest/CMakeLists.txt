@@ -27,6 +27,7 @@ set_target_properties(
 target_link_libraries(
   ${MANIFEST_TEST}
   ${UNIT_TEST_LIBRARIES}
+  backup-helper
   Qt5::Core
   Qt5::DBus
   Qt5::Test

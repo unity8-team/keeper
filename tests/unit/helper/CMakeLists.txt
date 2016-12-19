@@ -28,6 +28,7 @@ set_target_properties(
 target_link_libraries(
   ${SPEED_TEST}
   ${UNIT_TEST_LIBRARIES}
+  storage-framework
   Qt5::Core
   Qt5::DBus
   Qt5::Test

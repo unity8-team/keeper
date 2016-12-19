@@ -65,6 +65,7 @@ public:
 Q_SIGNALS:
     void socket_ready(int reply);
     void state_changed();
+    void finished();
 
 private:
     QScopedPointer<TaskManagerPrivate> const d_ptr;

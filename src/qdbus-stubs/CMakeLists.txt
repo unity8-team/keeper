@@ -84,6 +84,23 @@ qt5_add_dbus_adaptor(
   KeeperUserAdaptor
 )
 
+set(
+  properties_xml
+  "org.freedesktop.DBus.Properties.xml"
+)
+
+set_source_files_properties(
+  "${properties_xml}"
+  PROPERTIES
+  NO_NAMESPACE YES
+  CLASSNAME DBusPropertiesInterface
+)
+
+qt5_add_dbus_interface(
+  interface_files
+  ${properties_xml}
+  DBusPropertiesInterface
+)
 #
 #
 
@@ -99,7 +116,7 @@ add_library(
   ${adaptor_files}
 )
 
-target_link_libraries(
-  ${STUBS_LIB}
-  backup-helper
-)
+#target_link_libraries(
+#  ${STUBS_LIB}
+#  backup-helper
+#)

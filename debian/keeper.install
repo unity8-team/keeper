@@ -1,4 +1,5 @@
 /usr/lib/*/keeper/folder-backup.sh
+/usr/lib/*/keeper/folder-restore.sh
 /usr/lib/*/keeper/keeper-service
 /usr/lib/*/keeper/keeper-tar
 /usr/lib/*/keeper/keeper-untar
