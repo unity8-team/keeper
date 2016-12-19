@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Canonical Ltd.
+ * Copyright (C) 2016 Canonical, Ltd.
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 3, as published
@@ -15,22 +15,24 @@
  *
  * Authors:
  *   Charles Kerr <charles.kerr@canonical.com>
- *   Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
 
 #pragma once
 
-#include <QString>
+#include <cstddef> // size_t
+#include <memory> // shared_ptr
 
-namespace FileUtils
+
+class Untar
 {
-    void fillTemporaryDirectory(QString const & dir, int min_files_per_test=1, int max_files_per_test=100, int max_filesize=1024, int max_dirs=20);
+public:
+    explicit Untar(std::string const& target_path);
+    ~Untar();
+    bool step(char const * buf, size_t n_bytes);
+    bool finish();
 
-    bool compareFiles(QString const & filePath1, QString const & filePath2);
-
-    bool compareDirectories(QString const & dir1Path, QString const & dir2Path);
-
-    bool checkPathIsDir(QString const & dirPath);
-
-    QStringList getFilesRecursively(QString const & dirPath);
-}
+private:
+    class Impl;
+    friend class Impl;
+    std::shared_ptr<Impl> impl_;
+};

@@ -34,7 +34,7 @@ Build-Depends: cmake,
                python3-flake8,
 Standards-Version: 3.9.5
 Homepage: https://launchpad.net/keeper
-# If you aren't a member of ~indicator-applet-developers but need to upload
+ If you aren't a member of ~indicator-applet-developers but need to upload
 # packaging changes, just go ahead.  ~indicator-applet-developers will notice
 # and sync up the code again.
 Vcs-Bzr: https://code.launchpad.net/keeper/trunk
@@ -45,6 +45,8 @@ Architecture: any
 Depends: ${shlibs:Depends}, 
          ${misc:Depends},
          systemd | systemd-shim,
+         tar,
+         xz-utils
 Description: Backup Tool
  A backup/restore utility for Ubuntu
 
@@ -53,6 +55,8 @@ Architecture: any
 Depends: ${shlibs:Depends},
          ${misc:Depends},
          systemd | systemd-shim,
+         tar,
+         xz-utils
 Description: Backup Tool
  A backup/restore utility for Ubuntu (client application)
 

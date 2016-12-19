@@ -29,7 +29,8 @@ set(
     fake-backup-helper-failure
 )
 
-set(KEEPER_TAR_CREATE_BIN ${CMAKE_BINARY_DIR}/src/tar/keeper-tar-create)
+set(KEEPER_TAR_CREATE_BIN ${CMAKE_BINARY_DIR}/src/tar/keeper-tar)
+set(KEEPER_UNTAR_BIN ${CMAKE_BINARY_DIR}/src/tar/keeper-untar)
 set(KEEPER_HELPER_TEST_LOCATION ${CMAKE_BINARY_DIR}/tests/fakes/helpers-test.sh)
 set(BACKUP_HELPER_FAILURE_LOCATION ${CMAKE_BINARY_DIR}/tests/fakes/${BACKUP_HELPER_FAILURE})
 set(RESTORE_HELPER_TEST_LOCATION ${CMAKE_BINARY_DIR}/tests/fakes/${RESTORE_HELPER})

@@ -52,7 +52,7 @@ int main(int argc, char **argv)
 
     qInstallMessageHandler(util::loggingFunction);
 
-    qsrand(time(nullptr));
+    qsrand(unsigned(time(nullptr)));
 
     QCoreApplication application(argc, argv);
     DBusMock::registerMetaTypes();

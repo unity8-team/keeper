@@ -38,7 +38,8 @@ QString
 create_dummy_string()
 {
     // NB we want to exercise long filenames, but this cutoff length is arbitrary
-    static constexpr int MAX_BASENAME_LEN {200};
+    //static constexpr int MAX_BASENAME_LEN {200};
+    static constexpr int MAX_BASENAME_LEN {10};
     auto const filename_len = std::max(10, qrand() % MAX_BASENAME_LEN);
     QString str;
     for (int i=0; i<filename_len; ++i)
