@@ -1,8 +1,21 @@
 add_subdirectory(qml-plugin)
 
 set(
+  KEEPER_ERRORS_LIB
+  keeper-errors-lib
+)
+
+add_library(
+  ${KEEPER_ERRORS_LIB}
+  STATIC
+  keeper-errors.cpp
+  ${CMAKE_SOURCE_DIR}/include/client/keeper-errors.h
+)
+
+set(
   CLIENT_HEADERS
   ${CMAKE_SOURCE_DIR}/include/client/client.h
+  ${CMAKE_SOURCE_DIR}/include/client/keeper-errors.h
 )
 
 add_library(
@@ -18,6 +31,7 @@ set_target_properties(${KEEPER_CLIENT_LIB} PROPERTIES
 
 target_link_libraries(
   ${KEEPER_CLIENT_LIB}
+  ${KEEPER_ERRORS_LIB}
   qdbus-stubs
   Qt5::Core
   Qt5::DBus

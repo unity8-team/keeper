@@ -41,6 +41,7 @@ TEST_F(TestHelpers, StartHelper)
     BackupHelper helper("com.test.multiple_first_1.2.3");
 
     QSignalSpy spy(&helper, &BackupHelper::state_changed);
+    QSignalSpy spy_error(&helper, &Helper::error);
 
     helper.start({"/bin/ls","/tmp"});
 
@@ -53,6 +54,8 @@ TEST_F(TestHelpers, StartHelper)
     EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::STARTED);
     arguments = spy.takeFirst();
     EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::COMPLETE);
+
+    EXPECT_EQ(spy_error.count(), 0);
 }
 
 TEST_F(TestHelpers, StartFullTest)
@@ -300,15 +303,20 @@ TEST_F(TestHelpers, BadHelperPath)
     BackupHelper helper("com.bar_foo_8432.13.1");
 
     QSignalSpy spy(&helper, &BackupHelper::state_changed);
+    QSignalSpy spy_error(&helper, &Helper::error);
     QStringList urls;
     urls << "blah" << "/tmp";
     helper.start(urls);
 
     WAIT_FOR_SIGNALS(spy, 1, Helper::MAX_UAL_WAIT_TIME + 1000);
 
-    ASSERT_EQ(spy.count(), 1);
+    ASSERT_EQ(1, spy.count());
     QList<QVariant> arguments = spy.takeFirst();
-    EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::FAILED);
+    EXPECT_EQ(Helper::State::FAILED, qvariant_cast<Helper::State>(arguments.at(0)));
+
+    ASSERT_EQ(1, spy_error.count());
+    arguments = spy_error.takeFirst();
+    EXPECT_EQ(keeper::KeeperError::HELPER_START_TIMEOUT, qvariant_cast<keeper::KeeperError>(arguments.at(0)));
 }
 
 TEST_F(TestHelpers, Inactivity)
@@ -319,6 +327,7 @@ TEST_F(TestHelpers, Inactivity)
     BackupHelper helper("com.bar_foo_8432.13.1");
 
     QSignalSpy spy(&helper, &BackupHelper::state_changed);
+    QSignalSpy spy_error(&helper, &Helper::error);
     QStringList urls;
     urls << TEST_INACTIVE_HELPER << "/tmp";
     helper.start(urls);
@@ -329,9 +338,13 @@ TEST_F(TestHelpers, Inactivity)
     // We can also check at the end for the state, which should be CANCELLED
     WAIT_FOR_SIGNALS(spy, 2, BackupHelper::MAX_INACTIVITY_TIME + 2000);
 
-    ASSERT_EQ(spy.count(), 2);
+    ASSERT_EQ(2, spy.count());
     QList<QVariant> arguments = spy.takeFirst();
     EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::STARTED);
     arguments = spy.takeFirst();
     EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::CANCELLED);
+
+    ASSERT_EQ(1, spy_error.count());
+    arguments = spy_error.takeFirst();
+    EXPECT_EQ(keeper::KeeperError::HELPER_INACTIVITY_DETECTED, qvariant_cast<keeper::KeeperError>(arguments.at(0)));
 }

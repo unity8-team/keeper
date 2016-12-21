@@ -18,6 +18,8 @@
  */
 #pragma once
 
+#include <client/keeper-errors.h>
+
 #include <QMap>
 #include <QObject>
 #include <QTimer>
@@ -43,11 +45,12 @@ public:
 
 public Q_SLOTS:
     void show_info();
-    void on_task_state_changed(QString const & displayName, QString const & status, double percentage);
+    void on_task_state_changed(QString const & displayName, QString const & status, double percentage, keeper::KeeperError error);
 
 private:
     char get_next_spin_char();
-    QString get_task_string(QString const & displayName, QString const & status, double percentage);
+    QString get_task_string(QString const & displayName, QString const & status, double percentage, keeper::KeeperError error);
+    QString get_error_string(keeper::KeeperError error);
 
     QString status_;
     QTimer timer_status_;

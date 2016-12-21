@@ -281,12 +281,20 @@ void KeeperClient::stateUpdated()
             double progress = state.value("percent-done").toDouble();
             auto status = state.value("action").toString();
 
+            keeper::KeeperError keeper_error = keeper::KeeperError::OK;
+            auto iter_error = state.find("error");
+            if (iter_error != state.end())
+            {
+                bool conversion_ok;
+                keeper_error = keeper::convertFromDBusVariant(state.value("error"), &conversion_ok);
+            }
+
             auto current_state = d->task_status[uuid];
             if (current_state.status != status || current_state.percentage < progress)
             {
                 d->task_status[uuid].status = status;
                 d->task_status[uuid].percentage = progress;
-                Q_EMIT(taskStatusChanged(state.value("display-name").toString(), status, progress));
+                Q_EMIT(taskStatusChanged(state.value("display-name").toString(), status, progress, keeper_error));
             }
         }
 

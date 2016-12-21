@@ -97,6 +97,8 @@ protected:
 
     bool check_task_has_action_state(QVariantDictMap const & state, QString const & uuid, QString const & action_state);
 
+    bool get_task_property_now(QString const & uuid, QSharedPointer<DBusInterfaceKeeperUser> const & keeper_user_iface, QString const & property, QVariant & value) const;
+
     bool capture_and_check_state_until_all_tasks_complete(QSignalSpy & spy, QStringList const & uuids, QString const & action_state, int max_timeout_msec = 15000);
 
     bool cancel_first_task_at_percentage(QSignalSpy & spy, double expected_percentage, QSharedPointer<DBusInterfaceKeeperUser> const & user_iface, int max_timeout_msec = 15000);

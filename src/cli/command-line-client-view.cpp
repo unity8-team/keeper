@@ -48,7 +48,7 @@ void CommandLineClientView::status_changed(QString const & status)
 
 void CommandLineClientView::add_task(QString const & display_name, QString const & initial_status, double initial_percentage)
 {
-    tasks_strings_[display_name] = get_task_string(display_name, initial_status, initial_percentage);
+    tasks_strings_[display_name] = get_task_string(display_name, initial_status, initial_percentage, keeper::KeeperError::OK);
     // TODO see if we can do this in a better way
     // We add a line per each backup task
     std::cout << std::endl;
@@ -112,17 +112,62 @@ char CommandLineClientView::get_next_spin_char()
     return ret;
 }
 
-QString CommandLineClientView::get_task_string(QString const & displayName, QString const & status, double percentage)
+QString CommandLineClientView::get_task_string(QString const & displayName, QString const & status, double percentage, keeper::KeeperError error)
 {
 
-    return QStringLiteral("%1    %2 %    %3").arg(displayName, 15).arg((percentage * 100), 10, 'f', 2, ' ').arg(status, -15);
+    if (error == keeper::KeeperError::OK)
+        return QStringLiteral("%1    %2 %    %3").arg(displayName, 15).arg((percentage * 100), 10, 'f', 2, ' ').arg(status, -15);
+    else
+        return QStringLiteral("%1    %2 %    %3 %4").arg(displayName, 15).arg((percentage * 100), 10, 'f', 2, ' ').arg(status, -15).arg(get_error_string(error));
 }
 
-void CommandLineClientView::on_task_state_changed(QString const & displayName, QString const & status, double percentage)
+QString CommandLineClientView::get_error_string(keeper::KeeperError error)
+{
+    QString ret;
+    switch(error)
+    {
+        case keeper::KeeperError::ERROR_UNKNOWN:
+            ret = QStringLiteral("Unknown error");
+            break;
+        case keeper::KeeperError::HELPER_BAD_URL:
+            ret = QStringLiteral("Bad URL for keeper helper");
+            break;
+        case keeper::KeeperError::HELPER_INACTIVITY_DETECTED:
+            ret = QStringLiteral("Inactivity detected in task");
+            break;
+        case keeper::KeeperError::HELPER_START_TIMEOUT:
+            ret = QStringLiteral("Task failed to start");
+            break;
+        case keeper::KeeperError::HELPER_READ_ERROR:
+            ret = QStringLiteral("Read error");
+            break;
+        case keeper::KeeperError::HELPER_SOCKET_ERROR:
+            ret = QStringLiteral("Error creating internal socket");
+            break;
+        case keeper::KeeperError::HELPER_WRITE_ERROR:
+            ret = QStringLiteral("Write error");
+            break;
+        case keeper::KeeperError::MANIFEST_STORAGE_ERROR:
+            ret = QStringLiteral("Error storing manifest file");
+            break;
+        case keeper::KeeperError::NO_HELPER_INFORMATION_IN_REGISTRY:
+            ret = QStringLiteral("No helper information in registry");
+            break;
+        case keeper::KeeperError::OK:
+            ret = QStringLiteral("Success");
+            break;
+        case keeper::KeeperError::COMMITTING_DATA_ERROR:
+            ret = QStringLiteral("Error uploading data");
+            break;
+    }
+    return ret;
+}
+
+void CommandLineClientView::on_task_state_changed(QString const & displayName, QString const & status, double percentage, keeper::KeeperError error)
 {
     auto iter = tasks_strings_.find(displayName);
     if (iter != tasks_strings_.end())
     {
-        tasks_strings_[displayName] = get_task_string(displayName, status, percentage);
+        tasks_strings_[displayName] = get_task_string(displayName, status, percentage, error);
     }
 }

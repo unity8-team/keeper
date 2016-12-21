@@ -368,6 +368,7 @@ void TestHelpersBase::start_tasks()
 void TestHelpersBase::SetUp()
 {
     Helper::registerMetaTypes();
+    DBusTypes::registerMetaTypes();
 
     g_setenv("XDG_DATA_DIRS", CMAKE_SOURCE_DIR, true);
     g_setenv("XDG_CACHE_HOME", CMAKE_SOURCE_DIR "/libertine-data", true);
@@ -438,6 +439,27 @@ bool TestHelpersBase::wait_for_all_tasks_have_action_state(QStringList const & u
         finished = all_helpers_finished;
     }
     return finished;
+}
+
+bool TestHelpersBase::get_task_property_now(QString const & uuid, QSharedPointer<DBusInterfaceKeeperUser> const & keeper_user_iface, QString const & property, QVariant & value) const
+{
+    auto state = keeper_user_iface->state();
+    auto iter = state.find(uuid);
+    if (iter == state.end())
+    {
+        qWarning() << "Task " << uuid << " was not found in State";
+        return false;
+    }
+
+    auto iter_props = (*iter).find(property);
+    if (iter_props == (*iter).end())
+    {
+        qWarning() << "Property " << property << " was not found for task " << uuid;
+        return false;
+    }
+
+    value = (*iter_props);
+    return true;
 }
 
 bool TestHelpersBase::check_task_has_action_state(QVariantDictMap const & state, QString const & uuid, QString const & action_state)

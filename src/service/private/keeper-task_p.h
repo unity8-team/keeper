@@ -41,6 +41,9 @@ public:
     static QVariantMap get_initial_state(KeeperTask::TaskData const &td);
 
     QString to_string(Helper::State state);
+
+    keeper::KeeperError error() const;
+
 protected:
     void set_current_task_action(QString const& action);
     void on_helper_percent_done_changed(float percent_done);
@@ -57,4 +60,5 @@ protected:
     QSharedPointer<StorageFrameworkClient> storage_;
     QSharedPointer<Helper> helper_;
     QVariantMap state_;
+    keeper::KeeperError error_;
 };
