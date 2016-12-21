@@ -75,7 +75,6 @@ public:
     uint32_t
     speed_bytes_per_second(uint64_t now, unsigned int interval_msec=HISTORY_MSEC) const
     {
-qDebug() << "now" << now << "cache_time" << cache_time << "interval_msec" << interval_msec;
         if (cache_time != now)
         {
             auto i = newest;
@@ -88,22 +87,18 @@ qDebug() << "now" << now << "cache_time" << cache_time << "interval_msec" << int
                     break;
 
                 bytes += transfers[i].size;
-qDebug() << "i" << i << "transfers[i] .date" << transfers[i].date << ".size" << transfers[i].size << "sum" << bytes;
 
                 if (--i == -1) {
                     i = HISTORY_SIZE - 1; // circular history
-qDebug() << "circular history";
                 }
 
                 if (i == newest) {
-qDebug() << "i" << i << "transfers[i] .date" << transfers[i].date << ".size" << transfers[i].size << "sum" << bytes;
                     break; // we've come all the way around
                 }
             }
 
             cache_val = uint32_t((bytes * 1000u) / interval_msec);
             cache_time = now;
-qDebug() << "cache_val" << cache_val << "cache_time" << cache_time;
         }
 
         return cache_val;
@@ -340,7 +335,6 @@ private:
 
         if (is_noteworthy)
         {
-            qDebug() << "emitting percent-done-changed" << percent_done_;
             Q_EMIT(q_ptr->percent_done_changed(percent_done_));
             last_notified_percent_done_ = percent_done_;
         }

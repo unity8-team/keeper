@@ -65,10 +65,8 @@ public:
             storage_->get_new_uploader(n_bytes, dir_name, file_name),
             std::function<void(std::shared_ptr<Uploader> const&)>{
                 [this](std::shared_ptr<Uploader> const& uploader){
-                    qDebug() << "uploader is" << static_cast<void*>(uploader.get());
                     int fd {-1};
                     if (uploader) {
-                        qDebug() << "Helper is " <<  static_cast<void*>(helper_.data());
                         auto backup_helper = qSharedPointerDynamicCast<BackupHelper>(helper_);
                         backup_helper->set_uploader(uploader);
                         fd = backup_helper->get_helper_socket();

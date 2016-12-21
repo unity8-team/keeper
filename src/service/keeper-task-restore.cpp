@@ -49,7 +49,6 @@ public:
 
     void init_helper()
     {
-        qDebug() << "Initializing a restore helper";
         helper_.reset(new RestoreHelper(DEKKO_APP_ID), [](Helper *h){h->deleteLater();});
         qDebug() << "Helper " <<  static_cast<void*>(helper_.data()) << " was created";
     }
@@ -79,15 +78,12 @@ public:
             storage_->get_new_downloader(dir_name, file_name),
             std::function<void(std::shared_ptr<Downloader> const&)>{
                 [this](std::shared_ptr<Downloader> const& downloader){
-                    qDebug() << "Downloader is" << static_cast<void*>(downloader.get());
                     int fd {-1};
                     if (downloader) {
-                        qDebug() << "Helper is " <<  static_cast<void*>(helper_.data());
                         auto restore_helper = qSharedPointerDynamicCast<RestoreHelper>(helper_);
                         restore_helper->set_downloader(downloader);
                         fd = restore_helper->get_helper_socket();
                     }
-                    qDebug("emitting task_socket_ready(socket=%d)", fd);
                     Q_EMIT(q_ptr->task_socket_ready(fd));
                 }
             }
