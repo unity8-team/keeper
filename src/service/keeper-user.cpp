@@ -33,7 +33,7 @@ KeeperUser::KeeperUser(Keeper* keeper)
 
 KeeperUser::~KeeperUser() =default;
 
-QVariantDictMap
+keeper::KeeperItemsMap
 KeeperUser::GetBackupChoices()
 {
     auto bus = connection();
@@ -57,7 +57,7 @@ KeeperUser::Cancel()
     keeper_.cancel();
 }
 
-QVariantDictMap
+keeper::KeeperItemsMap
 KeeperUser::GetRestoreChoices()
 {
     Q_ASSERT(calledFromDBus());
@@ -81,7 +81,7 @@ KeeperUser::StartRestore (const QStringList& keys)
     keeper_.start_tasks(keys, bus, msg);
 }
 
-QVariantDictMap
+keeper::KeeperItemsMap
 KeeperUser::get_state() const
 {
     return keeper_.get_state();

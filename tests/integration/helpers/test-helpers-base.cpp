@@ -35,6 +35,7 @@ using namespace QtDBusMock;
 
 bool qvariant_to_map(QVariant const& variant, QVariantMap& map)
 {
+    qDebug() << "VARIANT TYPE FOR STATE: " << variant.typeName();
     if (variant.type() == QMetaType::QVariantMap)
     {
         map = variant.toMap();
@@ -45,19 +46,21 @@ bool qvariant_to_map(QVariant const& variant, QVariantMap& map)
     return false;
 }
 
-bool qdbus_argument_to_variant_dict_map(QVariant const& variant, QVariantDictMap& map)
+bool qdbus_argument_to_keeper_items_map(QVariant const& variant, keeper::KeeperItemsMap& map)
 {
+    qDebug() << "**** VARIANT TYPE FOR STATE: " << variant.typeName();
     if (variant.canConvert<QDBusArgument>())
     {
         QDBusArgument value(variant.value<QDBusArgument>());
-        if (value.currentType() == QDBusArgument::MapType)
+        qDebug() << "VALUE CURRENT TYPE: " << value.currentType() << " SIGNATURE: " << value.currentSignature();
+        if (value.currentType() == QDBusArgument::StructureType)
         {
             value >> map;
             return true;
         }
         else
         {
-            qWarning() << Q_FUNC_INFO << ": Could not convert variant to QVariantDictMap. Variant received has type " << value.currentType();
+            qWarning() << Q_FUNC_INFO << ": Could not convert variant to keeper::KeeperItemsMap. Variant received has type " << value.currentType();
         }
     }
     else
@@ -67,7 +70,7 @@ bool qdbus_argument_to_variant_dict_map(QVariant const& variant, QVariantDictMap
     return false;
 }
 
-bool get_property_qvariant_dict_map(QString const & property, QVariant const &variant, QVariantDictMap & map)
+bool get_property_qvariant_keeper_items_map(QString const & property, QVariant const &variant, keeper::KeeperItemsMap & map)
 {
     QVariantMap properties_map;
     if (!qvariant_to_map(variant, properties_map))
@@ -83,7 +86,7 @@ bool get_property_qvariant_dict_map(QString const & property, QVariant const &va
         return false;
     }
 
-    if(!qdbus_argument_to_variant_dict_map((*iter), map))
+    if(!qdbus_argument_to_keeper_items_map((*iter), map))
     {
         qWarning() << Q_FUNC_INFO << ": Error converting property [" << property << "] to QVariantDictMap";
         return false;
@@ -441,7 +444,7 @@ bool TestHelpersBase::wait_for_all_tasks_have_action_state(QStringList const & u
     return finished;
 }
 
-bool TestHelpersBase::get_task_property_now(QString const & uuid, QSharedPointer<DBusInterfaceKeeperUser> const & keeper_user_iface, QString const & property, QVariant & value)
+bool TestHelpersBase::get_task_value_now(QString const & uuid, QSharedPointer<DBusInterfaceKeeperUser> const & keeper_user_iface, keeper::KeeperItem & value) const
 {
     auto state = keeper_user_iface->state();
     auto iter = state.find(uuid);
@@ -450,29 +453,23 @@ bool TestHelpersBase::get_task_property_now(QString const & uuid, QSharedPointer
         qWarning() << "Task " << uuid << " was not found in State";
         return false;
     }
+    value = (*iter);
 
-    auto iter_props = (*iter).find(property);
-    if (iter_props == (*iter).end())
-    {
-        qWarning() << "Property " << property << " was not found for task " << uuid;
-        return false;
-    }
-
-    value = (*iter_props);
     return true;
 }
 
-bool TestHelpersBase::check_task_has_action_state(QVariantDictMap const & state, QString const & uuid, QString const & action_state)
+bool TestHelpersBase::check_task_has_action_state(keeper::KeeperItemsMap const & state, QString const & uuid, QString const & action_state)
 {
     auto iter = state.find(uuid);
     if (iter == state.end())
         return false;
 
-    auto iter_props = (*iter).find("action");
-    if (iter_props == (*iter).end())
+    bool valid_status;
+    auto status = (*iter).get_status(&valid_status);
+    if (!valid_status)
         return false;
 
-    return (*iter_props).toString() == action_state;
+    return status == action_state;
 }
 
 bool TestHelpersBase::capture_and_check_state_until_all_tasks_complete(QSignalSpy & spy, QStringList const & uuids, QString const & action_state, int max_timeout_msec)
@@ -510,8 +507,8 @@ bool TestHelpersBase::capture_and_check_state_until_all_tasks_complete(QSignalSp
             {
                 return false;
             }
-            QVariantDictMap keeper_state;
-            if (!get_property_qvariant_dict_map("State", arguments.at(1), keeper_state))
+            keeper::KeeperItemsMap keeper_state;
+            if (!get_property_qvariant_keeper_items_map("State", arguments.at(1), keeper_state))
             {
                 return false;
             }
@@ -595,8 +592,8 @@ bool TestHelpersBase::cancel_first_task_at_percentage(QSignalSpy & spy, double e
             {
                 return false;
             }
-            QVariantDictMap keeper_state;
-            if (!get_property_qvariant_dict_map("State", arguments.at(1), keeper_state))
+            keeper::KeeperItemsMap keeper_state;
+            if (!get_property_qvariant_keeper_items_map("State", arguments.at(1), keeper_state))
             {
                 return false;
             }
@@ -655,7 +652,7 @@ bool TestHelpersBase::cancel_first_task_at_percentage(QSignalSpy & spy, double e
     return false;
 }
 
-QString TestHelpersBase::get_uuid_for_xdg_folder_path(QString const &path, QVariantDictMap const & choices) const
+QString TestHelpersBase::get_uuid_for_xdg_folder_path(QString const &path, keeper::KeeperItemsMap const & choices) const
 {
     for(auto iter = choices.begin(); iter != choices.end(); ++iter)
     {
@@ -674,7 +671,7 @@ QString TestHelpersBase::get_uuid_for_xdg_folder_path(QString const &path, QVari
     return QString();
 }
 
-QString TestHelpersBase::get_type_for_xdg_folder_path(QString const &path, QVariantDictMap const & choices) const
+QString TestHelpersBase::get_type_for_xdg_folder_path(QString const &path, keeper::KeeperItemsMap const & choices) const
 {
     for(auto iter = choices.begin(); iter != choices.end(); ++iter)
     {
@@ -698,7 +695,7 @@ QString TestHelpersBase::get_type_for_xdg_folder_path(QString const &path, QVari
     return QString();
 }
 
-QString TestHelpersBase::get_display_name_for_xdg_folder_path(QString const &path, QVariantDictMap const & choices) const
+QString TestHelpersBase::get_display_name_for_xdg_folder_path(QString const &path, keeper::KeeperItemsMap const & choices) const
 {
     for(auto iter = choices.begin(); iter != choices.end(); ++iter)
     {

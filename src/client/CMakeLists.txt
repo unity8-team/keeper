@@ -10,12 +10,15 @@ add_library(
   STATIC
   keeper-errors.cpp
   ${CMAKE_SOURCE_DIR}/include/client/keeper-errors.h
+  ${CMAKE_SOURCE_DIR}/include/client/keeper-items.h
+  keeper-items.cpp
 )
 
 set(
   CLIENT_HEADERS
   ${CMAKE_SOURCE_DIR}/include/client/client.h
   ${CMAKE_SOURCE_DIR}/include/client/keeper-errors.h
+  ${CMAKE_SOURCE_DIR}/include/client/keeper-items.h
 )
 
 add_library(

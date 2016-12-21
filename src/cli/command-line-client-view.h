@@ -42,6 +42,7 @@ public:
     void clear_all();
     void print_sections(QStringList const & sections);
     void print_error_message(QString const & error_message);
+    QString get_error_string(keeper::KeeperError error);
 
 public Q_SLOTS:
     void show_info();
@@ -50,7 +51,6 @@ public Q_SLOTS:
 private:
     char get_next_spin_char();
     QString get_task_string(QString const & displayName, QString const & status, double percentage, keeper::KeeperError error);
-    QString get_error_string(keeper::KeeperError error);
 
     QString status_;
     QTimer timer_status_;

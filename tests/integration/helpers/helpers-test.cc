@@ -76,7 +76,7 @@ TEST_F(TestHelpers, StartFullTest)
     ASSERT_TRUE(user_iface->isValid()) << qPrintable(dbus_test_runner.sessionConnection().lastError().message());
 
     // ask for a list of backup choices
-    QDBusReply<QVariantDictMap> choices = user_iface->call("GetBackupChoices");
+    QDBusReply<keeper::KeeperItemsMap> choices = user_iface->call("GetBackupChoices");
     EXPECT_TRUE(choices.isValid()) << qPrintable(choices.error().message());
 
     QString user_option = QStringLiteral("XDG_MUSIC_DIR");
@@ -145,7 +145,7 @@ TEST_F(TestHelpers, StartFullTest)
     // finally check that we have a valid manifest file.
     EXPECT_TRUE(check_manifest_file(backup_items));
 
-    QDBusPendingReply<QVariantDictMap> restore_choices_reply = user_iface->call("GetRestoreChoices");
+    QDBusPendingReply<keeper::KeeperItemsMap> restore_choices_reply = user_iface->call("GetRestoreChoices");
     restore_choices_reply.waitForFinished();
     EXPECT_TRUE(restore_choices_reply.isValid()) << qPrintable(choices.error().message());
 
@@ -195,7 +195,7 @@ TEST_F(TestHelpers, StartFullTestCancelling)
     ASSERT_TRUE(user_iface->isValid()) << qPrintable(dbus_test_runner.sessionConnection().lastError().message());
 
     // ask for a list of backup choices
-    QDBusReply<QVariantDictMap> choices = user_iface->call("GetBackupChoices");
+    QDBusReply<keeper::KeeperItemsMap> choices = user_iface->call("GetBackupChoices");
     EXPECT_TRUE(choices.isValid()) << qPrintable(choices.error().message());
 
     QString user_option = QStringLiteral("XDG_MUSIC_DIR");
@@ -310,13 +310,13 @@ TEST_F(TestHelpers, BadHelperPath)
 
     WAIT_FOR_SIGNALS(spy, 1, Helper::MAX_UAL_WAIT_TIME + 1000);
 
-    ASSERT_EQ(spy.count(), 1);
+    ASSERT_EQ(1, spy.count());
     QList<QVariant> arguments = spy.takeFirst();
-    EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::FAILED);
+    EXPECT_EQ(Helper::State::FAILED, qvariant_cast<Helper::State>(arguments.at(0)));
 
-    ASSERT_EQ(spy_error.count(), 1);
+    ASSERT_EQ(1, spy_error.count());
     arguments = spy_error.takeFirst();
-    EXPECT_EQ(qvariant_cast<keeper::KeeperError>(arguments.at(0)), keeper::KeeperError::HELPER_MAX_TIME_WAITING_FOR_START);
+    EXPECT_EQ(keeper::KeeperError::HELPER_START_TIMEOUT, qvariant_cast<keeper::KeeperError>(arguments.at(0)));
 }
 
 TEST_F(TestHelpers, Inactivity)
@@ -338,13 +338,13 @@ TEST_F(TestHelpers, Inactivity)
     // We can also check at the end for the state, which should be CANCELLED
     WAIT_FOR_SIGNALS(spy, 2, BackupHelper::MAX_INACTIVITY_TIME + 2000);
 
-    ASSERT_EQ(spy.count(), 2);
+    ASSERT_EQ(2, spy.count());
     QList<QVariant> arguments = spy.takeFirst();
     EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::STARTED);
     arguments = spy.takeFirst();
     EXPECT_EQ(qvariant_cast<Helper::State>(arguments.at(0)), Helper::State::CANCELLED);
 
-    ASSERT_EQ(spy_error.count(), 1);
+    ASSERT_EQ(1, spy_error.count());
     arguments = spy_error.takeFirst();
-    EXPECT_EQ(qvariant_cast<keeper::KeeperError>(arguments.at(0)), keeper::KeeperError::HELPER_INACTIVITY_DETECTED);
+    EXPECT_EQ(keeper::KeeperError::HELPER_INACTIVITY_DETECTED, qvariant_cast<keeper::KeeperError>(arguments.at(0)));
 }

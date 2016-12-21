@@ -135,7 +135,7 @@ QString CommandLineClientView::get_error_string(keeper::KeeperError error)
         case keeper::KeeperError::HELPER_INACTIVITY_DETECTED:
             ret = QStringLiteral("Inactivity detected in task");
             break;
-        case keeper::KeeperError::HELPER_MAX_TIME_WAITING_FOR_START:
+        case keeper::KeeperError::HELPER_START_TIMEOUT:
             ret = QStringLiteral("Task failed to start");
             break;
         case keeper::KeeperError::HELPER_READ_ERROR:
@@ -158,6 +158,24 @@ QString CommandLineClientView::get_error_string(keeper::KeeperError error)
             break;
         case keeper::KeeperError::COMMITTING_DATA_ERROR:
             ret = QStringLiteral("Error uploading data");
+            break;
+        case keeper::KeeperError::CREATING_REMOTE_DIR_ERROR:
+            ret = QStringLiteral("Error creating remote directory");
+            break;
+        case keeper::KeeperError::CREATING_REMOTE_FILE_ERROR:
+            ret = QStringLiteral("Error creating remote file");
+            break;
+        case keeper::KeeperError::READING_REMOTE_FILE_ERROR:
+            ret = QStringLiteral("Error reading remote file");
+            break;
+        case keeper::KeeperError::REMOTE_DIR_NOT_EXISTS_ERROR:
+            ret = QStringLiteral("Remote directory does not exist");
+            break;
+        case keeper::KeeperError::NO_REMOTE_ACCOUNTS_ERROR:
+            ret = QStringLiteral("No remote accounts were found");
+            break;
+        case keeper::KeeperError::NO_REMOTE_ROOTS_ERROR:
+            ret = QStringLiteral("No remote root accounts were found");
             break;
     }
     return ret;

@@ -65,14 +65,20 @@ public:
             storage_->get_new_uploader(n_bytes, dir_name, file_name),
             std::function<void(std::shared_ptr<Uploader> const&)>{
                 [this](std::shared_ptr<Uploader> const& uploader){
-                    int fd {-1};
+                    auto fd {-1};
                     if (uploader) {
                         auto backup_helper = qSharedPointerDynamicCast<BackupHelper>(helper_);
                         backup_helper->set_uploader(uploader);
                         fd = backup_helper->get_helper_socket();
+                        qDebug("emitting task_socket_ready(socket=%d)", fd);
+                        Q_EMIT(q_ptr->task_socket_ready(fd));
                     }
-                    qDebug("emitting task_socket_ready(socket=%d)", fd);
-                    Q_EMIT(q_ptr->task_socket_ready(fd));
+                    else
+                    {
+                        error_ = storage_->get_last_error();
+                        qDebug("Emitting task_socket_error(error=%d)", static_cast<int>(error_));
+                        Q_EMIT(q_ptr->task_socket_error(error_));
+                    }
                 }
             }
         );

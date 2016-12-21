@@ -38,37 +38,3 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, keeper::KeeperErr
     argument.endStructure();
     return argument;
 }
-
-namespace keeper
-{
-KeeperError convertFromDBusVariant(const QVariant & value, bool *conversion_ok)
-{
-    if (value.typeName() != QStringLiteral("QDBusArgument"))
-    {
-        qWarning() << Q_FUNC_INFO
-                   << " Error converting dbus QVariant to KeeperError, expected type is [ QDBusArgument ] and current type is: ["
-                   << value.typeName() << "]";
-        if (conversion_ok)
-            *conversion_ok = false;
-        return KeeperError();
-    }
-    auto dbus_arg = value.value<QDBusArgument>();
-
-    if (dbus_arg.currentSignature() != "(i)")
-    {
-        qWarning() << Q_FUNC_INFO
-                   << " Error converting dbus QVariant to KeeperError, expected signature is \"(i)\" and current signature is: \""
-                   << dbus_arg.currentSignature() << "\"";
-        if (conversion_ok)
-            *conversion_ok = false;
-        return KeeperError();
-    }
-    KeeperError ret;
-    dbus_arg >> ret;
-
-    if (conversion_ok)
-        *conversion_ok = true;
-
-    return ret;
-}
-}

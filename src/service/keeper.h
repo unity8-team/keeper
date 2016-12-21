@@ -52,8 +52,8 @@ public:
 
     virtual ~Keeper();
 
-    QVariantDictMap get_backup_choices_var_dict_map(QDBusConnection bus, QDBusMessage const & msg);
-    QVariantDictMap get_restore_choices(QDBusConnection bus, QDBusMessage const & msg);
+    keeper::KeeperItemsMap get_backup_choices_var_dict_map(QDBusConnection bus, QDBusMessage const & msg);
+    keeper::KeeperItemsMap get_restore_choices(QDBusConnection bus, QDBusMessage const & msg);
 
     QDBusUnixFileDescriptor StartBackup(QDBusConnection,
                                         QDBusMessage const & message,
@@ -67,7 +67,7 @@ public:
                             QDBusConnection bus,
                             QDBusMessage const & msg);
 
-    QVariantDictMap get_state() const;
+    keeper::KeeperItemsMap get_state() const;
 
     void cancel();
 

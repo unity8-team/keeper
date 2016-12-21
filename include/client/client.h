@@ -25,6 +25,7 @@
 #include <QScopedPointer>
 #include <QStringList>
 #include <QVariant>
+#include "keeper-items.h"
 
 struct KeeperClientPrivate;
 
@@ -62,12 +63,12 @@ public:
 
 // C++
 public:
-    QMap<QString, QVariantMap> getBackupChoices() const;
-    QMap<QString, QVariantMap> getRestoreChoices() const;
+    keeper::KeeperItemsMap getBackupChoices() const;
+    keeper::KeeperItemsMap getRestoreChoices() const;
     void startBackup(QStringList const& uuids) const;
     void startRestore(QStringList const& uuids) const;
 
-    QMap<QString, QVariantMap> getState() const;
+    keeper::KeeperItemsMap getState() const;
 
 Q_SIGNALS:
     void statusChanged();
