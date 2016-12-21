@@ -135,7 +135,7 @@ QString CommandLineClientView::get_error_string(keeper::KeeperError error)
         case keeper::KeeperError::HELPER_INACTIVITY_DETECTED:
             ret = QStringLiteral("Inactivity detected in task");
             break;
-        case keeper::KeeperError::HELPER_MAX_TIME_WAITING_FOR_START:
+        case keeper::KeeperError::HELPER_START_TIMEOUT:
             ret = QStringLiteral("Task failed to start");
             break;
         case keeper::KeeperError::HELPER_READ_ERROR:

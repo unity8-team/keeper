@@ -441,7 +441,7 @@ bool TestHelpersBase::wait_for_all_tasks_have_action_state(QStringList const & u
     return finished;
 }
 
-bool TestHelpersBase::get_task_property_now(QString const & uuid, QSharedPointer<DBusInterfaceKeeperUser> const & keeper_user_iface, QString const & property, QVariant & value)
+bool TestHelpersBase::get_task_property_now(QString const & uuid, QSharedPointer<DBusInterfaceKeeperUser> const & keeper_user_iface, QString const & property, QVariant & value) const
 {
     auto state = keeper_user_iface->state();
     auto iter = state.find(uuid);

@@ -50,7 +50,7 @@ KeeperError convertFromDBusVariant(const QVariant & value, bool *conversion_ok)
                    << value.typeName() << "]";
         if (conversion_ok)
             *conversion_ok = false;
-        return KeeperError();
+        return KeeperError(keeper::KeeperError::ERROR_UNKNOWN);
     }
     auto dbus_arg = value.value<QDBusArgument>();
 
@@ -61,7 +61,7 @@ KeeperError convertFromDBusVariant(const QVariant & value, bool *conversion_ok)
                    << dbus_arg.currentSignature() << "\"";
         if (conversion_ok)
             *conversion_ok = false;
-        return KeeperError();
+        return KeeperError(keeper::KeeperError::ERROR_UNKNOWN);
     }
     KeeperError ret;
     dbus_arg >> ret;

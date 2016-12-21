@@ -28,16 +28,16 @@ namespace keeper
 enum class KeeperError
 {
     OK,
+    ERROR_UNKNOWN,
     HELPER_READ_ERROR,
     HELPER_WRITE_ERROR,
     HELPER_INACTIVITY_DETECTED,
     HELPER_SOCKET_ERROR,
-    HELPER_MAX_TIME_WAITING_FOR_START,
+    HELPER_START_TIMEOUT,
     NO_HELPER_INFORMATION_IN_REGISTRY,
     HELPER_BAD_URL,
     MANIFEST_STORAGE_ERROR,
-    COMMITTING_DATA_ERROR,
-    ERROR_UNKNOWN
+    COMMITTING_DATA_ERROR
 };
 
 KeeperError convertFromDBusVariant(const QVariant & value, bool *conversion_ok = nullptr);
