@@ -22,6 +22,7 @@
 #include <QObject>
 #include <QScopedPointer>
 #include <QTimer>
+#include "../../include/client/keeper-items.h"
 
 class KeeperClient;
 class CommandLineClientView;
@@ -45,9 +46,9 @@ private Q_SLOTS:
     void on_keeper_client_finished();
 
 private:
-    static bool find_choice_value(QVariantMap const & choice, QString const & id, QVariant & value);
-    void list_backup_sections(QMap<QString, QVariantMap> const & choices);
-    void list_restore_sections(QMap<QString, QVariantMap> const & choices);
+    bool find_choice_value(QVariantMap const & choice, QString const & id, QVariant & value);
+    void list_backup_sections(keeper::KeeperItemsMap const & choices);
+    void list_restore_sections(keeper::KeeperItemsMap const & choices);
     QScopedPointer<KeeperClient> keeper_client_;
     QScopedPointer<CommandLineClientView> view_;
 };

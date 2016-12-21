@@ -5,7 +5,7 @@
   <interface name="com.canonical.keeper.User">
 
     <method name="GetBackupChoices">
-      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QVariantDictMap"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="keeper::KeeperItemsMap"/>
       <arg direction="out" name="backups" type="a{sa{sv}}">
         <doc:doc>
         <doc:summary>A list of backup possibilities for the user to choose from</doc:summary>
@@ -35,7 +35,7 @@
     </method>
 
     <method name="GetRestoreChoices">
-      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QVariantDictMap"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="keeper::KeeperItemsMap"/>
       <arg direction="out" name="backups" type="a{sa{sv}}">
         <doc:doc>
         <doc:summary>The backups which already exist and can be restored</doc:summary>
@@ -65,7 +65,7 @@
     </method>
 
     <property name="State" type="a{sa{sv}}" access="read">
-      <annotation name="org.qtproject.QtDBus.QtTypeName" value="QVariantDictMap"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName" value="keeper::KeeperItemsMap"/>
       <doc:doc>
         <doc:description>
           <doc:para>Provides state information so the user interface can show

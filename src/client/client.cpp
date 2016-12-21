@@ -23,6 +23,7 @@
 
 #include <qdbus-stubs/keeper_user_interface.h>
 #include <qdbus-stubs/DBusPropertiesInterface.h>
+#include <qdbus-stubs/dbus-types.h>
 
 struct KeeperClientPrivate final
 {
@@ -57,7 +58,7 @@ struct KeeperClientPrivate final
         return (stateString == "complete" || stateString == "cancelled" || stateString == "failed");
     }
 
-    static bool checkAllTasksFinished(QMap<QString, QVariantMap> const & state)
+    bool checkAllTasksFinished(keeper::KeeperItemsMap const & state) const
     {
         bool ret = true;
         for (auto iter = state.begin(); ret && (iter != state.end()); ++iter)
@@ -71,13 +72,12 @@ struct KeeperClientPrivate final
     QScopedPointer<DBusInterfaceKeeperUser> userIface;
     QScopedPointer<DBusPropertiesInterface> propertiesIface;
     QString status;
-    QMap<QString, QVariantMap> backups;
-    QMap<QString, QVariantMap> restores;
-    double progress = 0;
-    bool readyToBackup = false;
-    bool backupBusy = false;
-    QMap<QString, TaskStatus> task_status;
-    TasksMode mode = TasksMode::IDLE_MODE;
+    keeper::KeeperItemsMap backups;
+    double progress;
+    bool readyToBackup;
+    bool backupBusy;
+    QMap<QString, TaskStatus> taskStatus;
+    TasksMode mode;
 };
 
 KeeperClient::KeeperClient(QObject* parent) :
@@ -89,6 +89,7 @@ KeeperClient::KeeperClient(QObject* parent) :
     // Store backups list locally with an additional "enabled" pair to keep track enabled states
     // TODO: We should be listening to a backupChoicesChanged signal to keep this list updated
     d->backups = getBackupChoices();
+
     for(auto iter = d->backups.begin(); iter != d->backups.end(); ++iter)
     {
         iter.value()["enabled"] = false;
@@ -148,7 +149,7 @@ void KeeperClient::enableBackup(QString uuid, bool enabled)
         }
     }
 
-    d->task_status[uuid] = KeeperClientPrivate::TaskStatus{"", 0.0};
+    d->taskStatus[uuid] = KeeperClientPrivate::TaskStatus{"", 0.0};
 
     Q_EMIT readyToBackupChanged();
 }
@@ -212,28 +213,28 @@ QString KeeperClient::getBackupName(QString uuid)
     return d->backups.value(uuid).value("display-name").toString();
 }
 
-QMap<QString, QVariantMap> KeeperClient::getBackupChoices() const
+keeper::KeeperItemsMap KeeperClient::getBackupChoices() const
 {
-    QDBusReply<QMap<QString, QVariantMap>> choices = d->userIface->call("GetBackupChoices");
+    QDBusReply<keeper::KeeperItemsMap> choices = d->userIface->call("GetBackupChoices");
 
     if (!choices.isValid())
     {
         qWarning() << "Error getting backup choices:" << choices.error().message();
-        return QMap<QString, QVariantMap>();
+        return keeper::KeeperItemsMap();
     }
 
     return choices.value();
 }
 
-QMap<QString, QVariantMap> KeeperClient::getRestoreChoices() const
+keeper::KeeperItemsMap KeeperClient::getRestoreChoices() const
 {
-    QDBusPendingReply<QMap<QString, QVariantMap>> choices = d->userIface->call("GetRestoreChoices");
+    QDBusPendingReply<keeper::KeeperItemsMap> choices = d->userIface->call("GetRestoreChoices");
 
     choices.waitForFinished();
     if (!choices.isValid())
     {
         qWarning() << "Error getting restore choices:" << choices.error().message();
-        return QMap<QString, QVariantMap>();
+        return keeper::KeeperItemsMap();
     }
 
     return choices.value();
@@ -259,7 +260,7 @@ void KeeperClient::startRestore(const QStringList& uuids) const
     }
 }
 
-QMap<QString, QVariantMap> KeeperClient::getState() const
+keeper::KeeperItemsMap KeeperClient::getState() const
 {
     return d->userIface->state();
 }
@@ -270,38 +271,32 @@ void KeeperClient::stateUpdated()
 
     if (!states.empty())
     {
-        for (auto const & uuid : d->task_status.keys())
+        for (auto const & uuid : d->taskStatus.keys())
         {
             auto iter_state = states.find(uuid);
             if (iter_state == states.end())
             {
                 qWarning() << "State for uuid: " << uuid << " was not found";
             }
-            auto state = (*iter_state);
-            double progress = state.value("percent-done").toDouble();
-            auto status = state.value("action").toString();
+            keeper::KeeperItem keeper_item((*iter_state));
+            auto progress = keeper_item.get_percent_done();
+            auto status = keeper_item.get_status();
+            auto keeper_error = keeper_item.get_error();
 
-            keeper::KeeperError keeper_error = keeper::KeeperError::OK;
-            auto iter_error = state.find("error");
-            if (iter_error != state.end())
-            {
-                bool conversion_ok;
-                keeper_error = keeper::convertFromDBusVariant(state.value("error"), &conversion_ok);
-            }
-
-            auto current_state = d->task_status[uuid];
+            auto current_state = d->taskStatus[uuid];
             if (current_state.status != status || current_state.percentage < progress)
             {
-                d->task_status[uuid].status = status;
-                d->task_status[uuid].percentage = progress;
-                Q_EMIT(taskStatusChanged(state.value("display-name").toString(), status, progress, keeper_error));
+                d->taskStatus[uuid].status = status;
+                d->taskStatus[uuid].percentage = progress;
+                Q_EMIT(taskStatusChanged(keeper_item.get_display_name(), status, progress, keeper_error));
             }
         }
 
         double totalProgress = 0;
         for (auto const& state : states)
         {
-            totalProgress += state.value("percent-done").toDouble();
+            keeper::KeeperItem keeper_item(state);
+            totalProgress += keeper_item.get_percent_done();
         }
 
         d->progress = totalProgress / states.count();

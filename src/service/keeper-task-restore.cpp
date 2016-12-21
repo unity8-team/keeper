@@ -78,13 +78,19 @@ public:
             storage_->get_new_downloader(dir_name, file_name),
             std::function<void(std::shared_ptr<Downloader> const&)>{
                 [this](std::shared_ptr<Downloader> const& downloader){
-                    int fd {-1};
+                    auto fd {-1};
                     if (downloader) {
                         auto restore_helper = qSharedPointerDynamicCast<RestoreHelper>(helper_);
                         restore_helper->set_downloader(downloader);
                         fd = restore_helper->get_helper_socket();
+                        Q_EMIT(q_ptr->task_socket_ready(fd));
                     }
-                    Q_EMIT(q_ptr->task_socket_ready(fd));
+                    else
+                    {
+                        error_ = storage_->get_last_error();
+                        qDebug("Emitting task_socket_error(error=%d)", static_cast<int>(error_));
+                        Q_EMIT(q_ptr->task_socket_error(error_));
+                    }
                 }
             }
         );

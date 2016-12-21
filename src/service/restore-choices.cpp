@@ -76,8 +76,15 @@ RestoreChoices::get_backups_async()
                 }
                 else
                 {
-                    qWarning() << "We could not find and keeper backup when retrieving restore options.";
-                    Q_EMIT(finished());
+                    qWarning() << "We could not find and keeper backups directory when retrieving restore options.";
+                    if (storage_->get_last_error() != keeper::KeeperError::OK)
+                    {
+                        Q_EMIT(error(storage_->get_last_error()));
+                    }
+                    else
+                    {
+                        Q_EMIT(finished());
+                    }
                 }
             }
         }

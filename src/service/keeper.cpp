@@ -46,12 +46,15 @@ namespace
         return variants;
     }
 
-    QVariantDictMap choices_to_variant_dict_map(const QVector<Metadata>& choices)
+    keeper::KeeperItemsMap choices_to_variant_dict_map(const QVector<Metadata>& choices)
     {
-        QVariantDictMap ret;
+        keeper::KeeperItemsMap ret;
 
         for (auto const& metadata : choices)
-            ret.insert(metadata.uuid(), strings_to_variants(metadata.get_public_properties()));
+        {
+            keeper::KeeperItem value(strings_to_variants(metadata.get_public_properties()));
+            ret.insert(metadata.uuid(), value);
+        }
 
         return ret;
     }
@@ -113,11 +116,7 @@ public:
                     if (task_manager_.start_backup(tasks.values()))
                         unhandled.subtract(QSet<QString>::fromList(tasks.keys()));
 
-                    check_for_unhandled_tasks(unhandled, bus, msg);
-
-                    // reply now to the dbus call
-                    auto reply = msg.createReply();
-                    bus.send(reply);
+                    check_for_unhandled_tasks_and_reply(unhandled, bus, msg);
                 }
                 else // restore
                 {
@@ -133,11 +132,19 @@ public:
                             if (!restore_tasks.empty() && task_manager_.start_restore(restore_tasks.values()))
                                 unhandled.subtract(QSet<QString>::fromList(restore_tasks.keys()));
 
-                            check_for_unhandled_tasks(unhandled, bus, msg);
+                            check_for_unhandled_tasks_and_reply(unhandled, bus, msg);
+                        }}
+                    );
 
-                            // reply now to the dbus call
-                            auto reply = msg.createReply();
-                            bus.send(reply);
+                    connections_.connect_oneshot(
+                        this,
+                        &KeeperPrivate::restore_choices_error,
+                        std::function<void(keeper::KeeperError)>{[this, uuids, msg, bus](keeper::KeeperError error){
+                            auto message = QStringLiteral("Error obtaining restore choices, keeper returned error: %1").arg(static_cast<int>(error));
+                            qWarning() << message;
+
+                            auto unhandled = QSet<QString>::fromList(uuids);
+                            check_for_unhandled_tasks_and_reply(unhandled, bus, msg);
                         }}
                     );
                     get_choices(restore_choices_, KeeperPrivate::ChoicesType::RESTORES_CHOICES);
@@ -161,6 +168,21 @@ public:
             break;
         }
     }
+
+    void emit_choices_error(ChoicesType type, keeper::KeeperError error)
+    {
+        switch(type)
+        {
+        case KeeperPrivate::ChoicesType::BACKUP_CHOICES:
+            Q_EMIT(backup_choices_error(error));
+            break;
+        case KeeperPrivate::ChoicesType::RESTORES_CHOICES:
+            qDebug() << "emit restore_choices_error";
+            Q_EMIT(restore_choices_error(error));
+            break;
+        }
+    }
+
     void get_choices(const QSharedPointer<MetadataProvider> & provider, ChoicesType type)
     {
         bool check_empty = (type == KeeperPrivate::ChoicesType::BACKUP_CHOICES)
@@ -185,6 +207,15 @@ public:
                 }}
             );
 
+            connections_.connect_oneshot(
+                provider.data(),
+                &MetadataProvider::error,
+                std::function<void(keeper::KeeperError)>{[this, provider, type](keeper::KeeperError error){
+                    qDebug() << "Error getting choices";
+                    emit_choices_error(type, error);
+                }}
+            );
+
             provider->get_backups_async();
         }
         else
@@ -193,7 +224,7 @@ public:
         }
     }
 
-    QVariantDictMap get_backup_choices_var_dict_map(QDBusConnection bus,
+    keeper::KeeperItemsMap get_backup_choices_var_dict_map(QDBusConnection bus,
                                                     QDBusMessage const & msg)
     {
         connections_.connect_oneshot(
@@ -208,14 +239,27 @@ public:
             }}
         );
 
+        connections_.connect_oneshot(
+            this,
+            &KeeperPrivate::backup_choices_error,
+            std::function<void(keeper::KeeperError)>{[this, msg, bus](keeper::KeeperError error){
+                auto message = QStringLiteral("Error obtaining backup choices, keeper returned error: %1").arg(static_cast<int>(error));
+                qWarning() << message;
+                auto reply = msg.createReply();
+                reply << QVariant::fromValue(keeper::KeeperItemsMap(error));
+                bus.send(reply);
+            }}
+        );
+
         get_choices(backup_choices_, KeeperPrivate::ChoicesType::BACKUP_CHOICES);
         msg.setDelayedReply(true);
-        return QVariantDictMap();
+        return keeper::KeeperItemsMap();
     }
 
-    QVariantDictMap get_restore_choices_var_dict_map(QDBusConnection bus,
+    keeper::KeeperItemsMap get_restore_choices_var_dict_map(QDBusConnection bus,
                                                      QDBusMessage const & msg)
     {
+        qDebug() << "Getting restores  --------------------------------";
         cached_restore_choices_.clear();
         connections_.connect_oneshot(
             this,
@@ -229,12 +273,24 @@ public:
             }}
         );
 
+        connections_.connect_oneshot(
+            this,
+            &KeeperPrivate::restore_choices_error,
+            std::function<void(keeper::KeeperError)>{[this, msg, bus](keeper::KeeperError error){
+                auto message = QStringLiteral("Error obtaining restore choices, keeper returned error: %1").arg(static_cast<int>(error));
+                qWarning() << message;
+                auto reply = msg.createReply();
+                reply << QVariant::fromValue(keeper::KeeperItemsMap(error));
+                bus.send(reply);
+            }}
+        );
+
         get_choices(restore_choices_, KeeperPrivate::ChoicesType::RESTORES_CHOICES);
         msg.setDelayedReply(true);
-        return QVariantDictMap();
+        return keeper::KeeperItemsMap();
     }
 
-    QVariantDictMap get_state() const
+    keeper::KeeperItemsMap get_state() const
     {
         return task_manager_.get_state();
     }
@@ -254,6 +310,17 @@ public:
                     auto reply = msg.createReply();
                     reply << QVariant::fromValue(QDBusUnixFileDescriptor(fd));
                     bus.send(reply);
+                }
+            }
+        );
+
+        connections_.connect_oneshot(
+            &task_manager_,
+            &TaskManager::socket_error,
+            std::function<void(keeper::KeeperError)>{
+                [bus,msg](keeper::KeeperError error){
+                    qDebug("BackupManager returned socket error: %d", static_cast<int>(error));
+                    bus.send(msg.createErrorReply(QDBusError::InvalidArgs, "Error obtaining remote backup socket"));
                 }
             }
         );
@@ -286,6 +353,17 @@ public:
             }
         );
 
+        connections_.connect_oneshot(
+            &task_manager_,
+            &TaskManager::socket_error,
+            std::function<void(keeper::KeeperError)>{
+                [bus,msg](keeper::KeeperError error){
+                    qDebug("RestoreManager returned socket error: %d", static_cast<int>(error));
+                    bus.send(msg.createErrorReply(QDBusError::InvalidArgs, "Error obtaining remote restore socket"));
+                }
+            }
+        );
+
         qDebug() << "Asking for a storage framework socket from the task manager";
         task_manager_.ask_for_downloader();
 
@@ -307,9 +385,10 @@ public:
 Q_SIGNALS:
     void backup_choices_ready();
     void restore_choices_ready();
+    void backup_choices_error(keeper::KeeperError error);
+    void restore_choices_error(keeper::KeeperError error);
 
 private:
-
     void on_task_manager_finished()
     {
         // force a backup choices regeneration to avoid repeating uuids
@@ -317,7 +396,7 @@ private:
         invalidate_choices_cache();
     }
 
-    void check_for_unhandled_tasks(QSet<QString> const & unhandled,
+    void check_for_unhandled_tasks_and_reply(QSet<QString> const & unhandled,
                                    QDBusConnection bus,
                                    QDBusMessage const & msg )
     {
@@ -329,6 +408,9 @@ private:
                 text += ' ' + uuid;
             bus.send(msg.createErrorReply(QDBusError::InvalidArgs, text));
         }
+
+        auto reply = msg.createReply();
+        bus.send(reply);
     }
 
     Keeper * const q_ptr;
@@ -383,7 +465,7 @@ Keeper::StartRestore(QDBusConnection bus,
     return d->start_restore(bus, msg);
 }
 
-QVariantDictMap
+keeper::KeeperItemsMap
 Keeper::get_backup_choices_var_dict_map(QDBusConnection bus,
                                         QDBusMessage const & msg)
 {
@@ -392,7 +474,7 @@ Keeper::get_backup_choices_var_dict_map(QDBusConnection bus,
     return d->get_backup_choices_var_dict_map(bus, msg);
 }
 
-QVariantDictMap
+keeper::KeeperItemsMap
 Keeper::get_restore_choices(QDBusConnection bus,
                             QDBusMessage const & msg)
 {
@@ -401,7 +483,7 @@ Keeper::get_restore_choices(QDBusConnection bus,
     return d->get_restore_choices_var_dict_map(bus,msg);
 }
 
-QVariantDictMap
+keeper::KeeperItemsMap
 Keeper::get_state() const
 {
     Q_D(const Keeper);

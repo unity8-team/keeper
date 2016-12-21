@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "client/keeper-errors.h"
 #include "helper/metadata.h"
 
 #include <QObject>
@@ -34,6 +35,7 @@ public:
 
 Q_SIGNALS:
     void finished();
+    void error(keeper::KeeperError error);
 
 protected:
     explicit MetadataProvider(QObject *parent = nullptr) : QObject(parent){};

@@ -45,7 +45,7 @@ public:
 
     Q_DISABLE_COPY(TaskManager)
 
-    Q_PROPERTY(QVariantDictMap State
+    Q_PROPERTY(keeper::KeeperItemsMap State
                READ get_state
                NOTIFY state_changed)
 
@@ -54,7 +54,7 @@ public:
 
     bool start_restore(QList<Metadata> const& tasks);
 
-    QVariantDictMap get_state() const;
+    keeper::KeeperItemsMap get_state() const;
 
     void ask_for_uploader(quint64 n_bytes);
 
@@ -64,6 +64,7 @@ public:
 
 Q_SIGNALS:
     void socket_ready(int reply);
+    void socket_error(keeper::KeeperError error);
     void state_changed();
     void finished();
 

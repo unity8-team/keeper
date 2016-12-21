@@ -48,7 +48,7 @@ TEST_F(TestHelpers, BackupHelperWritesTooMuch)
     ASSERT_TRUE(user_iface->isValid()) << qPrintable(dbus_test_runner.sessionConnection().lastError().message());
 
     // ask for a list of backup choices
-    QDBusReply<QVariantDictMap> choices = user_iface->call("GetBackupChoices");
+    QDBusReply<keeper::KeeperItemsMap> choices = user_iface->call("GetBackupChoices");
     EXPECT_TRUE(choices.isValid()) << qPrintable(choices.error().message());
 
     auto user_option = QStringLiteral("XDG_MUSIC_DIR");
@@ -90,26 +90,26 @@ TEST_F(TestHelpers, BackupHelperWritesTooMuch)
     // this one uses pooling so it should just call Get once
     EXPECT_TRUE(wait_for_all_tasks_have_action_state({user_folder_uuid}, "failed", user_iface));
 
-    QVariant error_value;
-    EXPECT_TRUE(get_task_property_now(user_folder_uuid, user_iface, "error", error_value));
+    keeper::KeeperItem item_value;
+    EXPECT_TRUE(get_task_value_now(user_folder_uuid, user_iface, item_value));
     bool conversion_ok;
-    auto keeper_error = keeper::convertFromDBusVariant(error_value, &conversion_ok);
+    auto keeper_error = item_value.get_error(&conversion_ok);
     EXPECT_TRUE(conversion_ok);
-    EXPECT_EQ(keeper_error, keeper::KeeperError::HELPER_WRITE_ERROR);
+    EXPECT_EQ(keeper::KeeperError::HELPER_WRITE_ERROR, keeper_error);
 
     // check that the content of the file is the expected
     EXPECT_EQ(0, StorageFrameworkLocalUtils::check_storage_framework_nb_files());
 
     // check that the state is failed
-    QVariantDictMap state = user_iface->state();
+    auto state = user_iface->state();
 
     // check that the state has the uuid
-    QVariantDictMap::const_iterator iter = state.find(user_folder_uuid);
+    auto iter = state.find(user_folder_uuid);
     EXPECT_TRUE(iter != state.end());
     auto state_values = state[user_folder_uuid];
 
-    EXPECT_EQ(std::string{"failed"}, state_values["action"].toString().toStdString());
-    EXPECT_EQ(std::string{"Music"}, state_values["display-name"].toString().toStdString());
+    EXPECT_EQ("failed", state_values.get_status());
+    EXPECT_EQ("Music", state_values.get_display_name());
     // sent 1 byte more than the expected, so percentage has to be greater than 1.0
-    EXPECT_GT(state_values["percent-done"].toFloat(), 1.0);
+    EXPECT_LT(1.0, state_values.get_percent_done());
 }

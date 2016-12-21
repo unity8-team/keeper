@@ -67,6 +67,7 @@ public:
 Q_SIGNALS:
     void task_state_changed(Helper::State state);
     void task_socket_ready(int socket_descriptor);
+    void task_socket_error(keeper::KeeperError error);
 
 protected:
     KeeperTask(KeeperTaskPrivate & d, QObject *parent = nullptr);

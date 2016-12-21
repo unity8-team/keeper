@@ -37,10 +37,16 @@ enum class KeeperError
     NO_HELPER_INFORMATION_IN_REGISTRY,
     HELPER_BAD_URL,
     MANIFEST_STORAGE_ERROR,
-    COMMITTING_DATA_ERROR
+    COMMITTING_DATA_ERROR,
+
+    CREATING_REMOTE_DIR_ERROR,
+    CREATING_REMOTE_FILE_ERROR,
+    READING_REMOTE_FILE_ERROR,
+    REMOTE_DIR_NOT_EXISTS_ERROR,
+    NO_REMOTE_ACCOUNTS_ERROR,
+    NO_REMOTE_ROOTS_ERROR
 };
 
-KeeperError convertFromDBusVariant(const QVariant & value, bool *conversion_ok = nullptr);
 } // namespace keeper
 
 QDBusArgument &operator<<(QDBusArgument &argument, keeper::KeeperError value);

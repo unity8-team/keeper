@@ -59,9 +59,21 @@ public:
      ***  State public
     ***/
 
-    QVariantDictMap get_state() const
+    keeper::KeeperItemsMap get_converted_state_to_user_type() const
     {
-        return state_;
+        keeper::KeeperItemsMap ret;
+        for (auto iter = state_.begin(); iter != state_.end(); ++iter)
+        {
+            keeper::KeeperItem item((*iter));
+            ret[iter.key()] = item;
+        }
+        return ret;
+    }
+
+    keeper::KeeperItemsMap get_state() const
+    {
+        return get_converted_state_to_user_type();
+//        return state_;
     }
 
     void ask_for_uploader(quint64 n_bytes)
@@ -266,7 +278,23 @@ private:
             std::bind(&TaskManager::socket_ready, q_ptr, std::placeholders::_1)
         );
 
+        QObject::connect(task_.data(), &KeeperTask::task_socket_error,
+                    std::bind(&TaskManagerPrivate::on_task_socket_error, this, std::placeholders::_1)
+        );
+
         return task_->start();
+    }
+
+    void on_task_socket_error(keeper::KeeperError error)
+    {
+        if (!task_)
+        {
+            qWarning() << "Error updating current task state";
+        }
+        auto& td = task_data_[current_task_];
+        td.error = error;
+        set_current_task_action(task_->to_string(Helper::State::FAILED));
+        Q_EMIT(q_ptr->socket_error(error));
     }
 
     void set_current_task(QString const& uuid)
@@ -409,7 +437,7 @@ TaskManager::start_restore(QList<Metadata> const& tasks)
     return d->start_restore(tasks);
 }
 
-QVariantDictMap TaskManager::get_state() const
+keeper::KeeperItemsMap TaskManager::get_state() const
 {
     Q_D(const TaskManager);
 

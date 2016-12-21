@@ -92,7 +92,7 @@ TEST_F(TestHelpers, GetRestoreChoices)
     ASSERT_TRUE(user_iface->isValid()) << qPrintable(dbus_test_runner.sessionConnection().lastError().message());
 
     // ask for a list of backup choices
-    QDBusPendingReply<QVariantDictMap> choices_reply = user_iface->call("GetRestoreChoices");
+    QDBusPendingReply<keeper::KeeperItemsMap> choices_reply = user_iface->call("GetRestoreChoices");
     choices_reply.waitForFinished();
     EXPECT_TRUE(choices_reply.isFinished());
     EXPECT_TRUE(choices_reply.isValid()) << qPrintable(choices_reply.error().message());
