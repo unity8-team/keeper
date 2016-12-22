@@ -95,7 +95,7 @@ TEST_F(TestHelpers, BackupHelperWritesTooMuch)
     bool conversion_ok;
     auto keeper_error = item_value.get_error(&conversion_ok);
     EXPECT_TRUE(conversion_ok);
-    EXPECT_EQ(keeper::KeeperError::HELPER_WRITE_ERROR, keeper_error);
+    EXPECT_EQ(keeper::Error::HELPER_WRITE, keeper_error);
 
     // check that the content of the file is the expected
     EXPECT_EQ(0, StorageFrameworkLocalUtils::check_storage_framework_nb_files());

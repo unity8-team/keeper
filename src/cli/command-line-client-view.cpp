@@ -48,7 +48,7 @@ void CommandLineClientView::status_changed(QString const & status)
 
 void CommandLineClientView::add_task(QString const & display_name, QString const & initial_status, double initial_percentage)
 {
-    tasks_strings_[display_name] = get_task_string(display_name, initial_status, initial_percentage, keeper::KeeperError::OK);
+    tasks_strings_[display_name] = get_task_string(display_name, initial_status, initial_percentage, keeper::Error::OK);
     // TODO see if we can do this in a better way
     // We add a line per each backup task
     std::cout << std::endl;
@@ -112,76 +112,76 @@ char CommandLineClientView::get_next_spin_char()
     return ret;
 }
 
-QString CommandLineClientView::get_task_string(QString const & displayName, QString const & status, double percentage, keeper::KeeperError error)
+QString CommandLineClientView::get_task_string(QString const & displayName, QString const & status, double percentage, keeper::Error error)
 {
 
-    if (error == keeper::KeeperError::OK)
+    if (error == keeper::Error::OK)
         return QStringLiteral("%1    %2 %    %3").arg(displayName, 15).arg((percentage * 100), 10, 'f', 2, ' ').arg(status, -15);
     else
         return QStringLiteral("%1    %2 %    %3 %4").arg(displayName, 15).arg((percentage * 100), 10, 'f', 2, ' ').arg(status, -15).arg(get_error_string(error));
 }
 
-QString CommandLineClientView::get_error_string(keeper::KeeperError error)
+QString CommandLineClientView::get_error_string(keeper::Error error)
 {
     QString ret;
     switch(error)
     {
-        case keeper::KeeperError::ERROR_UNKNOWN:
+        case keeper::Error::UNKNOWN:
             ret = QStringLiteral("Unknown error");
             break;
-        case keeper::KeeperError::HELPER_BAD_URL:
+        case keeper::Error::HELPER_BAD_URL:
             ret = QStringLiteral("Bad URL for keeper helper");
             break;
-        case keeper::KeeperError::HELPER_INACTIVITY_DETECTED:
+        case keeper::Error::HELPER_INACTIVITY_DETECTED:
             ret = QStringLiteral("Inactivity detected in task");
             break;
-        case keeper::KeeperError::HELPER_START_TIMEOUT:
+        case keeper::Error::HELPER_START_TIMEOUT:
             ret = QStringLiteral("Task failed to start");
             break;
-        case keeper::KeeperError::HELPER_READ_ERROR:
+        case keeper::Error::HELPER_READ:
             ret = QStringLiteral("Read error");
             break;
-        case keeper::KeeperError::HELPER_SOCKET_ERROR:
+        case keeper::Error::HELPER_SOCKET:
             ret = QStringLiteral("Error creating internal socket");
             break;
-        case keeper::KeeperError::HELPER_WRITE_ERROR:
+        case keeper::Error::HELPER_WRITE:
             ret = QStringLiteral("Write error");
             break;
-        case keeper::KeeperError::MANIFEST_STORAGE_ERROR:
+        case keeper::Error::MANIFEST_STORAGE:
             ret = QStringLiteral("Error storing manifest file");
             break;
-        case keeper::KeeperError::NO_HELPER_INFORMATION_IN_REGISTRY:
+        case keeper::Error::NO_HELPER_INFORMATION_IN_REGISTRY:
             ret = QStringLiteral("No helper information in registry");
             break;
-        case keeper::KeeperError::OK:
+        case keeper::Error::OK:
             ret = QStringLiteral("Success");
             break;
-        case keeper::KeeperError::COMMITTING_DATA_ERROR:
+        case keeper::Error::COMMITTING_DATA:
             ret = QStringLiteral("Error uploading data");
             break;
-        case keeper::KeeperError::CREATING_REMOTE_DIR_ERROR:
+        case keeper::Error::CREATING_REMOTE_DIR:
             ret = QStringLiteral("Error creating remote directory");
             break;
-        case keeper::KeeperError::CREATING_REMOTE_FILE_ERROR:
+        case keeper::Error::CREATING_REMOTE_FILE:
             ret = QStringLiteral("Error creating remote file");
             break;
-        case keeper::KeeperError::READING_REMOTE_FILE_ERROR:
+        case keeper::Error::READING_REMOTE_FILE:
             ret = QStringLiteral("Error reading remote file");
             break;
-        case keeper::KeeperError::REMOTE_DIR_NOT_EXISTS_ERROR:
+        case keeper::Error::REMOTE_DIR_NOT_EXISTS:
             ret = QStringLiteral("Remote directory does not exist");
             break;
-        case keeper::KeeperError::NO_REMOTE_ACCOUNTS_ERROR:
+        case keeper::Error::NO_REMOTE_ACCOUNTS:
             ret = QStringLiteral("No remote accounts were found");
             break;
-        case keeper::KeeperError::NO_REMOTE_ROOTS_ERROR:
+        case keeper::Error::NO_REMOTE_ROOTS:
             ret = QStringLiteral("No remote root accounts were found");
             break;
     }
     return ret;
 }
 
-void CommandLineClientView::on_task_state_changed(QString const & displayName, QString const & status, double percentage, keeper::KeeperError error)
+void CommandLineClientView::on_task_state_changed(QString const & displayName, QString const & status, double percentage, keeper::Error error)
 {
     auto iter = tasks_strings_.find(displayName);
     if (iter != tasks_strings_.end())

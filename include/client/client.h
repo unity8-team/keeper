@@ -63,8 +63,8 @@ public:
 
 // C++
 public:
-    keeper::KeeperItemsMap getBackupChoices(keeper::KeeperError & error) const;
-    keeper::KeeperItemsMap getRestoreChoices(keeper::KeeperError & error) const;
+    keeper::KeeperItemsMap getBackupChoices(keeper::Error & error) const;
+    keeper::KeeperItemsMap getRestoreChoices(keeper::Error & error) const;
     void startBackup(QStringList const& uuids) const;
     void startRestore(QStringList const& uuids) const;
 
@@ -76,7 +76,7 @@ Q_SIGNALS:
     void readyToBackupChanged();
     void backupBusyChanged();
 
-    void taskStatusChanged(QString const & displayName, QString const & status, double percentage, keeper::KeeperError error);
+    void taskStatusChanged(QString const & displayName, QString const & status, double percentage, keeper::Error error);
     void finished();
 
 private Q_SLOTS:

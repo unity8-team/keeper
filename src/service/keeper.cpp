@@ -124,10 +124,10 @@ public:
                     connections_.connect_oneshot(
                         this,
                         &KeeperPrivate::restore_choices_ready,
-                        std::function<void(keeper::KeeperError)>{[this, uuids, msg, bus, get_tasks](keeper::KeeperError error){
+                        std::function<void(keeper::Error)>{[this, uuids, msg, bus, get_tasks](keeper::Error error){
                             qDebug() << "Choices ready";
                             auto unhandled = QSet<QString>::fromList(uuids);
-                            if (error == keeper::KeeperError::OK)
+                            if (error == keeper::Error::OK)
                             {
                                 auto restore_tasks = get_tasks(cached_restore_choices_, uuids);
                                 qDebug() << "After getting tasks...";
@@ -146,7 +146,7 @@ public:
         msg.setDelayedReply(true);
     }
 
-    void emit_choices_ready(ChoicesType type, keeper::KeeperError error)
+    void emit_choices_ready(ChoicesType type, keeper::Error error)
     {
         switch(type)
         {
@@ -168,9 +168,9 @@ public:
             connections_.connect_oneshot(
                 provider.data(),
                 &MetadataProvider::finished,
-                std::function<void(keeper::KeeperError)>{[this, provider, type](keeper::KeeperError error){
+                std::function<void(keeper::Error)>{[this, provider, type](keeper::Error error){
                     qDebug() << "Get choices finished";
-                    if (error == keeper::KeeperError::OK)
+                    if (error == keeper::Error::OK)
                     {
                         switch (type)
                         {
@@ -189,7 +189,7 @@ public:
         }
         else
         {
-            emit_choices_ready(type, keeper::KeeperError::OK);
+            emit_choices_ready(type, keeper::Error::OK);
         }
     }
 
@@ -199,9 +199,9 @@ public:
         connections_.connect_oneshot(
             this,
             &KeeperPrivate::backup_choices_ready,
-            std::function<void(keeper::KeeperError)>{[this, msg, bus](keeper::KeeperError error){
+            std::function<void(keeper::Error)>{[this, msg, bus](keeper::Error error){
                 qDebug() << "Backup choices are ready";
-                if (error == keeper::KeeperError::OK)
+                if (error == keeper::Error::OK)
                 {
                     // reply now to the dbus call
                     auto reply = msg.createReply();
@@ -231,9 +231,9 @@ public:
         connections_.connect_oneshot(
             this,
             &KeeperPrivate::restore_choices_ready,
-            std::function<void(keeper::KeeperError)>{[this, msg, bus](keeper::KeeperError error){
+            std::function<void(keeper::Error)>{[this, msg, bus](keeper::Error error){
                 qDebug() << "Restore choices are ready";
-                if (error == keeper::KeeperError::OK)
+                if (error == keeper::Error::OK)
                 {
                     // reply now to the dbus call
                     auto reply = msg.createReply();
@@ -282,8 +282,8 @@ public:
         connections_.connect_oneshot(
             &task_manager_,
             &TaskManager::socket_error,
-            std::function<void(keeper::KeeperError)>{
-                [bus,msg](keeper::KeeperError error){
+            std::function<void(keeper::Error)>{
+                [bus,msg](keeper::Error error){
                     qDebug("BackupManager returned socket error: %d", static_cast<int>(error));
                     bus.send(msg.createErrorReply(QDBusError::InvalidArgs, "Error obtaining remote backup socket"));
                 }
@@ -321,8 +321,8 @@ public:
         connections_.connect_oneshot(
             &task_manager_,
             &TaskManager::socket_error,
-            std::function<void(keeper::KeeperError)>{
-                [bus,msg](keeper::KeeperError error){
+            std::function<void(keeper::Error)>{
+                [bus,msg](keeper::Error error){
                     qDebug("RestoreManager returned socket error: %d", static_cast<int>(error));
                     bus.send(msg.createErrorReply(QDBusError::InvalidArgs, "Error obtaining remote restore socket"));
                 }
@@ -348,8 +348,8 @@ public:
     }
 
 Q_SIGNALS:
-    void backup_choices_ready(keeper::KeeperError error);
-    void restore_choices_ready(keeper::KeeperError error);
+    void backup_choices_ready(keeper::Error error);
+    void restore_choices_ready(keeper::Error error);
 
 private:
     void on_task_manager_finished()

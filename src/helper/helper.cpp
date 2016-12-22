@@ -354,7 +354,7 @@ private:
     void on_max_time_waiting_for_ual_started()
     {
         qWarning() << "Maximum time reached waiting for the helper to start.";
-        Q_EMIT(q_ptr->error(keeper::KeeperError::HELPER_START_TIMEOUT));
+        Q_EMIT(q_ptr->error(keeper::Error::HELPER_START_TIMEOUT));
         q_ptr->set_state(Helper::State::FAILED);
         stop_wait_for_ual_timer();
     }

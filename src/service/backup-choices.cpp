@@ -160,5 +160,5 @@ BackupChoices::get_backups_async()
         }
     }
 
-    Q_EMIT(finished(keeper::KeeperError::OK));
+    Q_EMIT(finished(keeper::Error::OK));
 }

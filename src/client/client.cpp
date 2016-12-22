@@ -69,31 +69,31 @@ struct KeeperClientPrivate final
         return ret;
     }
 
-    static keeper::KeeperItemsMap getValue(QDBusMessage const & message, keeper::KeeperError & error)
+    static keeper::KeeperItemsMap getValue(QDBusMessage const & message, keeper::Error & error)
     {
         if (message.errorMessage().isEmpty())
         {
             if (message.arguments().count() != 1)
             {
-                error = keeper::KeeperError::ERROR_UNKNOWN;
+                error = keeper::Error::UNKNOWN;
                 return keeper::KeeperItemsMap();
             }
 
             auto value = message.arguments().at(0);
             if (value.typeName() != QStringLiteral("QDBusArgument"))
             {
-                error = keeper::KeeperError::ERROR_UNKNOWN;
+                error = keeper::Error::UNKNOWN;
                 return keeper::KeeperItemsMap();
             }
             auto dbus_arg = value.value<QDBusArgument>();
-            error = keeper::KeeperError::OK;
+            error = keeper::Error::OK;
             keeper::KeeperItemsMap ret;
             dbus_arg >> ret;
             return ret;
         }
         if (message.arguments().count() != 2)
         {
-            error = keeper::KeeperError::ERROR_UNKNOWN;
+            error = keeper::Error::UNKNOWN;
             return keeper::KeeperItemsMap();
         }
 
@@ -102,7 +102,7 @@ struct KeeperClientPrivate final
         error = keeper::convert_from_dbus_variant(message.arguments().at(1), &valid);
         if (!valid)
         {
-            error = keeper::KeeperError::ERROR_UNKNOWN;
+            error = keeper::Error::UNKNOWN;
         }
         return keeper::KeeperItemsMap();
     }
@@ -126,7 +126,7 @@ KeeperClient::KeeperClient(QObject* parent) :
 
     // Store backups list locally with an additional "enabled" pair to keep track enabled states
     // TODO: We should be listening to a backupChoicesChanged signal to keep this list updated
-    keeper::KeeperError error;
+    keeper::Error error;
     d->backups = getBackupChoices(error);
 
     for(auto iter = d->backups.begin(); iter != d->backups.end(); ++iter)
@@ -252,13 +252,13 @@ QString KeeperClient::getBackupName(QString uuid)
     return d->backups.value(uuid).value("display-name").toString();
 }
 
-keeper::KeeperItemsMap KeeperClient::getBackupChoices(keeper::KeeperError & error) const
+keeper::KeeperItemsMap KeeperClient::getBackupChoices(keeper::Error & error) const
 {
     QDBusMessage choices = d->userIface->call("GetBackupChoices");
     return KeeperClientPrivate::getValue(choices, error);
 }
 
-keeper::KeeperItemsMap KeeperClient::getRestoreChoices(keeper::KeeperError & error) const
+keeper::KeeperItemsMap KeeperClient::getRestoreChoices(keeper::Error & error) const
 {
     QDBusMessage choices = d->userIface->call("GetRestoreChoices");
     return KeeperClientPrivate::getValue(choices, error);

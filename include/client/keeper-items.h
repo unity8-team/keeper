@@ -50,7 +50,7 @@ public:
     QString get_dir_name(bool *valid = nullptr) const;
     QString get_status(bool *valid = nullptr) const;
     double get_percent_done(bool *valid = nullptr) const;
-    keeper::KeeperError get_error(bool *valid = nullptr) const;
+    keeper::Error get_error(bool *valid = nullptr) const;
 
     // d-bus
     static void registerMetaType();
@@ -61,7 +61,7 @@ class KeeperItemsMap : public QMap<QString, KeeperItem>
 public:
     KeeperItemsMap();
     ~KeeperItemsMap();
-    explicit KeeperItemsMap(KeeperError error);
+    explicit KeeperItemsMap(Error error);
 
     QStringList get_uuids() const;
 
@@ -69,7 +69,7 @@ public:
     static void registerMetaType();
 
 private:
-    KeeperError error_ = KeeperError::OK;
+    Error error_ = Error::OK;
 };
 
 } // namespace keeper

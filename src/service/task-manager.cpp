@@ -159,7 +159,7 @@ private:
                 auto& td = task_data_[uuid];
                 td.metadata = metadata;
                 td.action = QStringLiteral("queued"); // TODO i18n
-                td.error = keeper::KeeperError::OK;
+                td.error = keeper::Error::OK;
                 set_initial_task_state(td);
             }
 
@@ -182,7 +182,7 @@ private:
         }
         else
         {
-            td.error = keeper::KeeperError::MANIFEST_STORAGE_ERROR;
+            td.error = keeper::Error::MANIFEST_STORAGE;
             set_current_task_action(task_->to_string(Helper::State::FAILED));
         }
         active_manifest_.reset();
@@ -285,7 +285,7 @@ private:
         return task_->start();
     }
 
-    void on_task_socket_error(keeper::KeeperError error)
+    void on_task_socket_error(keeper::Error error)
     {
         if (!task_)
         {

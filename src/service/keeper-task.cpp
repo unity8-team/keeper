@@ -35,7 +35,7 @@ KeeperTaskPrivate::KeeperTaskPrivate(KeeperTask * keeper_task,
     , task_data_(task_data)
     , helper_registry_(helper_registry)
     , storage_(storage)
-    , error_(keeper::KeeperError::OK)
+    , error_(keeper::Error::OK)
 {
 }
 
@@ -50,7 +50,7 @@ bool KeeperTaskPrivate::start()
     if (urls.isEmpty())
     {
         task_data_.action = helper_->to_string(Helper::State::FAILED);
-        error_ = keeper::KeeperError::HELPER_BAD_URL;
+        error_ = keeper::Error::HELPER_BAD_URL;
         qWarning() << QStringLiteral("Error: uuid %1 has no url").arg(task_data_.metadata.uuid());
         calculate_and_notify_state(Helper::State::FAILED);
         return false;
@@ -66,7 +66,7 @@ bool KeeperTaskPrivate::start()
         std::bind(&KeeperTaskPrivate::on_helper_percent_done_changed, this, std::placeholders::_1)
     );
 
-    QObject::connect(helper_.data(), &Helper::error, [this](keeper::KeeperError error){
+    QObject::connect(helper_.data(), &Helper::error, [this](keeper::Error error){
         error_ = error;
     });
 
@@ -140,7 +140,7 @@ QVariantMap KeeperTaskPrivate::calculate_task_state()
     if (task_data_.action == "failed" || task_data_.action == "cancelled")
     {
         auto error = error_;
-        if (task_data_.error != keeper::KeeperError::OK)
+        if (task_data_.error != keeper::Error::OK)
         {
             error = task_data_.error;
         }
@@ -205,7 +205,7 @@ QString KeeperTaskPrivate::to_string(Helper::State state)
     }
 }
 
-keeper::KeeperError KeeperTaskPrivate::error() const
+keeper::Error KeeperTaskPrivate::error() const
 {
     return error_;
 }
@@ -269,7 +269,7 @@ QString KeeperTask::to_string(Helper::State state)
     return d->to_string(state);
 }
 
-keeper::KeeperError KeeperTask::error() const
+keeper::Error KeeperTask::error() const
 {
     Q_D(const KeeperTask);
 

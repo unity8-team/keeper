@@ -37,11 +37,11 @@ namespace DBusTypes
     {
         qRegisterMetaType<QVariantDictMap>("QVariantDictMap");
         qRegisterMetaType<QStringMap>("QStringMap");
-        qRegisterMetaType<keeper::KeeperError>("keeper::KeeperError");
+        qRegisterMetaType<keeper::Error>("keeper::Error");
 
         qDBusRegisterMetaType<QVariantDictMap>();
         qDBusRegisterMetaType<QStringMap>();
-        qDBusRegisterMetaType<keeper::KeeperError>();
+        qDBusRegisterMetaType<keeper::Error>();
 
         keeper::KeeperItemsMap::registerMetaType();
     }

@@ -67,7 +67,7 @@ RestoreChoices::get_backups_async()
                                 manifests_to_read_--;
                                 if (!manifests_to_read_)
                                 {
-                                     Q_EMIT(finished(keeper::KeeperError::OK));
+                                     Q_EMIT(finished(keeper::Error::OK));
                                 }
                             }}
                         );

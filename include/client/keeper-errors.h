@@ -25,32 +25,32 @@
 namespace keeper
 {
 
-enum class KeeperError
+enum class Error
 {
     OK,
-    ERROR_UNKNOWN,
-    HELPER_READ_ERROR,
-    HELPER_WRITE_ERROR,
+    UNKNOWN,
+    HELPER_READ,
+    HELPER_WRITE,
     HELPER_INACTIVITY_DETECTED,
-    HELPER_SOCKET_ERROR,
+    HELPER_SOCKET,
     HELPER_START_TIMEOUT,
     NO_HELPER_INFORMATION_IN_REGISTRY,
     HELPER_BAD_URL,
-    MANIFEST_STORAGE_ERROR,
-    COMMITTING_DATA_ERROR,
+    MANIFEST_STORAGE,
+    COMMITTING_DATA,
 
-    CREATING_REMOTE_DIR_ERROR,
-    CREATING_REMOTE_FILE_ERROR,
-    READING_REMOTE_FILE_ERROR,
-    REMOTE_DIR_NOT_EXISTS_ERROR,
-    NO_REMOTE_ACCOUNTS_ERROR,
-    NO_REMOTE_ROOTS_ERROR
+    CREATING_REMOTE_DIR,
+    CREATING_REMOTE_FILE,
+    READING_REMOTE_FILE,
+    REMOTE_DIR_NOT_EXISTS,
+    NO_REMOTE_ACCOUNTS,
+    NO_REMOTE_ROOTS
 };
 
-KeeperError convert_from_dbus_variant(const QVariant & value, bool *conversion_ok = nullptr);
+Error convert_from_dbus_variant(const QVariant & value, bool *conversion_ok = nullptr);
 } // namespace keeper
 
-QDBusArgument &operator<<(QDBusArgument &argument, keeper::KeeperError value);
-const QDBusArgument &operator>>(const QDBusArgument &argument, keeper::KeeperError &val);
+QDBusArgument &operator<<(QDBusArgument &argument, keeper::Error value);
+const QDBusArgument &operator>>(const QDBusArgument &argument, keeper::Error &val);
 
-Q_DECLARE_METATYPE(keeper::KeeperError)
+Q_DECLARE_METATYPE(keeper::Error)

@@ -42,15 +42,15 @@ public:
     void clear_all();
     void print_sections(QStringList const & sections);
     void print_error_message(QString const & error_message);
-    QString get_error_string(keeper::KeeperError error);
+    QString get_error_string(keeper::Error error);
 
 public Q_SLOTS:
     void show_info();
-    void on_task_state_changed(QString const & displayName, QString const & status, double percentage, keeper::KeeperError error);
+    void on_task_state_changed(QString const & displayName, QString const & status, double percentage, keeper::Error error);
 
 private:
     char get_next_spin_char();
-    QString get_task_string(QString const & displayName, QString const & status, double percentage, keeper::KeeperError error);
+    QString get_task_string(QString const & displayName, QString const & status, double percentage, keeper::Error error);
 
     QString status_;
     QTimer timer_status_;

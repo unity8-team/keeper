@@ -41,7 +41,7 @@ public:
     struct TaskData
     {
         QString action;
-        keeper::KeeperError error;
+        keeper::Error error;
         Metadata metadata;
     };
 
@@ -63,11 +63,11 @@ public:
 
     QString to_string(Helper::State state);
 
-    keeper::KeeperError error() const;
+    keeper::Error error() const;
 Q_SIGNALS:
     void task_state_changed(Helper::State state);
     void task_socket_ready(int socket_descriptor);
-    void task_socket_error(keeper::KeeperError error);
+    void task_socket_error(keeper::Error error);
 
 protected:
     KeeperTask(KeeperTaskPrivate & d, QObject *parent = nullptr);

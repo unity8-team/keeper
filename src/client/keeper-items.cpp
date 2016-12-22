@@ -153,11 +153,11 @@ double KeeperItem::get_percent_done(bool *valid) const
     }
 }
 
-keeper::KeeperError KeeperItem::get_error(bool *valid) const
+keeper::Error KeeperItem::get_error(bool *valid) const
 {
     // if it does not have explicitly defined the error, OK is considered
     if (!has_property(ERROR_KEY))
-        return keeper::KeeperError::OK;
+        return keeper::Error::OK;
 
     return keeper::convert_from_dbus_variant(get_property_value(ERROR_KEY), valid);
 }
@@ -182,7 +182,7 @@ KeeperItemsMap::KeeperItemsMap()
 KeeperItemsMap::~KeeperItemsMap() = default;
 
 
-KeeperItemsMap::KeeperItemsMap(KeeperError error)
+KeeperItemsMap::KeeperItemsMap(Error error)
     : QMap<QString, KeeperItem>()
       , error_(error)
 {

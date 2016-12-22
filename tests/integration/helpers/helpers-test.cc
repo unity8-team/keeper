@@ -316,7 +316,7 @@ TEST_F(TestHelpers, BadHelperPath)
 
     ASSERT_EQ(1, spy_error.count());
     arguments = spy_error.takeFirst();
-    EXPECT_EQ(keeper::KeeperError::HELPER_START_TIMEOUT, qvariant_cast<keeper::KeeperError>(arguments.at(0)));
+    EXPECT_EQ(keeper::Error::HELPER_START_TIMEOUT, qvariant_cast<keeper::Error>(arguments.at(0)));
 }
 
 TEST_F(TestHelpers, Inactivity)
@@ -346,5 +346,5 @@ TEST_F(TestHelpers, Inactivity)
 
     ASSERT_EQ(1, spy_error.count());
     arguments = spy_error.takeFirst();
-    EXPECT_EQ(keeper::KeeperError::HELPER_INACTIVITY_DETECTED, qvariant_cast<keeper::KeeperError>(arguments.at(0)));
+    EXPECT_EQ(keeper::Error::HELPER_INACTIVITY_DETECTED, qvariant_cast<keeper::Error>(arguments.at(0)));
 }

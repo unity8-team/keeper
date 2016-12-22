@@ -43,7 +43,7 @@ CommandLineClient::~CommandLineClient() = default;
 void CommandLineClient::run_list_sections(bool remote)
 {
     keeper::KeeperItemsMap choices_values;
-    keeper::KeeperError error;
+    keeper::Error error;
     if(!remote)
     {
         choices_values = keeper_client_->getBackupChoices(error);
@@ -61,7 +61,7 @@ void CommandLineClient::run_list_sections(bool remote)
 void CommandLineClient::run_backup(QStringList & sections)
 {
     auto unhandled_sections = sections;
-    keeper::KeeperError error;
+    keeper::Error error;
     auto choices_values = keeper_client_->getBackupChoices(error);
     check_for_choices_error(error);
     QStringList uuids;
@@ -108,7 +108,7 @@ void CommandLineClient::run_backup(QStringList & sections)
 void CommandLineClient::run_restore(QStringList & sections)
 {
     auto unhandled_sections = sections;
-    keeper::KeeperError error;
+    keeper::Error error;
     auto choices_values = keeper_client_->getRestoreChoices(error);
     check_for_choices_error(error);
     QStringList uuids;
@@ -222,9 +222,9 @@ bool CommandLineClient::find_choice_value(QVariantMap const & choice, QString co
     return true;
 }
 
-void CommandLineClient::check_for_choices_error(keeper::KeeperError error)
+void CommandLineClient::check_for_choices_error(keeper::Error error)
 {
-    if (error != keeper::KeeperError::OK)
+    if (error != keeper::Error::OK)
     {
         // an error occurred
         auto error_message = QStringLiteral("Error obtaining keeper choices: %1").arg(view_->get_error_string(error));

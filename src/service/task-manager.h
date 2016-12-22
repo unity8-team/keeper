@@ -64,7 +64,7 @@ public:
 
 Q_SIGNALS:
     void socket_ready(int reply);
-    void socket_error(keeper::KeeperError error);
+    void socket_error(keeper::Error error);
     void state_changed();
     void finished();
 

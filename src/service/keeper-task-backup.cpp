@@ -50,7 +50,7 @@ public:
         qDebug() << "Initializing a backup helper";
         helper_.reset(new BackupHelper(DEKKO_APP_ID), [](Helper *h){h->deleteLater();});
         qDebug() << "Helper " <<  static_cast<void*>(helper_.data()) << " was created";
-        QObject::connect(helper_.data(), &Helper::error, [this](keeper::KeeperError error){ error_ = error;});
+        QObject::connect(helper_.data(), &Helper::error, [this](keeper::Error error){ error_ = error;});
     }
 
     void ask_for_uploader(quint64 n_bytes, QString const & dir_name)

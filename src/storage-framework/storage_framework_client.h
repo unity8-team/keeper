@@ -47,7 +47,7 @@ public:
     QFuture<std::shared_ptr<Uploader>> get_new_uploader(int64_t n_bytes, QString const & dir_name, QString const & file_name);
     QFuture<std::shared_ptr<Downloader>> get_new_downloader(QString const & dir_name, QString const & file_name);
     QFuture<QVector<QString>> get_keeper_dirs();
-    keeper::KeeperError get_last_error() const;
+    keeper::Error get_last_error() const;
 
     static QString const KEEPER_FOLDER;
 private:
@@ -67,5 +67,5 @@ private:
 
     unity::storage::qt::client::Runtime::SPtr runtime_;
     ConnectionHelper connection_helper_;
-    mutable keeper::KeeperError last_error_ = keeper::KeeperError::OK;
+    mutable keeper::Error last_error_ = keeper::Error::OK;
 };

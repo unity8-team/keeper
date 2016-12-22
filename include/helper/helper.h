@@ -70,7 +70,7 @@ public:
 Q_SIGNALS:
     void state_changed(Helper::State);
     void percent_done_changed(float);
-    void error(keeper::KeeperError error);
+    void error(keeper::Error error);
 
 protected:
     Helper(QString const & appid, const clock_func& clock=default_clock, QObject *parent=nullptr);
