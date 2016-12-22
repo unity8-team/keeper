@@ -144,7 +144,7 @@ QVariantMap KeeperTaskPrivate::calculate_task_state()
         {
             error = task_data_.error;
         }
-        ret.insert(QStringLiteral("error"), qVariantFromValue(error));
+        ret.insert(QStringLiteral("error"), QVariant::fromValue(error));
     }
 
     ret.insert(QStringLiteral("uuid"), uuid);
