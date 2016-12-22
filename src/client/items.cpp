@@ -72,6 +72,24 @@ QVariant Item::get_property_value(QString const & property) const
     }
 }
 
+template<typename T> T Item::get_property(QString const & property, bool * valid) const
+{
+    auto it = this->find(property);
+
+    if (it == this->end())
+    {
+        if (valid != nullptr)
+            *valid = false;
+
+        return T{};
+    }
+
+    if (valid != nullptr)
+        *valid = true;
+
+    return it->value<T>();
+}
+
 bool Item::is_valid()const
 {
     // we need at least type and display name to consider this a keeper item
@@ -86,71 +104,27 @@ bool Item::has_property(QString const & property) const
 
 QString Item::get_type(bool *valid) const
 {
-    if (!has_property(TYPE_KEY))
-    {
-        if (valid)
-            *valid = false;
-        return QString();
-    }
-    if (valid)
-        *valid = true;
-    return get_property_value(TYPE_KEY).toString();
+    return get_property<QString>(TYPE_KEY, valid);
 }
 
 QString Item::get_display_name(bool *valid) const
 {
-    if (!has_property(DISPLAY_NAME_KEY))
-    {
-        if (valid)
-            *valid = false;
-        return QString();
-    }
-    if (valid)
-        *valid = true;
-    return get_property_value(DISPLAY_NAME_KEY).toString();
+    return get_property<QString>(DISPLAY_NAME_KEY, valid);
 }
 
 QString Item::get_dir_name(bool *valid) const
 {
-    if (!has_property(DIR_NAME_KEY))
-    {
-        if (valid)
-            *valid = false;
-        return QString();
-    }
-    if (valid)
-        *valid = true;
-    return get_property_value(DIR_NAME_KEY).toString();
+    return get_property<QString>(DIR_NAME_KEY, valid);
 }
 
 QString Item::get_status(bool *valid) const
 {
-    if (!has_property(STATUS_KEY))
-    {
-        if (valid)
-            *valid = false;
-        return QString();
-    }
-    if (valid)
-        *valid = true;
-    return get_property_value(STATUS_KEY).toString();
+    return get_property<QString>(STATUS_KEY, valid);
 }
 
 double Item::get_percent_done(bool *valid) const
 {
-    auto value = get_property_value(PERCENT_DONE_KEY);
-    if (value.type() == QVariant::Double)
-    {
-        if (valid)
-            *valid = true;
-        return get_property_value(PERCENT_DONE_KEY).toDouble();
-    }
-    else
-    {
-        if (valid)
-            *valid = false;
-        return -1;
-    }
+    return get_property<double>(PERCENT_DONE_KEY, valid);
 }
 
 keeper::Error Item::get_error(bool *valid) const

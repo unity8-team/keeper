@@ -21,10 +21,6 @@
 
 #include "client/keeper-errors.h"
 
-#include <QDBusArgument>
-#include <QObject>
-#include <QScopedPointer>
-
 typedef QMap<QString, QVariantMap> QVariantDictMap;
 
 namespace keeper
@@ -39,6 +35,7 @@ public:
 
     // methods created for convenience
     bool has_property(QString const & property) const;
+    template<typename T> T get_property(QString const & property, bool * valid) const;
     QVariant get_property_value(QString const & property) const;
 
     // checks that the item is valid
