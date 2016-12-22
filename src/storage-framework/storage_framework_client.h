@@ -40,9 +40,10 @@ class StorageFrameworkClient final: public QObject
 
 public:
 
-    Q_DISABLE_COPY(StorageFrameworkClient)
-    StorageFrameworkClient(QObject *parent = nullptr);
+    explicit StorageFrameworkClient(QObject *parent = nullptr);
     virtual ~StorageFrameworkClient();
+
+    Q_DISABLE_COPY(StorageFrameworkClient)
 
     QFuture<std::shared_ptr<Uploader>> get_new_uploader(int64_t n_bytes, QString const & dir_name, QString const & file_name);
     QFuture<std::shared_ptr<Downloader>> get_new_downloader(QString const & dir_name, QString const & file_name);
