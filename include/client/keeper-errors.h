@@ -47,6 +47,7 @@ enum class KeeperError
     NO_REMOTE_ROOTS_ERROR
 };
 
+KeeperError convert_from_dbus_variant(const QVariant & value, bool *conversion_ok = nullptr);
 } // namespace keeper
 
 QDBusArgument &operator<<(QDBusArgument &argument, keeper::KeeperError value);

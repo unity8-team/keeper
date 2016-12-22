@@ -63,8 +63,8 @@ public:
 
 // C++
 public:
-    keeper::KeeperItemsMap getBackupChoices() const;
-    keeper::KeeperItemsMap getRestoreChoices() const;
+    keeper::KeeperItemsMap getBackupChoices(keeper::KeeperError & error) const;
+    keeper::KeeperItemsMap getRestoreChoices(keeper::KeeperError & error) const;
     void startBackup(QStringList const& uuids) const;
     void startRestore(QStringList const& uuids) const;
 

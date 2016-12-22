@@ -43,14 +43,17 @@ CommandLineClient::~CommandLineClient() = default;
 void CommandLineClient::run_list_sections(bool remote)
 {
     keeper::KeeperItemsMap choices_values;
+    keeper::KeeperError error;
     if(!remote)
     {
-        choices_values = keeper_client_->getBackupChoices();
+        choices_values = keeper_client_->getBackupChoices(error);
+        check_for_choices_error(error);
         list_backup_sections(choices_values);
     }
     else
     {
-        choices_values = keeper_client_->getRestoreChoices();
+        choices_values = keeper_client_->getRestoreChoices(error);
+        check_for_choices_error(error);
         list_restore_sections(choices_values);
     }
 }
@@ -58,7 +61,9 @@ void CommandLineClient::run_list_sections(bool remote)
 void CommandLineClient::run_backup(QStringList & sections)
 {
     auto unhandled_sections = sections;
-    auto choices_values = keeper_client_->getBackupChoices();
+    keeper::KeeperError error;
+    auto choices_values = keeper_client_->getBackupChoices(error);
+    check_for_choices_error(error);
     QStringList uuids;
 
     auto uuids_choices = choices_values.get_uuids();
@@ -103,7 +108,9 @@ void CommandLineClient::run_backup(QStringList & sections)
 void CommandLineClient::run_restore(QStringList & sections)
 {
     auto unhandled_sections = sections;
-    auto choices_values = keeper_client_->getRestoreChoices();
+    keeper::KeeperError error;
+    auto choices_values = keeper_client_->getRestoreChoices(error);
+    check_for_choices_error(error);
     QStringList uuids;
 
     auto uuids_choices = choices_values.get_uuids();
@@ -161,13 +168,6 @@ void CommandLineClient::list_backup_sections(keeper::KeeperItemsMap const & choi
 
 void CommandLineClient::list_restore_sections(keeper::KeeperItemsMap const & choices_values)
 {
-    if (choices_values.get_error() != keeper::KeeperError::OK)
-    {
-        // an error occurred
-        auto error_message = QStringLiteral("Error obtaining remote choices: %1").arg(view_->get_error_string(choices_values.get_error()));
-        view_->print_error_message(error_message);
-        return;
-    }
     QMap<QString, QList<keeper::KeeperItem>> values_per_dir;
 
     for(auto iter = choices_values.begin(); iter != choices_values.end(); ++iter)
@@ -220,4 +220,15 @@ bool CommandLineClient::find_choice_value(QVariantMap const & choice, QString co
         return false;
     value = (*iter);
     return true;
+}
+
+void CommandLineClient::check_for_choices_error(keeper::KeeperError error)
+{
+    if (error != keeper::KeeperError::OK)
+    {
+        // an error occurred
+        auto error_message = QStringLiteral("Error obtaining keeper choices: %1").arg(view_->get_error_string(error));
+        view_->print_error_message(error_message);
+        return;
+    }
 }

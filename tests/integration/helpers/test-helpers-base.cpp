@@ -53,7 +53,7 @@ bool qdbus_argument_to_keeper_items_map(QVariant const& variant, keeper::KeeperI
     {
         QDBusArgument value(variant.value<QDBusArgument>());
         qDebug() << "VALUE CURRENT TYPE: " << value.currentType() << " SIGNATURE: " << value.currentSignature();
-        if (value.currentType() == QDBusArgument::StructureType)
+        if (value.currentType() == QDBusArgument::MapType)
         {
             value >> map;
             return true;

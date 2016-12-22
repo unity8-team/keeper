@@ -159,35 +159,7 @@ keeper::KeeperError KeeperItem::get_error(bool *valid) const
     if (!has_property(ERROR_KEY))
         return keeper::KeeperError::OK;
 
-    auto value = get_property_value(ERROR_KEY);
-
-    if (value.typeName() != QStringLiteral("QDBusArgument"))
-    {
-        qWarning() << Q_FUNC_INFO
-                   << " Error converting dbus QVariant to KeeperError, expected type is [ QDBusArgument ] and current type is: ["
-                   << value.typeName() << "]";
-        if (valid)
-            *valid = false;
-        return KeeperError(keeper::KeeperError::ERROR_UNKNOWN);
-    }
-    auto dbus_arg = value.value<QDBusArgument>();
-
-    if (dbus_arg.currentSignature() != "(i)")
-    {
-        qWarning() << Q_FUNC_INFO
-                   << " Error converting dbus QVariant to KeeperError, expected signature is \"(i)\" and current signature is: \""
-                   << dbus_arg.currentSignature() << "\"";
-        if (valid)
-            *valid = false;
-        return KeeperError(keeper::KeeperError::ERROR_UNKNOWN);
-    }
-    KeeperError ret;
-    dbus_arg >> ret;
-
-    if (valid)
-        *valid = true;
-
-    return ret;
+    return keeper::convert_from_dbus_variant(get_property_value(ERROR_KEY), valid);
 }
 
 void KeeperItem::registerMetaType()
@@ -228,11 +200,6 @@ QStringList KeeperItemsMap::get_uuids() const
     return ret;
 }
 
-keeper::KeeperError KeeperItemsMap::get_error() const
-{
-    return error_;
-}
-
 void KeeperItemsMap::registerMetaType()
 {
     qRegisterMetaType<KeeperItemsMap>("KeeperItemsMap");
@@ -240,46 +207,6 @@ void KeeperItemsMap::registerMetaType()
     qDBusRegisterMetaType<KeeperItemsMap>();
 
     KeeperItem::registerMetaType();
-}
-
-QDBusArgument &operator<<(QDBusArgument &argument, const KeeperItemsMap &result)
-{
-    argument.beginStructure();
-    argument.beginMap( QVariant::String, qMetaTypeId<keeper::KeeperItem>() );
-    for (auto iter = result.begin(); iter != result.end(); ++iter)
-    {
-        argument.beginMapEntry();
-        argument << iter.key() << (*iter);
-        argument.endMapEntry();
-    }
-    argument.endMap();
-    argument << result.error_;
-    argument.endStructure();
-
-    return argument;
-}
-
-const QDBusArgument &operator>>(const QDBusArgument &argument, KeeperItemsMap &result)
-{
-    argument.beginStructure();
-    argument.beginMap();
-    result.clear();
-
-    while(!argument.atEnd())
-    {
-        QString key;
-        KeeperItem value;
-        argument.beginMapEntry();
-        argument >> key >> value;
-        argument.endMapEntry();
-        result[key] = value;
-    }
-    argument.endMap();
-
-    argument >> result.error_;
-    argument.endStructure();
-
-    return argument;
 }
 
 } // namespace keeper

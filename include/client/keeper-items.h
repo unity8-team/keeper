@@ -65,12 +65,8 @@ public:
 
     QStringList get_uuids() const;
 
-    keeper::KeeperError get_error() const;
-
     // d-bus
     static void registerMetaType();
-    friend QDBusArgument &operator<<(QDBusArgument &argument, const KeeperItemsMap &result);
-    friend const QDBusArgument &operator>>(const QDBusArgument &argument, KeeperItemsMap &result);
 
 private:
     KeeperError error_ = KeeperError::OK;

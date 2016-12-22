@@ -34,8 +34,7 @@ public:
     virtual void get_backups_async() =0;
 
 Q_SIGNALS:
-    void finished();
-    void error(keeper::KeeperError error);
+    void finished(keeper::KeeperError error);
 
 protected:
     explicit MetadataProvider(QObject *parent = nullptr) : QObject(parent){};

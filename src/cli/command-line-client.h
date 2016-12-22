@@ -49,6 +49,7 @@ private:
     bool find_choice_value(QVariantMap const & choice, QString const & id, QVariant & value);
     void list_backup_sections(keeper::KeeperItemsMap const & choices);
     void list_restore_sections(keeper::KeeperItemsMap const & choices);
+    void check_for_choices_error(keeper::KeeperError error);
     QScopedPointer<KeeperClient> keeper_client_;
     QScopedPointer<CommandLineClientView> view_;
 };

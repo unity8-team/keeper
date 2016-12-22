@@ -69,15 +69,53 @@ struct KeeperClientPrivate final
         return ret;
     }
 
+    static keeper::KeeperItemsMap getValue(QDBusMessage const & message, keeper::KeeperError & error)
+    {
+        if (message.errorMessage().isEmpty())
+        {
+            if (message.arguments().count() != 1)
+            {
+                error = keeper::KeeperError::ERROR_UNKNOWN;
+                return keeper::KeeperItemsMap();
+            }
+
+            auto value = message.arguments().at(0);
+            if (value.typeName() != QStringLiteral("QDBusArgument"))
+            {
+                error = keeper::KeeperError::ERROR_UNKNOWN;
+                return keeper::KeeperItemsMap();
+            }
+            auto dbus_arg = value.value<QDBusArgument>();
+            error = keeper::KeeperError::OK;
+            keeper::KeeperItemsMap ret;
+            dbus_arg >> ret;
+            return ret;
+        }
+        if (message.arguments().count() != 2)
+        {
+            error = keeper::KeeperError::ERROR_UNKNOWN;
+            return keeper::KeeperItemsMap();
+        }
+
+        // pick up the error
+        bool valid;
+        error = keeper::convert_from_dbus_variant(message.arguments().at(1), &valid);
+        if (!valid)
+        {
+            error = keeper::KeeperError::ERROR_UNKNOWN;
+        }
+        return keeper::KeeperItemsMap();
+    }
+
     QScopedPointer<DBusInterfaceKeeperUser> userIface;
     QScopedPointer<DBusPropertiesInterface> propertiesIface;
     QString status;
     keeper::KeeperItemsMap backups;
-    double progress;
-    bool readyToBackup;
-    bool backupBusy;
+    double progress = 0;
+    bool readyToBackup = false;
+    bool backupBusy = false;
     QMap<QString, TaskStatus> taskStatus;
-    TasksMode mode;
+    TasksMode mode = TasksMode::IDLE_MODE;
 };
 
 KeeperClient::KeeperClient(QObject* parent) :
@@ -88,7 +126,8 @@ KeeperClient::KeeperClient(QObject* parent) :
 
     // Store backups list locally with an additional "enabled" pair to keep track enabled states
     // TODO: We should be listening to a backupChoicesChanged signal to keep this list updated
-    d->backups = getBackupChoices();
+    keeper::KeeperError error;
+    d->backups = getBackupChoices(error);
 
     for(auto iter = d->backups.begin(); iter != d->backups.end(); ++iter)
     {
@@ -213,31 +252,16 @@ QString KeeperClient::getBackupName(QString uuid)
     return d->backups.value(uuid).value("display-name").toString();
 }
 
-keeper::KeeperItemsMap KeeperClient::getBackupChoices() const
+keeper::KeeperItemsMap KeeperClient::getBackupChoices(keeper::KeeperError & error) const
 {
-    QDBusReply<keeper::KeeperItemsMap> choices = d->userIface->call("GetBackupChoices");
-
-    if (!choices.isValid())
-    {
-        qWarning() << "Error getting backup choices:" << choices.error().message();
-        return keeper::KeeperItemsMap();
-    }
-
-    return choices.value();
+    QDBusMessage choices = d->userIface->call("GetBackupChoices");
+    return KeeperClientPrivate::getValue(choices, error);
 }
 
-keeper::KeeperItemsMap KeeperClient::getRestoreChoices() const
+keeper::KeeperItemsMap KeeperClient::getRestoreChoices(keeper::KeeperError & error) const
 {
-    QDBusPendingReply<keeper::KeeperItemsMap> choices = d->userIface->call("GetRestoreChoices");
-
-    choices.waitForFinished();
-    if (!choices.isValid())
-    {
-        qWarning() << "Error getting restore choices:" << choices.error().message();
-        return keeper::KeeperItemsMap();
-    }
-
-    return choices.value();
+    QDBusMessage choices = d->userIface->call("GetRestoreChoices");
+    return KeeperClientPrivate::getValue(choices, error);
 }
 
 void KeeperClient::startBackup(const QStringList& uuids) const

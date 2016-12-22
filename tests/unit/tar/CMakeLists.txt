@@ -169,11 +169,10 @@ target_link_libraries(
   Qt5::Test
 )
 
-# TODO We need to re-add this after the mock is changed to use the new dbus interface
-#add_test(
-#  ${KEEPER_TAR_CREATE_TEST}
-#  ${KEEPER_TAR_CREATE_TEST}
-#)
+add_test(
+  ${KEEPER_TAR_CREATE_TEST}
+  ${KEEPER_TAR_CREATE_TEST}
+)
 
 #
 #
