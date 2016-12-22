@@ -148,21 +148,21 @@ foreach(funcname
 endforeach(funcname)
 
 #
-# keeper-tar-create-test
+# keeper-tar-test
 #
 
 set(
-  KEEPER_TAR_CREATE_TEST
-  keeper-tar-create-test
+  KEEPER_TAR_TEST
+  keeper-tar-test
 )
 
 add_executable(
-  ${KEEPER_TAR_CREATE_TEST}
-  keeper-tar-create-test.cpp
+  ${KEEPER_TAR_TEST}
+  keeper-tar-test.cpp
 )
 
 target_link_libraries(
-  ${KEEPER_TAR_CREATE_TEST}
+  ${KEEPER_TAR_TEST}
   ${UNIT_TEST_LIBRARIES}
   Qt5::Core
   Qt5::DBus
@@ -170,8 +170,35 @@ target_link_libraries(
 )
 
 add_test(
-  ${KEEPER_TAR_CREATE_TEST}
-  ${KEEPER_TAR_CREATE_TEST}
+  ${KEEPER_TAR_TEST}
+  ${KEEPER_TAR_TEST}
+)
+
+#
+# keeper-untar-test
+#
+
+set(
+  KEEPER_UNTAR_TEST
+  keeper-untar-test
+)
+
+add_executable(
+  ${KEEPER_UNTAR_TEST}
+  keeper-untar-test.cpp
+)
+
+target_link_libraries(
+  ${KEEPER_UNTAR_TEST}
+  ${UNIT_TEST_LIBRARIES}
+  Qt5::Core
+  Qt5::DBus
+  Qt5::Test
+)
+
+add_test(
+  ${KEEPER_UNTAR_TEST}
+  ${KEEPER_UNTAR_TEST}
 )
 
 #
