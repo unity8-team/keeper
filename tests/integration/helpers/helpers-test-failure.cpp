@@ -48,7 +48,7 @@ TEST_F(TestHelpers, BackupHelperWritesTooMuch)
     ASSERT_TRUE(user_iface->isValid()) << qPrintable(dbus_test_runner.sessionConnection().lastError().message());
 
     // ask for a list of backup choices
-    QDBusReply<keeper::KeeperItemsMap> choices = user_iface->call("GetBackupChoices");
+    QDBusReply<keeper::Items> choices = user_iface->call("GetBackupChoices");
     EXPECT_TRUE(choices.isValid()) << qPrintable(choices.error().message());
 
     auto user_option = QStringLiteral("XDG_MUSIC_DIR");
@@ -90,7 +90,7 @@ TEST_F(TestHelpers, BackupHelperWritesTooMuch)
     // this one uses pooling so it should just call Get once
     EXPECT_TRUE(wait_for_all_tasks_have_action_state({user_folder_uuid}, "failed", user_iface));
 
-    keeper::KeeperItem item_value;
+    keeper::Item item_value;
     EXPECT_TRUE(get_task_value_now(user_folder_uuid, user_iface, item_value));
     bool conversion_ok;
     auto keeper_error = item_value.get_error(&conversion_ok);

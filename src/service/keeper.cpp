@@ -46,13 +46,13 @@ namespace
         return variants;
     }
 
-    keeper::KeeperItemsMap choices_to_variant_dict_map(const QVector<Metadata>& choices)
+    keeper::Items choices_to_variant_dict_map(QVector<Metadata> const & choices)
     {
-        keeper::KeeperItemsMap ret;
+        keeper::Items ret;
 
         for (auto const& metadata : choices)
         {
-            keeper::KeeperItem value(strings_to_variants(metadata.get_public_properties()));
+            keeper::Item value(strings_to_variants(metadata.get_public_properties()));
             ret.insert(metadata.uuid(), value);
         }
 
@@ -193,8 +193,8 @@ public:
         }
     }
 
-    keeper::KeeperItemsMap get_backup_choices_var_dict_map(QDBusConnection bus,
-                                                    QDBusMessage const & msg)
+    keeper::Items get_backup_choices_var_dict_map(QDBusConnection bus,
+                                                  QDBusMessage const & msg)
     {
         connections_.connect_oneshot(
             this,
@@ -220,11 +220,11 @@ public:
         );
         get_choices(backup_choices_, KeeperPrivate::ChoicesType::BACKUP_CHOICES);
         msg.setDelayedReply(true);
-        return keeper::KeeperItemsMap();
+        return keeper::Items();
     }
 
-    keeper::KeeperItemsMap get_restore_choices_var_dict_map(QDBusConnection bus,
-                                                     QDBusMessage const & msg)
+    keeper::Items get_restore_choices_var_dict_map(QDBusConnection bus,
+                                                   QDBusMessage const & msg)
     {
         qDebug() << "Getting restores  --------------------------------";
         cached_restore_choices_.clear();
@@ -252,10 +252,10 @@ public:
         );
         get_choices(restore_choices_, KeeperPrivate::ChoicesType::RESTORES_CHOICES);
         msg.setDelayedReply(true);
-        return keeper::KeeperItemsMap();
+        return keeper::Items();
     }
 
-    keeper::KeeperItemsMap get_state() const
+    keeper::Items get_state() const
     {
         return task_manager_.get_state();
     }
@@ -428,7 +428,7 @@ Keeper::StartRestore(QDBusConnection bus,
     return d->start_restore(bus, msg);
 }
 
-keeper::KeeperItemsMap
+keeper::Items
 Keeper::get_backup_choices_var_dict_map(QDBusConnection bus,
                                         QDBusMessage const & msg)
 {
@@ -437,7 +437,7 @@ Keeper::get_backup_choices_var_dict_map(QDBusConnection bus,
     return d->get_backup_choices_var_dict_map(bus, msg);
 }
 
-keeper::KeeperItemsMap
+keeper::Items
 Keeper::get_restore_choices(QDBusConnection bus,
                             QDBusMessage const & msg)
 {
@@ -446,7 +446,7 @@ Keeper::get_restore_choices(QDBusConnection bus,
     return d->get_restore_choices_var_dict_map(bus,msg);
 }
 
-keeper::KeeperItemsMap
+keeper::Items
 Keeper::get_state() const
 {
     Q_D(const Keeper);

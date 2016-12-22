@@ -30,12 +30,12 @@ typedef QMap<QString, QVariantMap> QVariantDictMap;
 namespace keeper
 {
 
-class KeeperItem : public QVariantMap
+class Item : public QVariantMap
 {
 public:
-    KeeperItem();
-    ~KeeperItem();
-    explicit KeeperItem(QVariantMap const & values);
+    Item();
+    ~Item();
+    explicit Item(QVariantMap const & values);
 
     // methods created for convenience
     bool has_property(QString const & property) const;
@@ -56,12 +56,12 @@ public:
     static void registerMetaType();
 };
 
-class KeeperItemsMap : public QMap<QString, KeeperItem>
+class Items : public QMap<QString, Item>
 {
 public:
-    KeeperItemsMap();
-    ~KeeperItemsMap();
-    explicit KeeperItemsMap(Error error);
+    Items();
+    ~Items();
+    explicit Items(Error error);
 
     QStringList get_uuids() const;
 
@@ -74,5 +74,5 @@ private:
 
 } // namespace keeper
 
-Q_DECLARE_METATYPE(keeper::KeeperItem)
-Q_DECLARE_METATYPE(keeper::KeeperItemsMap)
+Q_DECLARE_METATYPE(keeper::Item)
+Q_DECLARE_METATYPE(keeper::Items)

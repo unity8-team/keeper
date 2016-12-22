@@ -37,11 +37,11 @@ public:
     virtual ~KeeperUser();
     Q_DISABLE_COPY(KeeperUser)
 
-    Q_PROPERTY(keeper::KeeperItemsMap State
+    Q_PROPERTY(keeper::Items State
                READ get_state
                NOTIFY state_changed)
 
-    keeper::KeeperItemsMap get_state() const;
+    keeper::Items get_state() const;
 
 Q_SIGNALS:
 
@@ -49,10 +49,10 @@ Q_SIGNALS:
 
 public Q_SLOTS:
 
-    keeper::KeeperItemsMap GetBackupChoices();
+    keeper::Items GetBackupChoices();
     void StartBackup(const QStringList&);
 
-    keeper::KeeperItemsMap GetRestoreChoices();
+    keeper::Items GetRestoreChoices();
     void StartRestore(const QStringList&);
 
     void Cancel();

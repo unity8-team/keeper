@@ -59,18 +59,18 @@ public:
      ***  State public
     ***/
 
-    keeper::KeeperItemsMap get_converted_state_to_user_type() const
+    keeper::Items get_converted_state_to_user_type() const
     {
-        keeper::KeeperItemsMap ret;
+        keeper::Items ret;
         for (auto iter = state_.begin(); iter != state_.end(); ++iter)
         {
-            keeper::KeeperItem item((*iter));
+            keeper::Item item((*iter));
             ret[iter.key()] = item;
         }
         return ret;
     }
 
-    keeper::KeeperItemsMap get_state() const
+    keeper::Items get_state() const
     {
         return get_converted_state_to_user_type();
 //        return state_;
@@ -437,7 +437,7 @@ TaskManager::start_restore(QList<Metadata> const& tasks)
     return d->start_restore(tasks);
 }
 
-keeper::KeeperItemsMap TaskManager::get_state() const
+keeper::Items TaskManager::get_state() const
 {
     Q_D(const TaskManager);
 

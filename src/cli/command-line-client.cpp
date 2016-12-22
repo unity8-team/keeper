@@ -42,7 +42,7 @@ CommandLineClient::~CommandLineClient() = default;
 
 void CommandLineClient::run_list_sections(bool remote)
 {
-    keeper::KeeperItemsMap choices_values;
+    keeper::Items choices_values;
     keeper::Error error;
     if(!remote)
     {
@@ -153,7 +153,7 @@ void CommandLineClient::run_restore(QStringList & sections)
     view_->start_printing_tasks();
 }
 
-void CommandLineClient::list_backup_sections(keeper::KeeperItemsMap const & choices_values)
+void CommandLineClient::list_backup_sections(keeper::Items const & choices_values)
 {
     QStringList sections;
     for(auto iter = choices_values.begin(); iter != choices_values.end(); ++iter)
@@ -166,9 +166,9 @@ void CommandLineClient::list_backup_sections(keeper::KeeperItemsMap const & choi
     view_->print_sections(sections);
 }
 
-void CommandLineClient::list_restore_sections(keeper::KeeperItemsMap const & choices_values)
+void CommandLineClient::list_restore_sections(keeper::Items const & choices_values)
 {
-    QMap<QString, QList<keeper::KeeperItem>> values_per_dir;
+    QMap<QString, QList<keeper::Item>> values_per_dir;
 
     for(auto iter = choices_values.begin(); iter != choices_values.end(); ++iter)
     {

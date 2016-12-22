@@ -43,7 +43,7 @@ namespace DBusTypes
         qDBusRegisterMetaType<QStringMap>();
         qDBusRegisterMetaType<keeper::Error>();
 
-        keeper::KeeperItemsMap::registerMetaType();
+        keeper::Items::registerMetaType();
     }
 
     constexpr const char KEEPER_SERVICE[] = "com.canonical.keeper";

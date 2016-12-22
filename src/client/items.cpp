@@ -25,11 +25,11 @@
 namespace keeper
 {
 
-// KeeperItem
+// Item
 
-bool has_all_predefined_properties(QStringList const & predefined_properties, KeeperItem const & values);
+bool has_all_predefined_properties(QStringList const & predefined_properties, Item const & values);
 
-bool has_all_predefined_properties(QStringList const & predefined_properties, KeeperItem const & values)
+bool has_all_predefined_properties(QStringList const & predefined_properties, Item const & values)
 {
     for (auto iter = predefined_properties.begin(); iter != predefined_properties.end(); ++iter)
     {
@@ -47,19 +47,19 @@ constexpr const char PERCENT_DONE_KEY[] = "percent-done";
 constexpr const char ERROR_KEY[]        = "error";
 
 
-KeeperItem::KeeperItem()
+Item::Item()
     : QVariantMap()
 {
 }
 
-KeeperItem::KeeperItem(QVariantMap const & values)
+Item::Item(QVariantMap const & values)
     : QVariantMap(values)
 {
 }
 
-KeeperItem::~KeeperItem() = default;
+Item::~Item() = default;
 
-QVariant KeeperItem::get_property_value(QString const & property) const
+QVariant Item::get_property_value(QString const & property) const
 {
     auto iter = this->find(property);
     if (iter != this->end())
@@ -72,19 +72,19 @@ QVariant KeeperItem::get_property_value(QString const & property) const
     }
 }
 
-bool KeeperItem::is_valid()const
+bool Item::is_valid()const
 {
     // we need at least type and display name to consider this a keeper item
     return has_all_predefined_properties(QStringList{TYPE_KEY, DISPLAY_NAME_KEY}, *this);
 }
 
-bool KeeperItem::has_property(QString const & property) const
+bool Item::has_property(QString const & property) const
 {
     auto iter = this->find(property);
     return iter != this->end();
 }
 
-QString KeeperItem::get_type(bool *valid) const
+QString Item::get_type(bool *valid) const
 {
     if (!has_property(TYPE_KEY))
     {
@@ -97,7 +97,7 @@ QString KeeperItem::get_type(bool *valid) const
     return get_property_value(TYPE_KEY).toString();
 }
 
-QString KeeperItem::get_display_name(bool *valid) const
+QString Item::get_display_name(bool *valid) const
 {
     if (!has_property(DISPLAY_NAME_KEY))
     {
@@ -110,7 +110,7 @@ QString KeeperItem::get_display_name(bool *valid) const
     return get_property_value(DISPLAY_NAME_KEY).toString();
 }
 
-QString KeeperItem::get_dir_name(bool *valid) const
+QString Item::get_dir_name(bool *valid) const
 {
     if (!has_property(DIR_NAME_KEY))
     {
@@ -123,7 +123,7 @@ QString KeeperItem::get_dir_name(bool *valid) const
     return get_property_value(DIR_NAME_KEY).toString();
 }
 
-QString KeeperItem::get_status(bool *valid) const
+QString Item::get_status(bool *valid) const
 {
     if (!has_property(STATUS_KEY))
     {
@@ -136,7 +136,7 @@ QString KeeperItem::get_status(bool *valid) const
     return get_property_value(STATUS_KEY).toString();
 }
 
-double KeeperItem::get_percent_done(bool *valid) const
+double Item::get_percent_done(bool *valid) const
 {
     auto value = get_property_value(PERCENT_DONE_KEY);
     if (value.type() == QVariant::Double)
@@ -153,7 +153,7 @@ double KeeperItem::get_percent_done(bool *valid) const
     }
 }
 
-keeper::Error KeeperItem::get_error(bool *valid) const
+keeper::Error Item::get_error(bool *valid) const
 {
     // if it does not have explicitly defined the error, OK is considered
     if (!has_property(ERROR_KEY))
@@ -162,35 +162,32 @@ keeper::Error KeeperItem::get_error(bool *valid) const
     return keeper::convert_from_dbus_variant(get_property_value(ERROR_KEY), valid);
 }
 
-void KeeperItem::registerMetaType()
+void Item::registerMetaType()
 {
-    qRegisterMetaType<KeeperItem>("KeeperItem");
+    qRegisterMetaType<Item>("Item");
 
-    qDBusRegisterMetaType<KeeperItem>();
+    qDBusRegisterMetaType<Item>();
 }
 
 /////
-// KeeperItemsMap
+// Items
 /////
 
 
-KeeperItemsMap::KeeperItemsMap()
-    : QMap<QString, KeeperItem>()
+Items::Items() =default;
+
+Items::~Items() =default;
+
+
+Items::Items(Error error)
+    : error_{error}
 {
 }
 
-KeeperItemsMap::~KeeperItemsMap() = default;
-
-
-KeeperItemsMap::KeeperItemsMap(Error error)
-    : QMap<QString, KeeperItem>()
-      , error_(error)
+QStringList Items::get_uuids() const
 {
-
-}
-
-QStringList KeeperItemsMap::get_uuids() const
-{
+    return this->keys();
+#if 0
     QStringList ret;
     for (auto iter = this->begin(); iter != this->end(); ++iter)
     {
@@ -198,15 +195,16 @@ QStringList KeeperItemsMap::get_uuids() const
     }
 
     return ret;
+#endif
 }
 
-void KeeperItemsMap::registerMetaType()
+void Items::registerMetaType()
 {
-    qRegisterMetaType<KeeperItemsMap>("KeeperItemsMap");
+    qRegisterMetaType<Items>("Items");
 
-    qDBusRegisterMetaType<KeeperItemsMap>();
+    qDBusRegisterMetaType<Items>();
 
-    KeeperItem::registerMetaType();
+    Item::registerMetaType();
 }
 
 } // namespace keeper

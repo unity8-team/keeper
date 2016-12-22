@@ -45,7 +45,7 @@ public:
 
     Q_DISABLE_COPY(TaskManager)
 
-    Q_PROPERTY(keeper::KeeperItemsMap State
+    Q_PROPERTY(keeper::Items State
                READ get_state
                NOTIFY state_changed)
 
@@ -54,7 +54,7 @@ public:
 
     bool start_restore(QList<Metadata> const& tasks);
 
-    keeper::KeeperItemsMap get_state() const;
+    keeper::Items get_state() const;
 
     void ask_for_uploader(quint64 n_bytes);
 

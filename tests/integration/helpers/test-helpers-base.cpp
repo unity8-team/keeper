@@ -46,7 +46,7 @@ bool qvariant_to_map(QVariant const& variant, QVariantMap& map)
     return false;
 }
 
-bool qdbus_argument_to_keeper_items_map(QVariant const& variant, keeper::KeeperItemsMap& map)
+bool qdbus_argument_to_keeper_items_map(QVariant const& variant, keeper::Items& map)
 {
     qDebug() << "**** VARIANT TYPE FOR STATE: " << variant.typeName();
     if (variant.canConvert<QDBusArgument>())
@@ -60,7 +60,7 @@ bool qdbus_argument_to_keeper_items_map(QVariant const& variant, keeper::KeeperI
         }
         else
         {
-            qWarning() << Q_FUNC_INFO << ": Could not convert variant to keeper::KeeperItemsMap. Variant received has type " << value.currentType();
+            qWarning() << Q_FUNC_INFO << ": Could not convert variant to keeper::Items. Variant received has type " << value.currentType();
         }
     }
     else
@@ -70,7 +70,7 @@ bool qdbus_argument_to_keeper_items_map(QVariant const& variant, keeper::KeeperI
     return false;
 }
 
-bool get_property_qvariant_keeper_items_map(QString const & property, QVariant const &variant, keeper::KeeperItemsMap & map)
+bool get_property_qvariant_keeper_items_map(QString const & property, QVariant const &variant, keeper::Items & map)
 {
     QVariantMap properties_map;
     if (!qvariant_to_map(variant, properties_map))
@@ -444,7 +444,7 @@ bool TestHelpersBase::wait_for_all_tasks_have_action_state(QStringList const & u
     return finished;
 }
 
-bool TestHelpersBase::get_task_value_now(QString const & uuid, QSharedPointer<DBusInterfaceKeeperUser> const & keeper_user_iface, keeper::KeeperItem & value) const
+bool TestHelpersBase::get_task_value_now(QString const & uuid, QSharedPointer<DBusInterfaceKeeperUser> const & keeper_user_iface, keeper::Item & value) const
 {
     auto state = keeper_user_iface->state();
     auto iter = state.find(uuid);
@@ -458,7 +458,7 @@ bool TestHelpersBase::get_task_value_now(QString const & uuid, QSharedPointer<DB
     return true;
 }
 
-bool TestHelpersBase::check_task_has_action_state(keeper::KeeperItemsMap const & state, QString const & uuid, QString const & action_state)
+bool TestHelpersBase::check_task_has_action_state(keeper::Items const & state, QString const & uuid, QString const & action_state)
 {
     auto iter = state.find(uuid);
     if (iter == state.end())
@@ -507,7 +507,7 @@ bool TestHelpersBase::capture_and_check_state_until_all_tasks_complete(QSignalSp
             {
                 return false;
             }
-            keeper::KeeperItemsMap keeper_state;
+            keeper::Items keeper_state;
             if (!get_property_qvariant_keeper_items_map("State", arguments.at(1), keeper_state))
             {
                 return false;
@@ -592,7 +592,7 @@ bool TestHelpersBase::cancel_first_task_at_percentage(QSignalSpy & spy, double e
             {
                 return false;
             }
-            keeper::KeeperItemsMap keeper_state;
+            keeper::Items keeper_state;
             if (!get_property_qvariant_keeper_items_map("State", arguments.at(1), keeper_state))
             {
                 return false;
@@ -652,7 +652,7 @@ bool TestHelpersBase::cancel_first_task_at_percentage(QSignalSpy & spy, double e
     return false;
 }
 
-QString TestHelpersBase::get_uuid_for_xdg_folder_path(QString const &path, keeper::KeeperItemsMap const & choices) const
+QString TestHelpersBase::get_uuid_for_xdg_folder_path(QString const &path, keeper::Items const & choices) const
 {
     for(auto iter = choices.begin(); iter != choices.end(); ++iter)
     {
@@ -671,7 +671,7 @@ QString TestHelpersBase::get_uuid_for_xdg_folder_path(QString const &path, keepe
     return QString();
 }
 
-QString TestHelpersBase::get_type_for_xdg_folder_path(QString const &path, keeper::KeeperItemsMap const & choices) const
+QString TestHelpersBase::get_type_for_xdg_folder_path(QString const &path, keeper::Items const & choices) const
 {
     for(auto iter = choices.begin(); iter != choices.end(); ++iter)
     {
@@ -695,7 +695,7 @@ QString TestHelpersBase::get_type_for_xdg_folder_path(QString const &path, keepe
     return QString();
 }
 
-QString TestHelpersBase::get_display_name_for_xdg_folder_path(QString const &path, keeper::KeeperItemsMap const & choices) const
+QString TestHelpersBase::get_display_name_for_xdg_folder_path(QString const &path, keeper::Items const & choices) const
 {
     for(auto iter = choices.begin(); iter != choices.end(); ++iter)
     {

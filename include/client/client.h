@@ -63,12 +63,12 @@ public:
 
 // C++
 public:
-    keeper::KeeperItemsMap getBackupChoices(keeper::Error & error) const;
-    keeper::KeeperItemsMap getRestoreChoices(keeper::Error & error) const;
+    keeper::Items getBackupChoices(keeper::Error & error) const;
+    keeper::Items getRestoreChoices(keeper::Error & error) const;
     void startBackup(QStringList const& uuids) const;
     void startRestore(QStringList const& uuids) const;
 
-    keeper::KeeperItemsMap getState() const;
+    keeper::Items getState() const;
 
 Q_SIGNALS:
     void statusChanged();

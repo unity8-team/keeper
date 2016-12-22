@@ -11,7 +11,7 @@ add_library(
   keeper-errors.cpp
   ${CMAKE_SOURCE_DIR}/include/client/keeper-errors.h
   ${CMAKE_SOURCE_DIR}/include/client/keeper-items.h
-  keeper-items.cpp
+  items.cpp
 )
 
 set(

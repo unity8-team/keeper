@@ -33,7 +33,7 @@ KeeperUser::KeeperUser(Keeper* keeper)
 
 KeeperUser::~KeeperUser() =default;
 
-keeper::KeeperItemsMap
+keeper::Items
 KeeperUser::GetBackupChoices()
 {
     auto bus = connection();
@@ -57,7 +57,7 @@ KeeperUser::Cancel()
     keeper_.cancel();
 }
 
-keeper::KeeperItemsMap
+keeper::Items
 KeeperUser::GetRestoreChoices()
 {
     Q_ASSERT(calledFromDBus());
@@ -81,7 +81,7 @@ KeeperUser::StartRestore (const QStringList& keys)
     keeper_.start_tasks(keys, bus, msg);
 }
 
-keeper::KeeperItemsMap
+keeper::Items
 KeeperUser::get_state() const
 {
     return keeper_.get_state();

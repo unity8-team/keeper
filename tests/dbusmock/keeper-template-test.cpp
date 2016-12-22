@@ -59,7 +59,7 @@ TEST_F(KeeperTemplateTest, BackupChoices)
     EXPECT_NE(QDBusMessage::ErrorMessage, msg.type()) << qPrintable(msg.errorMessage());
 
     // ask for a list of backup choices
-    QDBusPendingReply<keeper::KeeperItemsMap> choices_reply = user_iface_->call("GetBackupChoices");
+    QDBusPendingReply<keeper::Items> choices_reply = user_iface_->call("GetBackupChoices");
     choices_reply.waitForFinished();
     if (!choices_reply.isValid())
     {

@@ -58,7 +58,7 @@ struct KeeperClientPrivate final
         return (stateString == "complete" || stateString == "cancelled" || stateString == "failed");
     }
 
-    bool checkAllTasksFinished(keeper::KeeperItemsMap const & state) const
+    bool checkAllTasksFinished(keeper::Items const & state) const
     {
         bool ret = true;
         for (auto iter = state.begin(); ret && (iter != state.end()); ++iter)
@@ -69,32 +69,32 @@ struct KeeperClientPrivate final
         return ret;
     }
 
-    static keeper::KeeperItemsMap getValue(QDBusMessage const & message, keeper::Error & error)
+    static keeper::Items getValue(QDBusMessage const & message, keeper::Error & error)
     {
         if (message.errorMessage().isEmpty())
         {
             if (message.arguments().count() != 1)
             {
                 error = keeper::Error::UNKNOWN;
-                return keeper::KeeperItemsMap();
+                return keeper::Items();
             }
 
             auto value = message.arguments().at(0);
             if (value.typeName() != QStringLiteral("QDBusArgument"))
             {
                 error = keeper::Error::UNKNOWN;
-                return keeper::KeeperItemsMap();
+                return keeper::Items();
             }
             auto dbus_arg = value.value<QDBusArgument>();
             error = keeper::Error::OK;
-            keeper::KeeperItemsMap ret;
+            keeper::Items ret;
             dbus_arg >> ret;
             return ret;
         }
         if (message.arguments().count() != 2)
         {
             error = keeper::Error::UNKNOWN;
-            return keeper::KeeperItemsMap();
+            return keeper::Items();
         }
 
         // pick up the error
@@ -104,13 +104,13 @@ struct KeeperClientPrivate final
         {
             error = keeper::Error::UNKNOWN;
         }
-        return keeper::KeeperItemsMap();
+        return keeper::Items();
     }
 
     QScopedPointer<DBusInterfaceKeeperUser> userIface;
     QScopedPointer<DBusPropertiesInterface> propertiesIface;
     QString status;
-    keeper::KeeperItemsMap backups;
+    keeper::Items backups;
     double progress = 0;
     bool readyToBackup = false;
     bool backupBusy = false;
@@ -252,13 +252,13 @@ QString KeeperClient::getBackupName(QString uuid)
     return d->backups.value(uuid).value("display-name").toString();
 }
 
-keeper::KeeperItemsMap KeeperClient::getBackupChoices(keeper::Error & error) const
+keeper::Items KeeperClient::getBackupChoices(keeper::Error & error) const
 {
     QDBusMessage choices = d->userIface->call("GetBackupChoices");
     return KeeperClientPrivate::getValue(choices, error);
 }
 
-keeper::KeeperItemsMap KeeperClient::getRestoreChoices(keeper::Error & error) const
+keeper::Items KeeperClient::getRestoreChoices(keeper::Error & error) const
 {
     QDBusMessage choices = d->userIface->call("GetRestoreChoices");
     return KeeperClientPrivate::getValue(choices, error);
@@ -284,7 +284,7 @@ void KeeperClient::startRestore(const QStringList& uuids) const
     }
 }
 
-keeper::KeeperItemsMap KeeperClient::getState() const
+keeper::Items KeeperClient::getState() const
 {
     return d->userIface->state();
 }
@@ -302,7 +302,7 @@ void KeeperClient::stateUpdated()
             {
                 qWarning() << "State for uuid: " << uuid << " was not found";
             }
-            keeper::KeeperItem keeper_item((*iter_state));
+            keeper::Item keeper_item((*iter_state));
             auto progress = keeper_item.get_percent_done();
             auto status = keeper_item.get_status();
             auto keeper_error = keeper_item.get_error();
@@ -319,7 +319,7 @@ void KeeperClient::stateUpdated()
         double totalProgress = 0;
         for (auto const& state : states)
         {
-            keeper::KeeperItem keeper_item(state);
+            keeper::Item keeper_item(state);
             totalProgress += keeper_item.get_percent_done();
         }
 

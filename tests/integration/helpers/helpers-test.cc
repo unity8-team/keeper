@@ -76,7 +76,7 @@ TEST_F(TestHelpers, StartFullTest)
     ASSERT_TRUE(user_iface->isValid()) << qPrintable(dbus_test_runner.sessionConnection().lastError().message());
 
     // ask for a list of backup choices
-    QDBusReply<keeper::KeeperItemsMap> choices = user_iface->call("GetBackupChoices");
+    QDBusReply<keeper::Items> choices = user_iface->call("GetBackupChoices");
     EXPECT_TRUE(choices.isValid()) << qPrintable(choices.error().message());
 
     QString user_option = QStringLiteral("XDG_MUSIC_DIR");
@@ -145,7 +145,7 @@ TEST_F(TestHelpers, StartFullTest)
     // finally check that we have a valid manifest file.
     EXPECT_TRUE(check_manifest_file(backup_items));
 
-    QDBusPendingReply<keeper::KeeperItemsMap> restore_choices_reply = user_iface->call("GetRestoreChoices");
+    QDBusPendingReply<keeper::Items> restore_choices_reply = user_iface->call("GetRestoreChoices");
     restore_choices_reply.waitForFinished();
     EXPECT_TRUE(restore_choices_reply.isValid()) << qPrintable(choices.error().message());
 
@@ -195,7 +195,7 @@ TEST_F(TestHelpers, StartFullTestCancelling)
     ASSERT_TRUE(user_iface->isValid()) << qPrintable(dbus_test_runner.sessionConnection().lastError().message());
 
     // ask for a list of backup choices
-    QDBusReply<keeper::KeeperItemsMap> choices = user_iface->call("GetBackupChoices");
+    QDBusReply<keeper::Items> choices = user_iface->call("GetBackupChoices");
     EXPECT_TRUE(choices.isValid()) << qPrintable(choices.error().message());
 
     QString user_option = QStringLiteral("XDG_MUSIC_DIR");
