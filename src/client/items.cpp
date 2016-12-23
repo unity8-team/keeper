@@ -27,18 +27,6 @@ namespace keeper
 
 // Item
 
-bool has_all_predefined_properties(QStringList const & predefined_properties, Item const & values);
-
-bool has_all_predefined_properties(QStringList const & predefined_properties, Item const & values)
-{
-    for (auto iter = predefined_properties.begin(); iter != predefined_properties.end(); ++iter)
-    {
-        if (!values.has_property((*iter)))
-            return false;
-    }
-    return true;
-}
-
 constexpr const char TYPE_KEY[]         = "type";
 constexpr const char DISPLAY_NAME_KEY[] = "display-name";
 constexpr const char DIR_NAME_KEY[]     = "dir-name";
@@ -47,10 +35,7 @@ constexpr const char PERCENT_DONE_KEY[] = "percent-done";
 constexpr const char ERROR_KEY[]        = "error";
 
 
-Item::Item()
-    : QVariantMap()
-{
-}
+Item::Item() = default;
 
 Item::Item(QVariantMap const & values)
     : QVariantMap(values)
@@ -92,14 +77,17 @@ template<typename T> T Item::get_property(QString const & property, bool * valid
 
 bool Item::is_valid()const
 {
-    // we need at least type and display name to consider this a keeper item
-    return has_all_predefined_properties(QStringList{TYPE_KEY, DISPLAY_NAME_KEY}, *this);
+    // check for required properties
+    for (auto& property : {TYPE_KEY, DISPLAY_NAME_KEY})
+        if (!this->has_property(property))
+            return false;
+
+    return true;
 }
 
 bool Item::has_property(QString const & property) const
 {
-    auto iter = this->find(property);
-    return iter != this->end();
+    return this->contains(property);
 }
 
 QString Item::get_type(bool *valid) const
@@ -129,11 +117,15 @@ double Item::get_percent_done(bool *valid) const
 
 keeper::Error Item::get_error(bool *valid) const
 {
-    // if it does not have explicitly defined the error, OK is considered
-    if (!has_property(ERROR_KEY))
-        return keeper::Error::OK;
+    auto it = this->find(ERROR_KEY);
 
-    return keeper::convert_from_dbus_variant(get_property_value(ERROR_KEY), valid);
+    // if no error was sent, things must be OK
+    if (it == this->end())
+    {
+        return keeper::Error::OK;
+    }
+
+    return keeper::convert_from_dbus_variant(*it, valid);
 }
 
 void Item::registerMetaType()
@@ -161,15 +153,6 @@ Items::Items(Error error)
 QStringList Items::get_uuids() const
 {
     return this->keys();
-#if 0
-    QStringList ret;
-    for (auto iter = this->begin(); iter != this->end(); ++iter)
-    {
-        ret << iter.key();
-    }
-
-    return ret;
-#endif
 }
 
 void Items::registerMetaType()
