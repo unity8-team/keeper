@@ -36,7 +36,7 @@ public:
 
     ~StateChangeTestManager() = default;
 
-    void on_state_changed(Helper::State state)
+    void on_state_changed(Helper::State /*state*/)
     {
         qDebug() << "Checking if the value is set...";
         // what we test here is that the helper has the expected value

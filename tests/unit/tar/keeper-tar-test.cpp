@@ -38,7 +38,7 @@ class KeeperTarCreateFixture: public KeeperDBusMockFixture
     {
         parent::SetUp();
 
-        qsrand(time(nullptr));
+        qsrand(static_cast<uint>(time(nullptr)));
     }
 
     void TearDown() override

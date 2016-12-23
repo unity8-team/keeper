@@ -43,7 +43,7 @@ create_dummy_string()
     auto const filename_len = std::max(10, qrand() % MAX_BASENAME_LEN);
     QString str;
     for (int i=0; i<filename_len; ++i)
-        str += ('a' + char(qrand() % ('z'-'a')));
+        str += char(('a' + char(qrand() % ('z'-'a'))));
     return str;
 }
 
@@ -67,9 +67,9 @@ create_dummy_file(QDir const& dir, qint64 filesize)
     qint64 left = filesize;
     while(left > 0)
     {
-        int this_step = std::min(max_step, left);
-        for(int i=0; i<this_step; ++i)
-            buf[i] = 'a' + char(qrand() % ('z'-'a'));
+        qint64 this_step = std::min(max_step, left);
+        for(auto i=0; i<this_step; ++i)
+            buf[i] = char('a' + char(qrand() % ('z'-'a')));
         if (f.write(buf, this_step) < this_step)
         {
             qWarning() << "Error writing to temporary file:" << f.errorString();

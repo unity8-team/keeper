@@ -20,6 +20,7 @@
  */
 #include "test-helpers-base.h"
 #include "tests/utils/storage-framework-local.h"
+#include "tests/fakes/fake-backup-helper.h"
 
 class TestHelpers: public TestHelpersBase
 {
@@ -27,6 +28,9 @@ class TestHelpers: public TestHelpersBase
 
     void SetUp() override
     {
+        // avoid unused warning
+        (void)FAKE_BACKUP_HELPER_PAYLOAD;
+
         super::SetUp();
         init_helper_registry(HELPER_REGISTRY);
     }

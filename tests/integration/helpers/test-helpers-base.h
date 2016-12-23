@@ -25,7 +25,6 @@
 #include "DBusPropertiesInterface.h"
 #include "qdbus-stubs/keeper_user_interface.h"
 
-#include "tests/fakes/fake-backup-helper.h"
 #include "tests/utils/file-utils.h"
 #include "tests/utils/xdg-user-dirs-sandbox.h"
 #include "tests/utils/storage-framework-local.h"

@@ -39,6 +39,8 @@ using KeeperTemplateTest = KeeperDBusMockFixture;
 // test that the dbusmock scaffolding starts up and exits ok
 TEST_F(KeeperTemplateTest, HelloWorld)
 {
+    // avoid FAKE_BACKUP_HELPER_PAYLOAD from fake-backup-helper.h
+    (void)FAKE_BACKUP_HELPER_PAYLOAD;
 }
 
 

@@ -33,9 +33,16 @@ using namespace QtDBusMock;
 /// State helpers
 //
 
+namespace
+{
+
+bool double_equals(double a, double b, double epsilon = 0.0001)
+{
+    return std::abs(a - b) < epsilon;
+}
+
 bool qvariant_to_map(QVariant const& variant, QVariantMap& map)
 {
-    qDebug() << "VARIANT TYPE FOR STATE: " << variant.typeName();
     if (variant.type() == QVariant::Map)
     {
         map = variant.toMap();
@@ -48,11 +55,9 @@ bool qvariant_to_map(QVariant const& variant, QVariantMap& map)
 
 bool qdbus_argument_to_keeper_items_map(QVariant const& variant, keeper::Items& map)
 {
-    qDebug() << "**** VARIANT TYPE FOR STATE: " << variant.typeName();
     if (variant.canConvert<QDBusArgument>())
     {
         QDBusArgument value(variant.value<QDBusArgument>());
-        qDebug() << "VALUE CURRENT TYPE: " << value.currentType() << " SIGNATURE: " << value.currentSignature();
         if (value.currentType() == QDBusArgument::MapType)
         {
             value >> map;
@@ -60,7 +65,7 @@ bool qdbus_argument_to_keeper_items_map(QVariant const& variant, keeper::Items& 
         }
         else
         {
-            qWarning() << Q_FUNC_INFO << ": Could not convert variant to keeper::Items. Variant received has type " << value.currentType();
+            qWarning() << Q_FUNC_INFO << ": Could not convert variant to keeper::Items. Variant received has type " << value.currentSignature();
         }
     }
     else
@@ -154,7 +159,7 @@ bool analyze_task_percentage_values(QString const & uuid, QList<QVariantMap> con
         auto current_action = action.toString();
         if (current_action == "queued")
         {
-            if (percentage_double != 0.0)
+            if (!double_equals(percentage_double, 0.0))
             {
                 qWarning() << Q_FUNC_INFO << ": Percentage for queue state is not 0.0 for task: " << uuid;
                 return false;
@@ -162,7 +167,7 @@ bool analyze_task_percentage_values(QString const & uuid, QList<QVariantMap> con
         }
         else if (current_action == "complete")
         {
-            if (percentage_double != 1.0)
+            if (!double_equals(percentage_double, 1.0))
             {
                 qWarning() << Q_FUNC_INFO << ": Percentage for complete state is not 1.0 for task: " << uuid;
                 return false;
@@ -301,6 +306,7 @@ bool verify_signal_interface_and_invalidated_properties(QVariant const &interfac
     }
     return true;
 }
+} // namespace
 
 ///
 ///

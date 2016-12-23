@@ -42,8 +42,8 @@ TEST(HelperClass, PercentDone)
     {
         helper.record_data_transferred(1);
         --n_left;
-        auto expect = std::round(test_multiplier * (n_bytes-n_left) / double(n_bytes));
-        auto actual = std::round(test_multiplier * helper.percent_done());
+        auto expect = std::round(test_multiplier * (double(n_bytes)-double(n_left)) / double(n_bytes));
+        auto actual = std::round(test_multiplier * double(helper.percent_done()));
         EXPECT_EQ(expect, actual);
     }
 }
@@ -72,7 +72,7 @@ TEST(HelperClass, Speed)
         // pretend to feed it data at a steady rate
         // over the next interval_seconds
         int expected_byte_per_second = qrand() % 1000000;
-        for (int i=0; i<interval_seconds; ++i)
+        for (int j=0; j<interval_seconds; ++j)
         {
             now_msec += MSEC_PER_SEC;
             helper.record_data_transferred(expected_byte_per_second);

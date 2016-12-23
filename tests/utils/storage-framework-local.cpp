@@ -90,7 +90,7 @@ bool extract_tar_contents(QString const & tar_path, QString const & destination,
     return true;
 }
 
-bool compare_tar_content (QString const & tar_path, QString const & sourceDir, bool compression)
+bool compare_tar_content (QString const & tar_path, QString const & sourceDir, bool /*compression*/)
 {
     QTemporaryDir temp_dir;
 
