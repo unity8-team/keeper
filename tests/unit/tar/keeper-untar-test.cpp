@@ -80,7 +80,7 @@ protected:
 
         return QMap<QString,QVariant>{
             { KEY_NAME, QDir(source.path()).dirName() },
-            { KEY_TYPE, QStringLiteral("folder") },
+            { KEY_TYPE, keeper::Item::FOLDER_VALUE },
             { KEY_SUBTYPE, target.path() },
             { KEY_HELPER, QString::fromUtf8(helper_exec) },
             { KEY_SIZE, quint64(blob.size()) },

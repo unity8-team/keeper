@@ -57,16 +57,14 @@ public:
     {
         qDebug() << "asking storage framework for a socket for reading";
 
-        QString file_name;
-        task_data_.metadata.get_property(Metadata::FILE_NAME_KEY, file_name);
+        auto file_name = task_data_.metadata.get_file_name();
         if (file_name.isEmpty())
         {
             qWarning() << "ERROR: the restore task does not provide a valid file name to read from.";
             return;
         }
 
-        QString dir_name;
-        task_data_.metadata.get_property(Metadata::DIR_NAME_KEY, dir_name);
+        auto dir_name = task_data_.metadata.get_dir_name();
         if (dir_name.isEmpty())
         {
             qWarning() << "ERROR: the restore task does not provide a valid directory name.";

@@ -51,7 +51,7 @@ bool KeeperTaskPrivate::start()
     {
         task_data_.action = helper_->to_string(Helper::State::FAILED);
         error_ = keeper::Error::HELPER_BAD_URL;
-        qWarning() << QStringLiteral("Error: uuid %1 has no url").arg(task_data_.metadata.uuid());
+        qWarning() << QStringLiteral("Error: uuid %1 has no url").arg(task_data_.metadata.get_uuid());
         calculate_and_notify_state(Helper::State::FAILED);
         return false;
     }
@@ -125,17 +125,16 @@ QVariantMap KeeperTaskPrivate::calculate_task_state()
 {
     QVariantMap ret;
 
-    auto const uuid = task_data_.metadata.uuid();
+    auto const uuid = task_data_.metadata.get_uuid();
 
-    ret.insert(QStringLiteral("action"), task_data_.action);
-
-    ret.insert(QStringLiteral("display-name"), task_data_.metadata.display_name());
+    ret.insert(keeper::Item::STATUS_KEY, task_data_.action);
+    ret.insert(keeper::Item::DISPLAY_NAME_KEY, task_data_.metadata.get_display_name());
 
     auto const speed = helper_->speed();
-    ret.insert(QStringLiteral("speed"), int32_t(speed));
+    ret.insert(keeper::Item::SPEED_KEY, int32_t(speed));
 
     auto const percent_done = helper_->percent_done();
-    ret.insert(QStringLiteral("percent-done"), double(percent_done));
+    ret.insert(keeper::Item::PERCENT_DONE_KEY, double(percent_done));
 
     if (task_data_.action == "failed" || task_data_.action == "cancelled")
     {
@@ -144,10 +143,10 @@ QVariantMap KeeperTaskPrivate::calculate_task_state()
         {
             error = task_data_.error;
         }
-        ret.insert(QStringLiteral("error"), QVariant::fromValue(error));
+        ret.insert(keeper::Item::ERROR_KEY, QVariant::fromValue(error));
     }
 
-    ret.insert(QStringLiteral("uuid"), uuid);
+    ret.insert(keeper::Item::UUID_KEY, uuid);
 
     QJsonDocument doc(QJsonObject::fromVariantMap(ret));
     qDebug() << QString(doc.toJson(QJsonDocument::Compact));
@@ -178,16 +177,16 @@ QVariantMap KeeperTaskPrivate::get_initial_state(KeeperTask::TaskData const &td)
 {
     QVariantMap ret;
 
-    auto const uuid = td.metadata.uuid();
+    auto const uuid = td.metadata.get_uuid();
 
-    ret.insert(QStringLiteral("action"), td.action);
+    ret.insert(keeper::Item::STATUS_KEY, td.action);
 
     // TODO review this when we add the restore tasks.
     // TODO we maybe have different fields
-    ret.insert(QStringLiteral("display-name"), td.metadata.display_name());
-    ret.insert(QStringLiteral("speed"), 0);
-    ret.insert(QStringLiteral("percent-done"), double(0.0));
-    ret.insert(QStringLiteral("uuid"), uuid);
+    ret.insert(keeper::Item::DISPLAY_NAME_KEY, td.metadata.get_display_name());
+    ret.insert(keeper::Item::SPEED_KEY, 0);
+    ret.insert(keeper::Item::PERCENT_DONE_KEY, double(0.0));
+    ret.insert(keeper::Item::UUID_KEY, uuid);
 
     return ret;
 }

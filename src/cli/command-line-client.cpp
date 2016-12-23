@@ -71,7 +71,7 @@ void CommandLineClient::run_backup(QStringList & sections)
     {
         const auto& values = choices_values[(*iter)];
 
-        if (values.is_valid() && values.get_type() == "folder")
+        if (values.is_valid() && values.get_type() == keeper::Item::FOLDER_VALUE)
         {
 
             auto display_name = values.get_display_name();
@@ -118,7 +118,7 @@ void CommandLineClient::run_restore(QStringList & sections)
     {
         const auto& values = choices_values[(*iter)];
 
-        if (values.is_valid() && values.get_type() == "folder")
+        if (values.is_valid() && values.get_type() == keeper::Item::FOLDER_VALUE)
         {
             auto display_name = values.get_display_name();
             auto dir_name = values.get_dir_name();
@@ -158,7 +158,7 @@ void CommandLineClient::list_backup_sections(keeper::Items const & choices_value
     QStringList sections;
     for(auto iter = choices_values.begin(); iter != choices_values.end(); ++iter)
     {
-        if ((*iter).is_valid() && (*iter).get_type() == "folder")
+        if ((*iter).is_valid() && (*iter).get_type() == keeper::Item::FOLDER_VALUE)
         {
             sections << (*iter).get_display_name();
         }
@@ -172,7 +172,7 @@ void CommandLineClient::list_restore_sections(keeper::Items const & choices_valu
 
     for(auto iter = choices_values.begin(); iter != choices_values.end(); ++iter)
     {
-        if ((*iter).is_valid() && (*iter).get_type() == "folder")
+        if ((*iter).is_valid() && (*iter).get_type() == keeper::Item::FOLDER_VALUE)
         {
             auto dir_name = (*iter).get_dir_name();
             if (!dir_name.isEmpty())

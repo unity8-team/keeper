@@ -63,8 +63,8 @@ private:
     {
         QStringList ret;
 
-        QString type;
-        if (task.get_property(Metadata::TYPE_KEY, type))
+        auto type = task.get_type();
+        if (!type.isEmpty())
         {
             auto it = registry_.find(std::make_pair(type,prop));
             if (it == registry_.end())
@@ -89,24 +89,24 @@ private:
     QStringList perform_url_substitution(Metadata const& task, QStringList const& urls_in)
     {
         std::array<QString,6> keys = {
-            Metadata::TYPE_KEY,
-            Metadata::SUBTYPE_KEY,
-            Metadata::NAME_KEY,
-            Metadata::PACKAGE_KEY,
-            Metadata::TITLE_KEY,
-            Metadata::VERSION_KEY
+            keeper::Item::TYPE_KEY,
+            keeper::Item::SUBTYPE_KEY,
+            keeper::Item::NAME_KEY,
+            keeper::Item::PACKAGE_KEY,
+            keeper::Item::TITLE_KEY,
+            keeper::Item::VERSION_KEY
         };
 
         QStringList urls {urls_in};
 
         for (auto const& key : keys)
         {
-            QString after;
-            if (task.get_property(key, after))
+            QVariant after = task.get_property_value(key);
+            if (after.isValid())
             {
                 QString before = QStringLiteral("${%1}").arg(key);
                 for (auto& url : urls)
-                    url.replace(before, after);
+                    url.replace(before, after.toString());
             }
         }
 

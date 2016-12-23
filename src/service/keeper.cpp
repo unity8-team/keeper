@@ -36,15 +36,15 @@
 
 namespace
 {
-    QVariantMap strings_to_variants(const QMap<QString,QString>& strings)
-    {
-        QVariantMap variants;
-
-        for (auto it=strings.begin(), end=strings.end(); it!=end; ++it)
-            variants.insert(it.key(), QVariant::fromValue(it.value()));
-
-        return variants;
-    }
+//    QVariantMap strings_to_variants(const QMap<QString,QString>& strings)
+//    {
+//        QVariantMap variants;
+//
+//        for (auto it=strings.begin(), end=strings.end(); it!=end; ++it)
+//            variants.insert(it.key(), QVariant::fromValue(it.value()));
+//
+//        return variants;
+//    }
 
     keeper::Items choices_to_variant_dict_map(QVector<Metadata> const & choices)
     {
@@ -52,8 +52,8 @@ namespace
 
         for (auto const& metadata : choices)
         {
-            keeper::Item value(strings_to_variants(metadata.get_public_properties()));
-            ret.insert(metadata.uuid(), value);
+            keeper::Item value(metadata);
+            ret.insert(metadata.get_uuid(), value);
         }
 
         return ret;
@@ -96,7 +96,7 @@ public:
         auto get_tasks = [](const QVector<Metadata>& pool, QStringList const& keys){
             QMap<QString,Metadata> tasks;
             for (auto const& key : keys) {
-                auto it = std::find_if(pool.begin(), pool.end(), [key](Metadata const & m){return m.uuid()==key;});
+                auto it = std::find_if(pool.begin(), pool.end(), [key](Metadata const & m){return m.get_uuid()==key;});
                 if (it != pool.end())
                     tasks[key] = *it;
             }

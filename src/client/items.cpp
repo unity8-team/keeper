@@ -24,16 +24,30 @@
 
 namespace keeper
 {
+// json keys
+constexpr const char PROPERTIES_KEY[]   = "properties";
 
-// Item
+// keys
+const QString Item::UUID_KEY = QStringLiteral("uuid");
+const QString Item::TYPE_KEY = QStringLiteral("type");
+const QString Item::SUBTYPE_KEY = QStringLiteral("subtype");
+const QString Item::NAME_KEY = QStringLiteral("name");
+const QString Item::PACKAGE_KEY = QStringLiteral("package");
+const QString Item::TITLE_KEY = QStringLiteral("title");
+const QString Item::VERSION_KEY = QStringLiteral("version");
+const QString Item::FILE_NAME_KEY = QStringLiteral("file-name");
+const QString Item::DIR_NAME_KEY = QStringLiteral("dir-name");
+const QString Item::DISPLAY_NAME_KEY = QStringLiteral("display-name");
+const QString Item::STATUS_KEY = QStringLiteral("action");
+const QString Item::ERROR_KEY = QStringLiteral("error");
+const QString Item::PERCENT_DONE_KEY = QStringLiteral("percent-done");
+const QString Item::SPEED_KEY = QStringLiteral("speed");
 
-constexpr const char TYPE_KEY[]         = "type";
-constexpr const char DISPLAY_NAME_KEY[] = "display-name";
-constexpr const char DIR_NAME_KEY[]     = "dir-name";
-constexpr const char STATUS_KEY[]       = "action";
-constexpr const char PERCENT_DONE_KEY[] = "percent-done";
-constexpr const char ERROR_KEY[]        = "error";
 
+// values
+const QString Item::FOLDER_VALUE = QStringLiteral("folder");
+const QString Item::SYSTEM_DATA_VALUE = QStringLiteral("system-data");
+const QString Item::APPLICATION_VALUE = QStringLiteral("application");
 
 Item::Item() = default;
 
@@ -55,6 +69,11 @@ QVariant Item::get_property_value(QString const & property) const
     {
         return QVariant();
     }
+}
+
+void Item::set_property_value(QString const& property, QVariant const& value)
+{
+    this->insert(property, value);
 }
 
 template<typename T> T Item::get_property(QString const & property, bool * valid) const
@@ -88,6 +107,11 @@ bool Item::is_valid()const
 bool Item::has_property(QString const & property) const
 {
     return this->contains(property);
+}
+
+QString Item::get_uuid(bool *valid) const
+{
+    return get_property<QString>(UUID_KEY, valid);
 }
 
 QString Item::get_type(bool *valid) const
@@ -126,6 +150,11 @@ keeper::Error Item::get_error(bool *valid) const
     }
 
     return keeper::convert_from_dbus_variant(*it, valid);
+}
+
+QString Item::get_file_name(bool *valid) const
+{
+    return get_property<QString>(FILE_NAME_KEY, valid);
 }
 
 void Item::registerMetaType()

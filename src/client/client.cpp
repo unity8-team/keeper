@@ -63,7 +63,7 @@ struct KeeperClientPrivate final
         bool ret = true;
         for (auto iter = state.begin(); ret && (iter != state.end()); ++iter)
         {
-            auto statusString = (*iter).value("action").toString();
+            auto statusString = (*iter).get_status();
             ret = stateIsFinal(statusString);
         }
         return ret;
@@ -145,7 +145,7 @@ QStringList KeeperClient::backupUuids()
     for(auto iter = d->backups.begin(); iter != d->backups.end(); ++iter)
     {
         // TODO: We currently only support "folder" type backups
-        if (iter.value().value("type").toString() == "folder")
+        if (iter.value().get_type() == keeper::Item::FOLDER_VALUE)
         {
             returnList.append(iter.key());
         }
@@ -249,7 +249,7 @@ void KeeperClient::startRestore()
 
 QString KeeperClient::getBackupName(QString uuid)
 {
-    return d->backups.value(uuid).value("display-name").toString();
+    return d->backups.value(uuid).get_display_name();
 }
 
 keeper::Items KeeperClient::getBackupChoices(keeper::Error & error) const

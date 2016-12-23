@@ -152,7 +152,7 @@ private:
 
             for(auto const& metadata : tasks)
             {
-                auto const uuid = metadata.uuid();
+                auto const uuid = metadata.get_uuid();
 
                 remaining_tasks_ << uuid;
 
@@ -205,8 +205,8 @@ private:
             if (backup_task_ && state == Helper::State::COMPLETE && active_manifest_)
             {
                 qDebug() << "Backup task finished. The file created in storage framework is: [" << backup_task_->get_file_name() << "]";
-                td.metadata.set_property(Metadata::FILE_NAME_KEY, backup_task_->get_file_name());
-                td.metadata.set_property(Metadata::DIR_NAME_KEY, backup_dir_name_);
+                td.metadata.set_property_value(keeper::Item::FILE_NAME_KEY, backup_task_->get_file_name());
+                td.metadata.set_property_value(keeper::Item::DIR_NAME_KEY, backup_dir_name_);
                 active_manifest_->add_entry(td.metadata);
             }
             if (remaining_tasks_.size())
@@ -342,7 +342,7 @@ private:
 
     void set_initial_task_state(KeeperTask::KeeperTask::TaskData& td)
     {
-        state_[td.metadata.uuid()] = KeeperTask::get_initial_state(td);
+        state_[td.metadata.get_uuid()] = KeeperTask::get_initial_state(td);
     }
 
     void notify_state_changed()
@@ -363,9 +363,9 @@ private:
         auto task_state = task_->state();
 
         // avoid sending repeated states to minimize the use of the bus
-        if (task_state != state_[td.metadata.uuid()] && !task_state.isEmpty())
+        if (task_state != state_[td.metadata.get_uuid()] && !task_state.isEmpty())
         {
-            state_[td.metadata.uuid()] = task_state;
+            state_[td.metadata.get_uuid()] = task_state;
 
             // FIXME: we don't need this to work correctly for the sprint because Marcus is polling in a loop
             // but we will need this in order for him to stop doing that

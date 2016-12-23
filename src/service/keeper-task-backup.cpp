@@ -59,7 +59,7 @@ public:
 
         helper_->set_expected_size(n_bytes);
 
-        const auto file_name = QString("%1.keeper").arg(task_data_.metadata.display_name());
+        const auto file_name = QString("%1.keeper").arg(task_data_.metadata.get_display_name());
 
         connections_.connect_future(
             storage_->get_new_uploader(n_bytes, dir_name, file_name),

@@ -63,8 +63,8 @@ TEST_F(TestHelpers, GetRestoreChoices)
             auto prop_2_val = QString("%1-%2-prop2-value").arg(idir).arg(i);
 
             Metadata metadata(uuid_str, display_name);
-            metadata.set_property(PROP_1_KEY, prop_1_val);
-            metadata.set_property(PROP_2_KEY, prop_2_val);
+            metadata.set_property_value(PROP_1_KEY, prop_1_val);
+            metadata.set_property_value(PROP_2_KEY, prop_2_val);
             original_metadata.push_back(metadata);
             manifest.add_entry(metadata);
         }
@@ -102,26 +102,25 @@ TEST_F(TestHelpers, GetRestoreChoices)
 
     for (auto i = 0; i < all_choices.size(); ++i)
     {
-        auto iter = choices.find(all_choices[i].uuid());
+        auto iter = choices.find(all_choices[i].get_uuid());
         ASSERT_TRUE(iter != choices.end());
 
-        auto iter_name = (*iter).find(Metadata::DISPLAY_NAME_KEY);
+        auto iter_name = (*iter).find(keeper::Item::DISPLAY_NAME_KEY);
         ASSERT_TRUE(iter_name != (*iter).end());
-        EXPECT_EQ(all_choices[i].display_name(), (*iter_name));
+        EXPECT_EQ(all_choices[i].get_display_name(), (*iter_name));
 
-        auto iter_uuid = (*iter).find("uuid"); // TODO Create a new key for this
+        auto iter_uuid = (*iter).find(keeper::Item::UUID_KEY);
         ASSERT_TRUE(iter_uuid != (*iter).end());
-        EXPECT_EQ(all_choices[i].uuid(), (*iter_uuid));
+        EXPECT_EQ(all_choices[i].get_uuid(), (*iter_uuid));
 
-        QString prop_value;
         auto iter_prop1 = (*iter).find(PROP_1_KEY);
         ASSERT_TRUE(iter_prop1 != (*iter).end());
-        EXPECT_TRUE(all_choices[i].get_property(PROP_1_KEY, prop_value));
+        QString prop_value = all_choices[i].get_property_value(PROP_1_KEY).toString();
         EXPECT_EQ(prop_value, (*iter_prop1));
 
         auto iter_prop2 = (*iter).find(PROP_2_KEY);
         ASSERT_TRUE(iter_prop2 != (*iter).end());
-        EXPECT_TRUE(all_choices[i].get_property(PROP_2_KEY, prop_value));
-        EXPECT_EQ(prop_value, (*iter_prop2));
+        auto prop_value_2 = all_choices[i].get_property_value(PROP_2_KEY).toString();
+        EXPECT_EQ(prop_value_2, (*iter_prop2));
     }
 }

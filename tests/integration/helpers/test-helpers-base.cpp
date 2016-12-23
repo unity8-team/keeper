@@ -36,7 +36,7 @@ using namespace QtDBusMock;
 bool qvariant_to_map(QVariant const& variant, QVariantMap& map)
 {
     qDebug() << "VARIANT TYPE FOR STATE: " << variant.typeName();
-    if (variant.type() == QMetaType::QVariantMap)
+    if (variant.type() == QVariant::Map)
     {
         map = variant.toMap();
         return true;
@@ -146,7 +146,7 @@ bool analyze_task_percentage_values(QString const & uuid, QList<QVariantMap> con
 
         // check the percentages for completed and queued states
         QVariant action;
-        if (!get_task_property("action", (*iter), action))
+        if (!get_task_property(keeper::Item::STATUS_KEY, (*iter), action))
         {
             qWarning() << Q_FUNC_INFO << ": Action was not found for task: " << uuid;
             return false;
@@ -215,7 +215,7 @@ bool analyze_task_action_values(QString const & uuid, QList<QVariantMap> const &
     for (auto iter = recorded_values.begin(); iter != recorded_values.end(); ++iter)
     {
         QVariant action;
-        if (!get_task_property("action", (*iter), action))
+        if (!get_task_property(keeper::Item::STATUS_KEY, (*iter), action))
         {
             qWarning() << Q_FUNC_INFO << ": Action was not found for task: " << uuid;
             return false;
@@ -248,7 +248,7 @@ bool analyze_task_display_name_values(QString const & uuid, QList<QVariantMap> c
     for (auto iter = recorded_values.begin(); iter != recorded_values.end(); ++iter)
     {
         QVariant name;
-        if (!get_task_property("display-name", (*iter), name))
+        if (!get_task_property(keeper::Item::DISPLAY_NAME_KEY, (*iter), name))
         {
             qWarning() << Q_FUNC_INFO << ": display-name was not found for task: " << uuid;
             return false;
@@ -530,7 +530,7 @@ bool TestHelpersBase::capture_and_check_state_until_all_tasks_complete(QSignalSp
                 qDebug() << "State for uuid: " << iter.key() << " : " << task_state;
 
                 QVariant action;
-                if (get_task_property("action", task_state, action))
+                if (get_task_property(keeper::Item::STATUS_KEY, task_state, action))
                 {
                     if (action.type() != QVariant::String)
                     {
@@ -608,7 +608,7 @@ bool TestHelpersBase::cancel_first_task_at_percentage(QSignalSpy & spy, double e
                 qDebug() << "State for uuid: " << iter.key() << " : " << task_state;
 
                 QVariant action;
-                if (get_task_property("action", task_state, action))
+                if (get_task_property(keeper::Item::STATUS_KEY, task_state, action))
                 {
                     if (action.type() != QVariant::String)
                     {
@@ -619,7 +619,7 @@ bool TestHelpersBase::cancel_first_task_at_percentage(QSignalSpy & spy, double e
                     {
                         // the helper is saving data... check for the percentage
                         QVariant percentage;
-                        if (!get_task_property("percent-done", task_state, percentage))
+                        if (!get_task_property(keeper::Item::PERCENT_DONE_KEY, task_state, percentage))
                         {
                             qWarning() << Q_FUNC_INFO << ": Percentage was not found for task: " << iter.key();
                             return false;
@@ -762,21 +762,21 @@ bool TestHelpersBase::check_manifest_file(QVector<BackupItem> const & backup_ite
         bool item_found = false;
         for (auto const & metadata : metadata_with_sf)
         {
-            if (metadata.uuid() == backup_item.uuid)
+            if (metadata.get_uuid() == backup_item.uuid)
             {
                 item_found = true;
-                if (metadata.display_name() != backup_item.display_name)
+                if (metadata.get_display_name() != backup_item.display_name)
                 {
                     qWarning() << "Display name for backup item: " << backup_item.uuid << " does not match.";
-                    qWarning() << "Expected: [" << backup_item.display_name << "], Found: [" << metadata.display_name() << "]";
+                    qWarning() << "Expected: [" << backup_item.display_name << "], Found: [" << metadata.get_display_name() << "]";
                     return false;
                 }
-                QString prop_value;
-                if (!metadata.get_property(Metadata::TYPE_KEY, prop_value))
+                if (!metadata.has_property(keeper::Item::TYPE_KEY))
                 {
-                    qWarning() << "Property " << Metadata::TYPE_KEY << " was not found in the manifest file for item: " << backup_item.uuid;
+                    qWarning() << "Property " << keeper::Item::TYPE_KEY << " was not found in the manifest file for item: " << backup_item.uuid;
                     return false;
                 }
+                auto prop_value = metadata.get_type();
 
                 if (prop_value != backup_item.type)
                 {
@@ -785,7 +785,7 @@ bool TestHelpersBase::check_manifest_file(QVector<BackupItem> const & backup_ite
                     return false;
                 }
 
-                if (!metadata.get_property(Metadata::FILE_NAME_KEY, prop_value))
+                if (!metadata.has_property(Metadata::FILE_NAME_KEY))
                 {
                     qWarning() << "Property " << Metadata::FILE_NAME_KEY << " was not found in the manifest file for item: " << backup_item.uuid;
                     return false;
