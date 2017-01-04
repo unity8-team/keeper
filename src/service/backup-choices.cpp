@@ -19,15 +19,9 @@
 
 #include "service/backup-choices.h"
 
-#include <click.h>
-
 #include <uuid/uuid.h>
 
 #include <QDebug>
-#include <QJsonArray>
-#include <QJsonDocument>
-#include <QJsonObject>
-#include <QJsonValue>
 #include <QStandardPaths>
 #include <QString>
 
@@ -69,66 +63,6 @@ BackupChoices::get_backups_async()
         Metadata m(generate_new_uuid(), "System Data"); // FIXME: how to i18n in a Qt DBus service?
         m.set_property_value(Metadata::TYPE_KEY, Metadata::SYSTEM_DATA_VALUE);
         backups_.push_back(m);
-    }
-
-    //
-    //  Click Packages
-    //
-
-    QString manifests_str;
-    GError* error {};
-    auto user = click_user_new_for_user(nullptr, nullptr, &error);
-    if (user != nullptr)
-    {
-        auto tmp = click_user_get_manifests_as_string (user, &error);
-        manifests_str = QString::fromUtf8(tmp);
-        g_clear_pointer(&tmp, g_free);
-        g_clear_object(&user);
-    }
-    if (error != nullptr)
-    {
-        qCritical() << "Error getting click manifests:" << error->message;
-        g_clear_error(&error);
-    }
-
-    auto loadDoc = QJsonDocument::fromJson(manifests_str.toUtf8());
-    auto tmp = loadDoc.toJson();
-    if (loadDoc.isArray())
-    {
-        auto manifests = loadDoc.array();
-        for(auto it=manifests.begin(), end=manifests.end(); it!=end; ++it)
-        {
-            const auto& manifest (*it);
-            if (manifest.isObject())
-            {
-                auto o = manifest.toObject();
-
-                // manditory name
-                const auto name = o[Metadata::NAME_KEY];
-                if (name == QJsonValue::Undefined)
-                    continue;
-
-                // manditory title
-                const auto title = o[Metadata::TITLE_KEY];
-                if (title == QJsonValue::Undefined)
-                    continue;
-                QString display_name = title.toString();
-
-                // if version is available, append it to display_name
-                const auto version = o[Metadata::VERSION_KEY];
-                if (version != QJsonValue::Undefined)
-                    display_name = QStringLiteral("%1 (%2)").arg(display_name).arg(version.toString());
-
-                Metadata m(generate_new_uuid(), display_name);
-                m.set_property_value(Metadata::PACKAGE_KEY, name.toString());
-                m.set_property_value(Metadata::TYPE_KEY, Metadata::APPLICATION_VALUE);
-
-                if (version != QJsonValue::Undefined)
-                    m.set_property_value(Metadata::VERSION_KEY, version.toString());
-
-                backups_.push_back(m);
-            }
-        }
     }
 
     //
