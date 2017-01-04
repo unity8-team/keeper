@@ -20,4 +20,4 @@
 #
 
 echo $PWD
-# TODO, please place here your restore helper code.
+@CMAKE_INSTALL_FULL_PKGLIBEXECDIR@/keeper-untar -a /com/canonical/keeper/helper
