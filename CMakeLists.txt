@@ -82,7 +82,6 @@ pkg_check_modules(SERVICE_DEPS REQUIRED
     click-0.4>=0.4.30
     glib-2.0
     gobject-2.0
-    json-glib-1.0
     libarchive>=3.1.2
     uuid>=2.25
 )
