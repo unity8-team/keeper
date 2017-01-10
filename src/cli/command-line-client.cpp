@@ -40,7 +40,7 @@ CommandLineClient::CommandLineClient(QObject * parent)
 
 CommandLineClient::~CommandLineClient() = default;
 
-void CommandLineClient::run_list_sections(bool remote)
+void CommandLineClient::run_list_sections(bool remote, QString const & storage)
 {
     keeper::Items choices_values;
     keeper::Error error;
@@ -52,13 +52,18 @@ void CommandLineClient::run_list_sections(bool remote)
     }
     else
     {
-        choices_values = keeper_client_->getRestoreChoices(error);
+        choices_values = keeper_client_->getRestoreChoices(storage, error);
         check_for_choices_error(error);
         list_restore_sections(choices_values);
     }
 }
 
-void CommandLineClient::run_backup(QStringList & sections)
+void CommandLineClient::run_list_storage_accounts()
+{
+    list_storage_accounts(keeper_client_->getStorageAccounts());
+}
+
+void CommandLineClient::run_backup(QStringList & sections, QString const & storage)
 {
     auto unhandled_sections = sections;
     keeper::Error error;
@@ -101,15 +106,16 @@ void CommandLineClient::run_backup(QStringList & sections)
     {
         keeper_client_->enableBackup(uuid, true);
     }
-    keeper_client_->startBackup();
+    keeper_client_->startBackup(storage);
     view_->start_printing_tasks();
 }
 
-void CommandLineClient::run_restore(QStringList & sections)
+void CommandLineClient::run_restore(QStringList & sections, QString const & storage)
 {
     auto unhandled_sections = sections;
     keeper::Error error;
-    auto choices_values = keeper_client_->getRestoreChoices(error);
+
+    auto choices_values = keeper_client_->getRestoreChoices(storage, error);
     check_for_choices_error(error);
     QStringList uuids;
 
@@ -149,8 +155,13 @@ void CommandLineClient::run_restore(QStringList & sections)
     {
         keeper_client_->enableRestore(uuid, true);
     }
-    keeper_client_->startRestore();
+    keeper_client_->startRestore(storage);
     view_->start_printing_tasks();
+}
+
+void CommandLineClient::run_cancel() const
+{
+    keeper_client_->cancel();
 }
 
 void CommandLineClient::list_backup_sections(keeper::Items const & choices_values)
@@ -193,6 +204,11 @@ void CommandLineClient::list_restore_sections(keeper::Items const & choices_valu
         sections << "";
     }
     view_->print_sections(sections);
+}
+
+void CommandLineClient::list_storage_accounts(QStringList const & accounts)
+{
+    view_->print_sections(accounts);
 }
 
 void CommandLineClient::on_progress_changed()

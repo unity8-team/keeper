@@ -27,7 +27,7 @@ class CommandLineParser
 {
 public:
     Q_ENUMS(Command)
-    enum class Command {LIST_LOCAL_SECTIONS, LIST_REMOTE_SECTIONS, BACKUP, RESTORE};
+    enum class Command {LIST_LOCAL_SECTIONS, LIST_REMOTE_SECTIONS, LIST_STORAGE_ACCOUNTS, BACKUP, RESTORE};
     struct CommandArgs
     {
         Command cmd;
@@ -43,10 +43,13 @@ public:
 
 private:
     bool handle_list_sections(QCoreApplication const & app, CommandArgs & cmd_args);
+    bool handle_list_storage_accounts(QCoreApplication const & app, CommandArgs & cmd_args);
     bool handle_backup(QCoreApplication const & app, CommandArgs & cmd_args);
     bool handle_restore(QCoreApplication const & app, CommandArgs & cmd_args);
 
     bool check_number_of_args(QStringList const & args);
+
+    QString get_storage_string(QString const & value);
 
     QSharedPointer<QCommandLineParser> parser_;
 };

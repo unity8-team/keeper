@@ -41,18 +41,18 @@ public:
 
     ~TaskManagerPrivate() = default;
 
-    bool start_backup(QList<Metadata> const& tasks)
+    bool start_backup(QList<Metadata> const& tasks, QString const & storage)
     {
         auto const now = QDateTime::currentDateTime();
         backup_dir_name_ = now.toString("yyyy-MM-ddTHH-mm-ss");
         active_manifest_.reset(new Manifest(storage_, backup_dir_name_), [](Manifest *m){m->deleteLater();});
-        return start_tasks(tasks, Mode::BACKUP);
+        return start_tasks(tasks, storage, Mode::BACKUP);
     }
 
-    bool start_restore(QList<Metadata> const& tasks)
+    bool start_restore(QList<Metadata> const& tasks, QString const & storage)
     {
         qDebug() << "Starting restore...";
-        return start_tasks(tasks, Mode::RESTORE);
+        return start_tasks(tasks, storage, Mode::RESTORE);
     }
 
     /***
@@ -130,8 +130,9 @@ private:
 
     enum class Mode { IDLE, BACKUP, RESTORE };
 
-    bool start_tasks(QList<Metadata> const& tasks, Mode mode)
+    bool start_tasks(QList<Metadata> const& tasks, QString const & storage, Mode mode)
     {
+        storage_->set_storage(storage);
         bool success = true;
 
         if (!remaining_tasks_.isEmpty())
@@ -422,19 +423,19 @@ TaskManager::TaskManager(QSharedPointer<HelperRegistry> const & helper_registry,
 TaskManager::~TaskManager() = default;
 
 bool
-TaskManager::start_backup(QList<Metadata> const& tasks)
+TaskManager::start_backup(QList<Metadata> const& tasks, QString const & storage)
 {
     Q_D(TaskManager);
 
-    return d->start_backup(tasks);
+    return d->start_backup(tasks, storage);
 }
 
 bool
-TaskManager::start_restore(QList<Metadata> const& tasks)
+TaskManager::start_restore(QList<Metadata> const& tasks, QString const & storage)
 {
     Q_D(TaskManager);
 
-    return d->start_restore(tasks);
+    return d->start_restore(tasks, storage);
 }
 
 keeper::Items TaskManager::get_state() const

@@ -44,7 +44,8 @@ enum class Error
     READING_REMOTE_FILE,
     REMOTE_DIR_NOT_EXISTS,
     NO_REMOTE_ACCOUNTS,
-    NO_REMOTE_ROOTS
+    NO_REMOTE_ROOTS,
+    ACCOUNT_NOT_FOUND
 };
 
 Error convert_from_dbus_variant(const QVariant & value, bool *conversion_ok = nullptr);

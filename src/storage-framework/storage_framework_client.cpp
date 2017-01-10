@@ -59,7 +59,31 @@ StorageFrameworkClient::choose(QVector<sf::Account::SPtr> const& choices) const
     }
     else // for now just pick the first one. FIXME
     {
-        ret = choices.front();
+        for (auto account : choices)
+        {
+            qDebug() << "Storage framework account found: [" << get_account_id(account) << "]";
+        }
+        if (storage_id_.isEmpty())
+        {
+            // FIXME use the default one, taking it from where it is defined
+            ret = choices.front();
+        }
+        else
+        {
+            for (auto account : choices)
+            {
+                if (get_account_id(account) == storage_id_)
+                {
+                    ret = account;
+                    break;
+                }
+            }
+            if (!ret)
+            {
+                qWarning() << "Storage framework account [" << storage_id_ << "] was not found";
+                last_error_ = keeper::Error::ACCOUNT_NOT_FOUND;
+            }
+        }
     }
 
     return ret;
@@ -70,15 +94,18 @@ StorageFrameworkClient::choose(QVector<sf::Root::SPtr> const& choices) const
 {
     sf::Root::SPtr ret;
 
-    qDebug() << "choosing from" << choices.size() << "roots";
-    if (choices.empty())
+    if (last_error_ != keeper::Error::ACCOUNT_NOT_FOUND)
     {
-        qWarning() << "no storage-framework roots to pick from";
-        last_error_ = keeper::Error::NO_REMOTE_ROOTS;
-    }
-    else // for now just pick the first one. FIXME
-    {
-        ret = choices.front();
+        qDebug() << "choosing from" << choices.size() << "roots";
+        if (choices.empty())
+        {
+            qWarning() << "no storage-framework roots to pick from";
+            last_error_ = keeper::Error::NO_REMOTE_ROOTS;
+        }
+        else // for now just pick the first one. FIXME
+        {
+            ret = choices.front();
+        }
     }
 
     return ret;
@@ -102,7 +129,17 @@ StorageFrameworkClient::add_roots_task(std::function<void(QVector<sf::Root::SPtr
         auto account = choose(accounts);
         if (account)
             connection_helper_.connect_future(account->roots(), task);
+        else
+        {
+            QVector<sf::Root::SPtr> no_accounts;
+            task(no_accounts);
+        }
     });
+}
+
+void StorageFrameworkClient::set_storage(QString const & storage)
+{
+    storage_id_ = storage;
 }
 
 QFuture<std::shared_ptr<Uploader>>
@@ -296,6 +333,7 @@ StorageFrameworkClient::get_keeper_dirs()
         }
         else
         {
+            qDebug() << "No dirs were found";
             QVector<QString> res;
             QFutureInterface<decltype(res)> qfi(fi);
             qfi.reportResult(res);
@@ -309,6 +347,25 @@ keeper::Error
 StorageFrameworkClient::get_last_error() const
 {
     return last_error_;
+}
+
+QFuture<QStringList>
+StorageFrameworkClient::get_accounts()
+{
+    QFutureInterface<QStringList> fi;
+    add_accounts_task([this, fi](QVector<sf::Account::SPtr> const& accounts)
+    {
+        QFutureInterface<QStringList> qfi(fi);
+        QStringList ret_accounts;
+        for (auto account: accounts)
+        {
+            ret_accounts << get_account_id(account);
+        }
+        qfi.reportResult(ret_accounts);
+        qfi.reportFinished();
+    });
+
+    return fi.future();
 }
 
 QFuture<sf::Folder::SPtr>
@@ -476,4 +533,10 @@ void
 StorageFrameworkClient::clear_last_error()
 {
     last_error_ = keeper::Error::OK;
+}
+
+QString
+StorageFrameworkClient::get_account_id(unity::storage::qt::client::Account::SPtr const & account)
+{
+    return QStringLiteral("%1:%2").arg(account->owner_id()).arg(account->description());
 }

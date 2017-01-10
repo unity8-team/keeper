@@ -22,6 +22,7 @@
 
 #include <dbus-types.h>
 #include <util/logging.h>
+#include "util/unix-signal-handler.h"
 
 #include <keeper_user_interface.h>
 
@@ -43,6 +44,12 @@ main(int argc, char **argv)
     DBusTypes::registerMetaTypes();
     std::srand(unsigned(std::time(nullptr)));
 
+    util::UnixSignalHandler handler([]{
+        CommandLineClient client;
+        client.run_cancel();
+    });
+    handler.setupUnixSignalHandlers();
+
     // boilerplate locale
     bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
     setlocale(LC_ALL, "");
@@ -63,15 +70,19 @@ main(int argc, char **argv)
                 client.run_list_sections(false);
                 exit(0);
                 break;
+            case CommandLineParser::Command::LIST_STORAGE_ACCOUNTS:
+                client.run_list_storage_accounts();
+                exit(0);
+                break;
             case CommandLineParser::Command::LIST_REMOTE_SECTIONS:
-                client.run_list_sections(true);
+                client.run_list_sections(true, cmd_args.storage);
                 exit(0);
                 break;
             case CommandLineParser::Command::BACKUP:
-                client.run_backup(cmd_args.sections);
+                client.run_backup(cmd_args.sections, cmd_args.storage);
                 break;
             case CommandLineParser::Command::RESTORE:
-                client.run_restore(cmd_args.sections);
+                client.run_restore(cmd_args.sections, cmd_args.storage);
                 break;
         };
     }

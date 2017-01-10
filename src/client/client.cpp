@@ -199,7 +199,7 @@ void KeeperClient::enableRestore(QString uuid, bool enabled)
     enableBackup(uuid, enabled);
 }
 
-void KeeperClient::startBackup()
+void KeeperClient::startBackup(QString const & storage)
 {
     // Determine which backups are enabled, and start only those
     QStringList backupList;
@@ -213,7 +213,7 @@ void KeeperClient::startBackup()
 
     if (!backupList.empty())
     {
-        startBackup(backupList);
+        startBackup(backupList, storage);
 
         d->mode = KeeperClientPrivate::TasksMode::BACKUP_MODE;
         d->status = "Preparing Backup...";
@@ -223,7 +223,7 @@ void KeeperClient::startBackup()
     }
 }
 
-void KeeperClient::startRestore()
+void KeeperClient::startRestore(QString const & storage)
 {
     // Determine which restores are enabled, and start only those
     QStringList restoreList;
@@ -237,13 +237,23 @@ void KeeperClient::startRestore()
 
     if (!restoreList.empty())
     {
-        startRestore(restoreList);
+        startRestore(restoreList, storage);
 
         d->mode = KeeperClientPrivate::TasksMode::RESTORE_MODE;
         d->status = "Preparing Restore...";
         Q_EMIT statusChanged();
         d->backupBusy = true;
         Q_EMIT backupBusyChanged();
+    }
+}
+
+void KeeperClient::cancel()
+{
+    QDBusReply<void> cancelReply = d->userIface->call("Cancel");
+
+    if (!cancelReply.isValid())
+    {
+        qWarning() << "Error canceling" << cancelReply.error().message();
     }
 }
 
@@ -258,15 +268,15 @@ keeper::Items KeeperClient::getBackupChoices(keeper::Error & error) const
     return KeeperClientPrivate::getValue(choices, error);
 }
 
-keeper::Items KeeperClient::getRestoreChoices(keeper::Error & error) const
+keeper::Items KeeperClient::getRestoreChoices(QString const & storage, keeper::Error & error) const
 {
-    QDBusMessage choices = d->userIface->call("GetRestoreChoices");
+    QDBusMessage choices = d->userIface->call("GetRestoreChoices", storage);
     return KeeperClientPrivate::getValue(choices, error);
 }
 
-void KeeperClient::startBackup(const QStringList& uuids) const
+void KeeperClient::startBackup(const QStringList& uuids, QString const & storage) const
 {
-    QDBusReply<void> backupReply = d->userIface->call("StartBackup", uuids);
+    QDBusReply<void> backupReply = d->userIface->call("StartBackup", uuids, storage);
 
     if (!backupReply.isValid())
     {
@@ -274,9 +284,9 @@ void KeeperClient::startBackup(const QStringList& uuids) const
     }
 }
 
-void KeeperClient::startRestore(const QStringList& uuids) const
+void KeeperClient::startRestore(const QStringList& uuids, QString const & storage) const
 {
-    QDBusReply<void> backupReply = d->userIface->call("StartRestore", uuids);
+    QDBusReply<void> backupReply = d->userIface->call("StartRestore", uuids, storage);
 
     if (!backupReply.isValid())
     {
@@ -287,6 +297,20 @@ void KeeperClient::startRestore(const QStringList& uuids) const
 keeper::Items KeeperClient::getState() const
 {
     return d->userIface->state();
+}
+
+QStringList KeeperClient::getStorageAccounts() const
+{
+     return d->userIface->GetStorageAccounts();
+     QDBusPendingReply<QStringList> accountsReply = d->userIface->call("GetStorageAccounts");
+
+     accountsReply.waitForFinished();
+     if (!accountsReply.isValid())
+     {
+         qWarning() << "Error retrieving storage accounts:" << accountsReply.error().message();
+     }
+
+     return accountsReply.value();
 }
 
 void KeeperClient::stateUpdated()

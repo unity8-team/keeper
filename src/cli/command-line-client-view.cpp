@@ -177,6 +177,9 @@ QString CommandLineClientView::get_error_string(keeper::Error error)
         case keeper::Error::NO_REMOTE_ROOTS:
             ret = QStringLiteral("No remote root accounts were found");
             break;
+        case keeper::Error::ACCOUNT_NOT_FOUND:
+            ret = QStringLiteral("The storage account was not found");
+            break;
     }
     return ret;
 }

@@ -56,19 +56,22 @@ public:
 
     Q_INVOKABLE QString getBackupName(QString uuid);
     Q_INVOKABLE void enableBackup(QString uuid, bool enabled);
-    Q_INVOKABLE void startBackup();
+    Q_INVOKABLE void startBackup(QString const & storage);
 
     Q_INVOKABLE void enableRestore(QString uuid, bool enabled);
-    Q_INVOKABLE void startRestore();
+    Q_INVOKABLE void startRestore(QString const & storage);
+
+    Q_INVOKABLE void cancel();
 
 // C++
 public:
     keeper::Items getBackupChoices(keeper::Error & error) const;
-    keeper::Items getRestoreChoices(keeper::Error & error) const;
-    void startBackup(QStringList const& uuids) const;
-    void startRestore(QStringList const& uuids) const;
+    keeper::Items getRestoreChoices(QString const & storage, keeper::Error & error) const;
+    void startBackup(QStringList const& uuids, QString const & storage) const;
+    void startRestore(QStringList const& uuids, QString const & storage) const;
 
     keeper::Items getState() const;
+    QStringList getStorageAccounts() const;
 
 Q_SIGNALS:
     void statusChanged();

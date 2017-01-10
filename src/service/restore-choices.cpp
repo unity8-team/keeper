@@ -42,9 +42,10 @@ RestoreChoices::get_backups() const
 }
 
 void
-RestoreChoices::get_backups_async()
+RestoreChoices::get_backups_async(QString const & storage)
 {
     backups_.clear();
+    storage_->set_storage(storage);
     connections_.connect_future(
         storage_->get_keeper_dirs(),
         std::function<void(QVector<QString> const &)>{

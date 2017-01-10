@@ -59,7 +59,7 @@ BackupChoices::get_backups() const
 }
 
 void
-BackupChoices::get_backups_async()
+BackupChoices::get_backups_async(QString const & /*storage*/)
 {
     backups_.clear();
     //

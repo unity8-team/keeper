@@ -42,13 +42,13 @@ KeeperUser::GetBackupChoices()
 }
 
 void
-KeeperUser::StartBackup (const QStringList& keys)
+KeeperUser::StartBackup (const QStringList& keys, QString const & storage)
 {
     Q_ASSERT(calledFromDBus());
 
     auto bus = connection();
     auto& msg = message();
-    keeper_.start_tasks(keys, bus, msg);
+    keeper_.start_tasks(keys, storage, bus, msg);
 }
 
 void
@@ -58,17 +58,17 @@ KeeperUser::Cancel()
 }
 
 keeper::Items
-KeeperUser::GetRestoreChoices()
+KeeperUser::GetRestoreChoices(QString const & storage)
 {
     Q_ASSERT(calledFromDBus());
 
     auto bus = connection();
     auto& msg = message();
-    return keeper_.get_restore_choices(bus, msg);
+    return keeper_.get_restore_choices(storage, bus, msg);
 }
 
 void
-KeeperUser::StartRestore (const QStringList& keys)
+KeeperUser::StartRestore (const QStringList& keys, QString const & storage)
 {
     Q_ASSERT(calledFromDBus());
 
@@ -78,11 +78,22 @@ KeeperUser::StartRestore (const QStringList& keys)
     // will be found as a backup uuid.
     // Just clear the backup cache to avoid that.
     keeper_.invalidate_choices_cache();
-    keeper_.start_tasks(keys, bus, msg);
+    keeper_.start_tasks(keys, storage, bus, msg);
 }
 
 keeper::Items
 KeeperUser::get_state() const
 {
     return keeper_.get_state();
+}
+
+QStringList
+KeeperUser::GetStorageAccounts()
+{
+    Q_ASSERT(calledFromDBus());
+
+    auto bus = connection();
+    auto& msg = message();
+
+    return keeper_.get_storage_accounts(bus, msg);
 }

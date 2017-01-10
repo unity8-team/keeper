@@ -50,9 +50,9 @@ public:
                NOTIFY state_changed)
 
 
-    bool start_backup(QList<Metadata> const& tasks);
+    bool start_backup(QList<Metadata> const& tasks, QString const & storage);
 
-    bool start_restore(QList<Metadata> const& tasks);
+    bool start_restore(QList<Metadata> const& tasks, QString const & storage);
 
     keeper::Items get_state() const;
 

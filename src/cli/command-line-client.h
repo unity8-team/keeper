@@ -36,9 +36,11 @@ public:
 
     Q_DISABLE_COPY(CommandLineClient)
 
-    void run_list_sections(bool remote);
-    void run_backup(QStringList & sections);
-    void run_restore(QStringList & sections);
+    void run_list_sections(bool remote, QString const & storage = "");
+    void run_list_storage_accounts();
+    void run_backup(QStringList & sections, QString const & storage);
+    void run_restore(QStringList & sections, QString const & storage);
+    void run_cancel() const;
 
 private Q_SLOTS:
     void on_progress_changed();
@@ -49,6 +51,7 @@ private:
     bool find_choice_value(QVariantMap const & choice, QString const & id, QVariant & value);
     void list_backup_sections(keeper::Items const & choices);
     void list_restore_sections(keeper::Items const & choices);
+    void list_storage_accounts(QStringList const & accounts);
     void check_for_choices_error(keeper::Error error);
     QScopedPointer<KeeperClient> keeper_client_;
     QScopedPointer<CommandLineClientView> view_;

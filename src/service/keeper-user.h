@@ -50,12 +50,14 @@ Q_SIGNALS:
 public Q_SLOTS:
 
     keeper::Items GetBackupChoices();
-    void StartBackup(const QStringList&);
+    void StartBackup(const QStringList&, QString const & storage);
 
-    keeper::Items GetRestoreChoices();
-    void StartRestore(const QStringList&);
+    keeper::Items GetRestoreChoices(QString const & storage);
+    void StartRestore(const QStringList&, QString const & storage);
 
     void Cancel();
+
+    QStringList GetStorageAccounts();
 
 private:
 

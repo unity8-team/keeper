@@ -90,6 +90,7 @@ public:
     Q_DISABLE_COPY(KeeperPrivate)
 
     void start_tasks(QStringList const & uuids,
+                     QString const & storage,
                      QDBusConnection bus,
                      QDBusMessage const & msg)
     {
@@ -108,12 +109,12 @@ public:
         connections_.connect_oneshot(
             this,
             &KeeperPrivate::backup_choices_ready,
-            std::function<void()>{[this, uuids, msg, bus, get_tasks](){
+            std::function<void()>{[this, uuids, msg, bus, get_tasks, storage](){
                 auto tasks = get_tasks(cached_backup_choices_, uuids);
                 if (!tasks.empty())
                 {
                     auto unhandled = QSet<QString>::fromList(uuids);
-                    if (task_manager_.start_backup(tasks.values()))
+                    if (task_manager_.start_backup(tasks.values(), storage))
                         unhandled.subtract(QSet<QString>::fromList(tasks.keys()));
 
                     check_for_unhandled_tasks_and_reply(unhandled, bus, msg);
@@ -124,14 +125,14 @@ public:
                     connections_.connect_oneshot(
                         this,
                         &KeeperPrivate::restore_choices_ready,
-                        std::function<void(keeper::Error)>{[this, uuids, msg, bus, get_tasks](keeper::Error error){
+                        std::function<void(keeper::Error)>{[this, uuids, msg, bus, get_tasks, storage](keeper::Error error){
                             qDebug() << "Choices ready";
                             auto unhandled = QSet<QString>::fromList(uuids);
                             if (error == keeper::Error::OK)
                             {
                                 auto restore_tasks = get_tasks(cached_restore_choices_, uuids);
                                 qDebug() << "After getting tasks...";
-                                if (!restore_tasks.empty() && task_manager_.start_restore(restore_tasks.values()))
+                                if (!restore_tasks.empty() && task_manager_.start_restore(restore_tasks.values(), storage))
                                     unhandled.subtract(QSet<QString>::fromList(restore_tasks.keys()));
                             }
                             check_for_unhandled_tasks_and_reply(unhandled, bus, msg);
@@ -159,7 +160,7 @@ public:
         }
     }
 
-    void get_choices(const QSharedPointer<MetadataProvider> & provider, ChoicesType type)
+    void get_choices(const QSharedPointer<MetadataProvider> & provider, ChoicesType type, QString const & storage = "")
     {
         bool check_empty = (type == KeeperPrivate::ChoicesType::BACKUP_CHOICES)
                             ? cached_backup_choices_.isEmpty() : cached_restore_choices_.isEmpty();
@@ -185,7 +186,7 @@ public:
                     emit_choices_ready(type, error);
                 }}
             );
-            provider->get_backups_async();
+            provider->get_backups_async(storage);
         }
         else
         {
@@ -223,10 +224,11 @@ public:
         return keeper::Items();
     }
 
-    keeper::Items get_restore_choices_var_dict_map(QDBusConnection bus,
+    keeper::Items get_restore_choices_var_dict_map(QString const & storage,
+                                                   QDBusConnection bus,
                                                    QDBusMessage const & msg)
     {
-        qDebug() << "Getting restores  --------------------------------";
+        qDebug() << "Getting restores for storage " << storage << " --------------------------------";
         cached_restore_choices_.clear();
         connections_.connect_oneshot(
             this,
@@ -250,7 +252,7 @@ public:
                 }
             }}
         );
-        get_choices(restore_choices_, KeeperPrivate::ChoicesType::RESTORES_CHOICES);
+        get_choices(restore_choices_, KeeperPrivate::ChoicesType::RESTORES_CHOICES, storage);
         msg.setDelayedReply(true);
         return keeper::Items();
     }
@@ -347,6 +349,25 @@ public:
         cached_backup_choices_.clear();
     }
 
+    QStringList get_storage_accounts(QDBusConnection bus,
+                                     QDBusMessage const & msg)
+    {
+        connections_.connect_future(
+            storage_->get_accounts(),
+            std::function<void(QStringList const &)>{
+                [this, msg, bus](QStringList const& accounts){
+                    qDebug() << "get_storage_accounts() finished";
+                    // reply now to the dbus call
+                    auto reply = msg.createReply();
+                    reply << QVariant::fromValue(accounts);
+                    bus.send(reply);
+                }
+            }
+        );
+        msg.setDelayedReply(true);
+        return QStringList();
+    }
+
 Q_SIGNALS:
     void backup_choices_ready(keeper::Error error);
     void restore_choices_ready(keeper::Error error);
@@ -401,12 +422,13 @@ Keeper::~Keeper() = default;
 
 void
 Keeper::start_tasks(QStringList const & uuids,
+                    QString const & storage,
                     QDBusConnection bus,
                     QDBusMessage const & msg)
 {
     Q_D(Keeper);
 
-    d->start_tasks(uuids, bus, msg);
+    d->start_tasks(uuids, storage, bus, msg);
 }
 
 QDBusUnixFileDescriptor
@@ -438,12 +460,13 @@ Keeper::get_backup_choices_var_dict_map(QDBusConnection bus,
 }
 
 keeper::Items
-Keeper::get_restore_choices(QDBusConnection bus,
+Keeper::get_restore_choices(QString const & storage,
+                            QDBusConnection bus,
                             QDBusMessage const & msg)
 {
     Q_D(Keeper);
 
-    return d->get_restore_choices_var_dict_map(bus,msg);
+    return d->get_restore_choices_var_dict_map(storage, bus, msg);
 }
 
 keeper::Items
@@ -469,5 +492,15 @@ Keeper::invalidate_choices_cache()
 
     d->invalidate_choices_cache();
 }
+
+QStringList
+Keeper::get_storage_accounts(QDBusConnection bus,
+                             QDBusMessage const & message)
+{
+    Q_D(Keeper);
+
+    return d->get_storage_accounts(bus,message);
+}
+
 
 #include "keeper.moc"

@@ -32,10 +32,32 @@
         </doc:description>
         </doc:doc>
       </arg>
+      <arg direction="in" name="storage" type="s">
+        <doc:doc>
+        <doc:summary>The storage identifier</doc:summary>
+        <doc:description>
+        <doc:para>Because keeper supports multiple storage providers the user can define
+                  which is the storage provider to use.
+                  If the passed storage id is an empty string the default storage provider
+                  will be used.</doc:para>
+        </doc:description>
+        </doc:doc>
+      </arg>
     </method>
 
     <method name="GetRestoreChoices">
       <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="keeper::Items"/>
+      <arg direction="in" name="storage" type="s">
+        <doc:doc>
+        <doc:summary>The storage identifier</doc:summary>
+        <doc:description>
+        <doc:para>Because keeper supports multiple storage providers the user can define
+                  which is the storage provider to use.
+                  If the passed storage id is an empty string the default storage provider
+                  will be used.</doc:para>
+        </doc:description>
+        </doc:doc>
+      </arg>
       <arg direction="out" name="backups" type="a{sa{sv}}">
         <doc:doc>
         <doc:summary>The backups which already exist and can be restored</doc:summary>
@@ -62,6 +84,17 @@
         </doc:description>
         </doc:doc>
       </arg>
+      <arg direction="in" name="storage" type="s">
+        <doc:doc>
+        <doc:summary>The storage identifier</doc:summary>
+        <doc:description>
+        <doc:para>Because keeper supports multiple storage providers the user can define
+                  which is the storage provider to use.
+                  If the passed storage id is an empty string the default storage provider
+                  will be used.</doc:para>
+        </doc:description>
+        </doc:doc>
+      </arg>
     </method>
 
     <property name="State" type="a{sa{sv}}" access="read">
@@ -85,6 +118,17 @@
         </doc:description>
       </doc:doc>
     </property>
+
+    <method name="GetStorageAccounts">
+      <arg direction="out" name="accounts" type="as">
+        <doc:doc>
+        <doc:summary>The list of available storage accounts.</doc:summary>
+        <doc:description>
+        <doc:para>An array of the available accounts to choose from to backup/restore</doc:para>
+        </doc:description>
+        </doc:doc>
+      </arg>
+    </method>
 
     <method name="Cancel">
       <doc:doc>
