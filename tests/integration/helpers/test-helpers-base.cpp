@@ -26,6 +26,8 @@
 #include <sys/types.h>
 #include <signal.h>
 
+#include <cstdlib> // setenv(), unsetenv()
+
 using namespace QtDBusTest;
 using namespace QtDBusMock;
 
@@ -379,25 +381,25 @@ void TestHelpersBase::SetUp()
     Helper::registerMetaTypes();
     DBusTypes::registerMetaTypes();
 
-    g_setenv("XDG_DATA_DIRS", CMAKE_SOURCE_DIR, true);
-    g_setenv("XDG_CACHE_HOME", CMAKE_SOURCE_DIR "/libertine-data", true);
-    g_setenv("XDG_DATA_HOME", xdg_data_home_dir.path().toLatin1().data(), true);
+    setenv("XDG_DATA_DIRS", CMAKE_SOURCE_DIR, true);
+    setenv("XDG_CACHE_HOME", CMAKE_SOURCE_DIR "/libertine-data", true);
+    setenv("XDG_DATA_HOME", xdg_data_home_dir.path().toLatin1().data(), true);
 
     qDebug() << "XDG_DATA_HOME ON SETUP is:" << xdg_data_home_dir.path();
 
-    g_setenv("DBUS_SYSTEM_BUS_ADDRESS", dbus_test_runner.systemBus().toStdString().c_str(), true);
-    g_setenv("DBUS_SESSION_BUS_ADDRESS", dbus_test_runner.sessionBus().toStdString().c_str(), true);
+    setenv("DBUS_SYSTEM_BUS_ADDRESS", dbus_test_runner.systemBus().toStdString().c_str(), true);
+    setenv("DBUS_SESSION_BUS_ADDRESS", dbus_test_runner.sessionBus().toStdString().c_str(), true);
 
     dbus_test_runner.startServices();
 }
 
 void TestHelpersBase::TearDown()
 {
-    g_unsetenv("XDG_DATA_DIRS");
-    g_unsetenv("XDG_CACHE_HOME");
-    g_unsetenv("XDG_DATA_HOME");
-    g_unsetenv("DBUS_SYSTEM_BUS_ADDRESS");
-    g_unsetenv("DBUS_SESSION_BUS_ADDRESS");
+    unsetenv("XDG_DATA_DIRS");
+    unsetenv("XDG_CACHE_HOME");
+    unsetenv("XDG_DATA_HOME");
+    unsetenv("DBUS_SYSTEM_BUS_ADDRESS");
+    unsetenv("DBUS_SESSION_BUS_ADDRESS");
 
     // if the test failed, keep the artifacts so devs can examine them
     QDir data_home_dir(CMAKE_SOURCE_DIR "/libertine-home");

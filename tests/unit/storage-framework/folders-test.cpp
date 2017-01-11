@@ -26,7 +26,8 @@
 #include <QTemporaryDir>
 
 #include <gtest/gtest.h>
-#include <glib.h>
+
+#include <cstdlib> // setenv(), unsetenv()
 
 namespace sf = unity::storage::qt::client;
 
@@ -42,7 +43,7 @@ TEST(SF, FoldersTest)
         test_dirs.push_back(QString("test_dir_%1").arg(i+1));
     }
 
-    g_setenv("XDG_DATA_HOME", tmp_dir.path().toLatin1().data(), true);
+    setenv("XDG_DATA_HOME", tmp_dir.path().toLatin1().data(), true);
     StorageFrameworkClient sf_client;
 
     for (auto i = 0; i < nb_tests; ++i)
@@ -105,5 +106,5 @@ TEST(SF, FoldersTest)
         EXPECT_TRUE(found);
     }
 
-    g_unsetenv("XDG_DATA_HOME");
+    unsetenv("XDG_DATA_HOME");
 }

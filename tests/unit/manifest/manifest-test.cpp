@@ -31,7 +31,8 @@
 #include <QTemporaryDir>
 
 #include <gtest/gtest.h>
-#include <glib.h>
+
+#include <cstdlib> // setenv(), unsetenv()
 
 TEST(ManifestClass, AddEntries)
 {
@@ -74,7 +75,7 @@ TEST(ManifestClass, StoreTest)
     QTemporaryDir tmp_dir;
     QString test_dir = QStringLiteral("test_dir");
 
-    g_setenv("XDG_DATA_HOME", tmp_dir.path().toLatin1().data(), true);
+    setenv("XDG_DATA_HOME", tmp_dir.path().toLatin1().data(), true);
 
     QSharedPointer<StorageFrameworkClient> sf_client(new StorageFrameworkClient, [](StorageFrameworkClient* sf){sf->deleteLater();});
     Manifest manifest(sf_client, test_dir);
@@ -166,5 +167,5 @@ TEST(ManifestClass, StoreTest)
         EXPECT_EQ(metadata_with_sf[i], original_metadata[i]);
     }
 
-    g_unsetenv("XDG_DATA_HOME");
+    unsetenv("XDG_DATA_HOME");
 }

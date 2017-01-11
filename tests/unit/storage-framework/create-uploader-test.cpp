@@ -26,7 +26,8 @@
 #include <QTemporaryDir>
 
 #include <gtest/gtest.h>
-#include <glib.h>
+
+#include <cstdlib> // setenv(), unsetenv()
 
 namespace sf = unity::storage::qt::client;
 
@@ -43,7 +44,7 @@ TEST(SF, CreateUploaderWithCommitAndDispose)
     QString test_dir = QStringLiteral("test_dir");
     QString test_file_name = QStringLiteral("test_file");
 
-    g_setenv("XDG_DATA_HOME", tmp_dir.path().toLatin1().data(), true);
+    setenv("XDG_DATA_HOME", tmp_dir.path().toLatin1().data(), true);
     qDebug() << "XDG_DATA_HOME is:" << qPrintable(tmp_dir.path());
 
     StorageFrameworkClient sf_client;
@@ -143,5 +144,5 @@ TEST(SF, CreateUploaderWithCommitAndDispose)
     // check that files are exactly the same than before the second uploader
     EXPECT_EQ(sf_files, sf_files_after_dispose);
 
-    g_unsetenv("XDG_DATA_HOME");
+    unsetenv("XDG_DATA_HOME");
 }
