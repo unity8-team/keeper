@@ -8,7 +8,6 @@ Build-Depends: cmake,
                debhelper (>= 9), 
 # for building the code:
                libarchive-dev (>= 3.1.2),
-               libproperties-cpp-dev,
                libubuntu-app-launch2-dev (>= 0.9),
                storage-framework-client-dev,
                uuid-dev,
