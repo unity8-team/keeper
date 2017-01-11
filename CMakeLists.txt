@@ -79,7 +79,6 @@ include_directories(SYSTEM ${Qt5Network_INCLUDE_DIRS})
 find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(SERVICE_DEPS REQUIRED
-    click-0.4>=0.4.30
     libarchive>=3.1.2
     uuid>=2.25
 )
