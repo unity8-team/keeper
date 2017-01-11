@@ -83,7 +83,7 @@ TEST_F(TestHelpers, BackupHelperWritesTooMuch)
     QSignalSpy spy(properties_interface.data(),&DBusPropertiesInterface::PropertiesChanged);
 
     // Now we know the music folder uuid, let's start the backup for it.
-    QDBusReply<void> backup_reply = user_iface->call("StartBackup", QStringList{user_folder_uuid});
+    QDBusReply<void> backup_reply = user_iface->call("StartBackup", QStringList{user_folder_uuid}, "");
     ASSERT_TRUE(backup_reply.isValid()) << qPrintable(dbus_test_runner.sessionConnection().lastError().message());
 
     // waits until all tasks are complete, recording PropertiesChanged signals

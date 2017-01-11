@@ -301,7 +301,6 @@ keeper::Items KeeperClient::getState() const
 
 QStringList KeeperClient::getStorageAccounts() const
 {
-     return d->userIface->GetStorageAccounts();
      QDBusPendingReply<QStringList> accountsReply = d->userIface->call("GetStorageAccounts");
 
      accountsReply.waitForFinished();

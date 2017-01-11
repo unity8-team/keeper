@@ -128,7 +128,7 @@ TEST_F(TestHelpers, StartFullTest)
     QSignalSpy spy(properties_interface.data(),&DBusPropertiesInterface::PropertiesChanged);
 
     // Now we know the music folder uuid, let's start the backup for it.
-    QDBusReply<void> backup_reply = user_iface->call("StartBackup", QStringList{user_folder_uuid, user_folder_uuid_2});
+    QDBusReply<void> backup_reply = user_iface->call("StartBackup", QStringList{user_folder_uuid, user_folder_uuid_2}, "");
     ASSERT_TRUE(backup_reply.isValid()) << qPrintable(dbus_test_runner.sessionConnection().lastError().message());
 
     // waits until all tasks are complete, recording PropertiesChanged signals
@@ -145,7 +145,7 @@ TEST_F(TestHelpers, StartFullTest)
     // finally check that we have a valid manifest file.
     EXPECT_TRUE(check_manifest_file(backup_items));
 
-    QDBusPendingReply<keeper::Items> restore_choices_reply = user_iface->call("GetRestoreChoices");
+    QDBusPendingReply<keeper::Items> restore_choices_reply = user_iface->call("GetRestoreChoices", "");
     restore_choices_reply.waitForFinished();
     EXPECT_TRUE(restore_choices_reply.isValid()) << qPrintable(choices.error().message());
 
@@ -158,7 +158,7 @@ TEST_F(TestHelpers, StartFullTest)
     EXPECT_EQ(user_folder_uuid, iter_restore.key());
 
     // ask to restore that uuid
-    QDBusPendingReply<void> restore_reply = user_iface->call("StartRestore", QStringList{iter_restore.key()});
+    QDBusPendingReply<void> restore_reply = user_iface->call("StartRestore", QStringList{iter_restore.key()}, "");
     restore_reply.waitForFinished();
     ASSERT_TRUE(restore_reply.isValid()) << qPrintable(dbus_test_runner.sessionConnection().lastError().message());
 
@@ -168,7 +168,7 @@ TEST_F(TestHelpers, StartFullTest)
 
     // verify that the file that the fake restore helper creates is one of the ones in storage framework
     QString storage_framework_file_path;
-    EXPECT_TRUE(StorageFrameworkLocalUtils::get_storage_frameowork_file_equal_to(TEST_RESTORE_FILE_PATH, storage_framework_file_path));
+    EXPECT_TRUE(StorageFrameworkLocalUtils::get_storage_framework_file_equal_to(TEST_RESTORE_FILE_PATH, storage_framework_file_path));
 
     // Finally check that the storage framework file that matched is the right one
     // Keeper uses the display name plus .keeper extension for the files it creates
@@ -237,7 +237,7 @@ TEST_F(TestHelpers, StartFullTestCancelling)
     QSignalSpy spy(properties_interface.data(),&DBusPropertiesInterface::PropertiesChanged);
 
     // Now we know the music folder uuid, let's start the backup for it.
-    QDBusReply<void> backup_reply = user_iface->call("StartBackup", QStringList{user_folder_uuid, user_folder_uuid_2});
+    QDBusReply<void> backup_reply = user_iface->call("StartBackup", QStringList{user_folder_uuid, user_folder_uuid_2}, "");
     ASSERT_TRUE(backup_reply.isValid()) << qPrintable(dbus_test_runner.sessionConnection().lastError().message());
 
     EXPECT_TRUE(cancel_first_task_at_percentage(spy, 0.05, user_iface));
@@ -266,7 +266,7 @@ TEST_F(TestHelpers, CheckBadUUIDS)
     ASSERT_TRUE(user_iface->isValid()) << qPrintable(dbus_test_runner.sessionConnection().lastError().message());
 
     // Now we know the music folder uuid, let's start the backup for it.
-    QDBusReply<void> backup_reply = user_iface->call("StartBackup", QStringList{"bad_uuid_1", "bad_uuid_2"});
+    QDBusReply<void> backup_reply = user_iface->call("StartBackup", QStringList{"bad_uuid_1", "bad_uuid_2"}, "");
 
     ASSERT_FALSE(backup_reply.isValid());
 

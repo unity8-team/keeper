@@ -170,7 +170,7 @@ QString get_storage_framework_dir_name()
             : "";
 }
 
-bool get_storage_frameowork_file_equal_to(QString const & file_path, QString & path)
+bool get_storage_framework_file_equal_to(QString const & file_path, QString & path)
 {
     auto const backups = get_storage_framework_files();
     for (auto const& backup : backups)
@@ -185,7 +185,7 @@ bool get_storage_frameowork_file_equal_to(QString const & file_path, QString & p
     return false;
 }
 
-bool get_storage_frameowork_file_equal_in_size_to(QString const & file_path, QString & path)
+bool get_storage_framework_file_equal_in_size_to(QString const & file_path, QString & path)
 {
     auto const backups = get_storage_framework_files();
     for (auto const& backup : backups)
