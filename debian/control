@@ -22,7 +22,6 @@ Build-Depends: cmake,
                libgtest-dev,
                google-mock (>= 1.6.0+svn437),
                python3-dbusmock (>= 0.16.3),
-               libdbustest1-dev,
                libqtdbusmock1-dev (>= 0.4),
                libqtdbustest1-dev,
 # for the dbusmock template:

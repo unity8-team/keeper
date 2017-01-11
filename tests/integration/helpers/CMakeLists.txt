@@ -11,10 +11,6 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 pkg_check_modules(HELPERS_TEST_DEPS REQUIRED
   ubuntu-app-launch-2
-  dbustest-1>=14.04.0
-  glib-2.0>=2.26
-  gio-2.0>=2.26
-  gio-unix-2.0
 )
 
 include_directories(
