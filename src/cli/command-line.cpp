@@ -153,8 +153,6 @@ bool CommandLineParser::handle_backup(QCoreApplication const & app, CommandLineP
                 QCoreApplication::translate("main", OPTION_SECTIONS_DESCRIPTION),
                 QCoreApplication::translate("main", OPTION_SECTIONS_DESCRIPTION)
             },
-        });
-    parser_->addOptions({
             {{"r", OPTION_STORAGE},
                 QCoreApplication::translate("main", OPTION_STORAGE_DESCRIPTION),
                 QCoreApplication::translate("main", OPTION_STORAGE_DESCRIPTION)
@@ -190,8 +188,6 @@ bool CommandLineParser::handle_restore(QCoreApplication const & app, CommandLine
                 QCoreApplication::translate("main", OPTION_SECTIONS_DESCRIPTION),
                 QCoreApplication::translate("main", OPTION_SECTIONS_DESCRIPTION)
             },
-        });
-    parser_->addOptions({
             {{"r", OPTION_STORAGE},
                 QCoreApplication::translate("main", OPTION_STORAGE_DESCRIPTION),
                 QCoreApplication::translate("main", OPTION_STORAGE_DESCRIPTION)
