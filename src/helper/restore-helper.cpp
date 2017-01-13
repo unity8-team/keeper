@@ -208,6 +208,7 @@ private:
                         qDebug() << "Read error in restore helper: " << socket->errorString();
                         Q_EMIT(q_ptr->error(keeper::Error::HELPER_READ));
                         stop();
+                        check_for_done();
                         return;
                     }
                 }
@@ -227,6 +228,7 @@ private:
                         qWarning() << "Write error:" << write_socket_.errorString();
                         Q_EMIT(q_ptr->error(keeper::Error::HELPER_WRITE));
                         stop();
+                        check_for_done();
                     }
                     break;
                 }

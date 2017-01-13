@@ -59,7 +59,7 @@ StorageFrameworkClient::choose(QVector<sf::Account::SPtr> const& choices) const
     }
     else // for now just pick the first one. FIXME
     {
-        for (auto account : choices)
+        for (auto& account : choices)
         {
             qDebug() << "Storage framework account found: [" << get_account_id(account) << "]";
         }
@@ -70,7 +70,7 @@ StorageFrameworkClient::choose(QVector<sf::Account::SPtr> const& choices) const
         }
         else
         {
-            for (auto account : choices)
+            for (auto& account : choices)
             {
                 if (get_account_id(account) == storage_id_)
                 {
@@ -357,7 +357,7 @@ StorageFrameworkClient::get_accounts()
     {
         QFutureInterface<QStringList> qfi(fi);
         QStringList ret_accounts;
-        for (auto account: accounts)
+        for (auto& account: accounts)
         {
             ret_accounts << get_account_id(account);
         }

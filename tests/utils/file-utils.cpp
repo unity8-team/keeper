@@ -185,6 +185,92 @@ FileUtils::getFilesRecursively(QString const & dirPath)
 }
 
 bool
+FileUtils::copyDirsRecursively(QString const & source, QString const & dest)
+{
+    QFileInfo src_file_info(source);
+    QFileInfo dest_file_info(dest);
+
+    if (!src_file_info.isDir())
+    {
+        qWarning() << "Error copying directory " << source << ". It is not a directory";
+        return false;
+    }
+    if (!dest_file_info.exists())
+    {
+        if (!QDir().mkdir(dest))
+        {
+            qWarning() << "Error creating destination directory: " << dest;
+            return false;
+        }
+    }
+    QDir source_dir(source);
+    QStringList file_names = source_dir.entryList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System);
+    for (const auto &file_name : file_names)
+    {
+        const QString new_src_file_path
+                = source + QDir::separator() + file_name;
+        const QString new_dest_file_path
+                = dest + QDir::separator() + file_name;
+        QFileInfo new_src_file_path_info(new_src_file_path);
+        QFileInfo new_dest_file_path_info(new_dest_file_path);
+
+        if (new_src_file_path_info.isDir())
+        {
+            if (!copyDirsRecursively(new_src_file_path, new_dest_file_path))
+                return false;
+        }
+        else
+        {
+            if (!QFile::copy(new_src_file_path, new_dest_file_path))
+            {
+                qWarning() << "Error copying file " << new_src_file_path << " to " << new_dest_file_path;
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+bool
+FileUtils::removeDirRecursively(QString const & dir_path, bool remove_top)
+{
+    QDir dir(dir_path);
+
+    if (dir.exists())
+    {
+        auto entry_list = dir.entryInfoList(QDir::NoDotAndDotDot | QDir::System | QDir::Hidden  | QDir::AllDirs | QDir::Files, QDir::DirsFirst);
+        for(auto const & info : entry_list)
+        {
+            if (info.isDir())
+            {
+                if(!removeDirRecursively(info.absoluteFilePath(), true))
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                if(!QFile::remove(info.absoluteFilePath()))
+                {
+                    qWarning() << "Error removing file: " << info.absoluteFilePath();
+                    return false;
+                }
+            }
+        }
+        if (remove_top)
+        {
+            if(!QDir().rmdir(dir_path))
+            {
+                qWarning() << "Error removing directory: " << dir_path;
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool
 FileUtils::compareFiles(QString const & filePath1, QString const & filePath2)
 {
     QFileInfo info1(filePath1);

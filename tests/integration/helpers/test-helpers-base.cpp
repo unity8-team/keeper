@@ -582,7 +582,7 @@ bool TestHelpersBase::cancel_first_task_at_percentage(QSignalSpy & spy, double e
     {
         spy.wait();
 
-        qDebug() << "PropertiesChanged SIGNALS RECEIVED:  " << spy.count();
+        qDebug() << "PropertiesChanged SIGNALS RECEIVED FOR CANCEL:  " << spy.count();
         while (spy.count())
         {
             auto arguments = spy.takeFirst();
@@ -621,7 +621,7 @@ bool TestHelpersBase::cancel_first_task_at_percentage(QSignalSpy & spy, double e
                         qWarning() << "Property [action] is not a string";
                         return false;
                     }
-                    if ( action.toString() == "saving")
+                    if ( action.toString() == "saving" || action.toString() == "restoring")
                     {
                         // the helper is saving data... check for the percentage
                         QVariant percentage;

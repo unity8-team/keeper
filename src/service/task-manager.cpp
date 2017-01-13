@@ -110,6 +110,7 @@ public:
 
     void cancel()
     {
+        qDebug() << "=============== CANCELING =======================";
         if (task_)
         {
             task_->cancel();
