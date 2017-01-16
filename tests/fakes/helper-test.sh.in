@@ -17,6 +17,22 @@
 # Authors:
 #     Xavi Garcia <xavi.garcia.mena@canonical.com>
 #
+FILE_WAIT=@WAIT_HELPER_FOR_CANCELLATION_FILE@
+
+COUNTER=0
+while [[ -f $FILE_WAIT ]] && [[ $COUNTER -lt 5 ]]
+do
+        echo "File exists. Waiting..."
+        sleep 1
+        let COUNTER=COUNTER+1
+done
+
+if [ -f $FILE_WAIT ]
+then
+        echo "Maximum timout reached waiting for file to be erased"
+else
+        echo "Running helper..."
+fi
 
 echo $PWD >> /tmp/helper-pwd
 find ./ -type f -print0 | @KEEPER_TAR_CREATE_BIN@ -a /com/canonical/keeper/helper

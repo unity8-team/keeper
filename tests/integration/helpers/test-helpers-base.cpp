@@ -388,6 +388,8 @@ void TestHelpersBase::SetUp()
     g_setenv("DBUS_SYSTEM_BUS_ADDRESS", dbus_test_runner.systemBus().toStdString().c_str(), true);
     g_setenv("DBUS_SESSION_BUS_ADDRESS", dbus_test_runner.sessionBus().toStdString().c_str(), true);
 
+    cleanup_cancellation();
+
     dbus_test_runner.startServices();
 }
 
@@ -843,7 +845,7 @@ bool TestHelpersBase::start_dbus_monitor()
 
 bool TestHelpersBase::prepare_for_cancellation()
 {
-    QFile wait_file("/tmp/wait_helper_tests");
+    QFile wait_file(WAIT_HELPER_FOR_CANCELLATION_FILE);
     if (!wait_file.open(QIODevice::WriteOnly))
     {
         qWarning() << "Error opening wait file for helper." << wait_file.errorString();
@@ -856,7 +858,7 @@ bool TestHelpersBase::prepare_for_cancellation()
 
 bool TestHelpersBase::cleanup_cancellation()
 {
-    if (!QFile::remove("/tmp/wait_helper_tests"))
+    if (!QFile::remove(WAIT_HELPER_FOR_CANCELLATION_FILE))
     {
         qWarning() << "Error removing cancellation wait file.";
         return false;

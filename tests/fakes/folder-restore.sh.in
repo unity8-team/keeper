@@ -19,13 +19,23 @@
 #   Charles Kerr <charles.kerr@canonical.com>
 #
 
-FILE_WAIT=/tmp/wait_helper_tests
+FILE_WAIT=@WAIT_HELPER_FOR_CANCELLATION_FILE@
 
-while [ -f $FILE_WAIT ]
+COUNTER=0
+while [[ -f $FILE_WAIT ]] && [[ $COUNTER -lt 5 ]]
 do
         echo "File exists. Waiting..."
         sleep 1
+        let COUNTER=COUNTER+1
 done
+
+if [ -f $FILE_WAIT ]
+then
+        echo "Maximum timout reached waiting for file to be erased"
+else
+        echo "Running helper..."
+fi
+
 
 echo $PWD
 @KEEPER_UNTAR_BIN@ -a /com/canonical/keeper/helper

@@ -43,6 +43,7 @@ add_definitions(
   -DKEEPER_TAR_CREATE_BIN="${KEEPER_TAR_CREATE_BIN}"
   -DUPSTART_MOCK_BIN="${CMAKE_BINARY_DIR}/tests/fakes/upstart/upstart-mock"
   -DTEST_INACTIVE_HELPER="${CMAKE_SOURCE_DIR}/tests/fakes/inactive_helper.sh"
+  -DWAIT_HELPER_FOR_CANCELLATION_FILE="/tmp/wait_helper_tests"
 )
 
 set(SERVICE_TEMPLATE_FILE "${CMAKE_CURRENT_SOURCE_DIR}/com_canonical_keeper.py")
