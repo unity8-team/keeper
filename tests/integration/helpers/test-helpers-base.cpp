@@ -858,9 +858,10 @@ bool TestHelpersBase::prepare_for_cancellation()
 
 bool TestHelpersBase::cleanup_cancellation()
 {
-    if (!QFile::remove(WAIT_HELPER_FOR_CANCELLATION_FILE))
+    QFile remove_file(WAIT_HELPER_FOR_CANCELLATION_FILE);
+    if (!remove_file.remove())
     {
-        qWarning() << "Error removing cancellation wait file.";
+        qWarning() << "Error removing cancellation wait file: " << remove_file.errorString();
         return false;
     }
 
