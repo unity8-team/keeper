@@ -247,11 +247,13 @@ TEST_F(TestHelpers, StartFullTestCancelling)
 
     QSignalSpy spy(properties_interface.data(),&DBusPropertiesInterface::PropertiesChanged);
 
+    // Run restore and cancel
+    ASSERT_TRUE(prepare_for_cancellation());
     // Now we know the music folder uuid, let's start the backup for it.
     QDBusReply<void> backup_reply = user_iface->call("StartBackup", QStringList{user_folder_uuid, user_folder_uuid_2}, "");
     ASSERT_TRUE(backup_reply.isValid()) << qPrintable(dbus_test_runner.sessionConnection().lastError().message());
 
-    EXPECT_TRUE(cancel_first_task_at_percentage(spy, 0.05, user_iface));
+    EXPECT_TRUE(cancel_first_task_at_percentage(spy, 0.20, user_iface));
 
     // wait until all the tasks have the action state "complete"
     // this one uses pooling so it should just call Get once
@@ -301,7 +303,7 @@ TEST_F(TestHelpers, StartFullTestCancellingRestore)
     qDebug() << "USER DIR 2:" << user_dir_2;
 
     // fill something in the music dir
-    FileUtils::fillTemporaryDirectory(user_dir_2, qrand() % 1000);
+    FileUtils::fillTemporaryDirectory(user_dir_2, qrand() % 10);
 
     // search for the user folder uuid
     auto user_folder_uuid_2 = get_uuid_for_xdg_folder_path(user_dir_2, choices.value());
@@ -355,10 +357,11 @@ TEST_F(TestHelpers, StartFullTestCancellingRestore)
     EXPECT_TRUE(FileUtils::removeDirRecursively(user_dir_2));
 
     // Run restore and cancel
+    ASSERT_TRUE(prepare_for_cancellation());
     QDBusPendingReply<void> restore_reply_cancel = user_iface->call("StartRestore", QStringList{iter_restore.key(), iter_restore_2.key()}, "");
     ASSERT_TRUE(restore_reply_cancel.isValid()) << qPrintable(dbus_test_runner.sessionConnection().lastError().message());
 
-    EXPECT_TRUE(cancel_first_task_at_percentage(spy, 0.01, user_iface));
+    EXPECT_TRUE(cancel_first_task_at_percentage(spy, 0.20, user_iface));
     EXPECT_TRUE(wait_for_all_tasks_have_action_state({iter_restore.key(), iter_restore_2.key()}, "cancelled", user_iface));
 
     // the contents must be different
@@ -424,7 +427,7 @@ TEST_F(TestHelpers, BadHelperPath)
     urls << "blah" << "/tmp";
     helper.start(urls);
 
-    WAIT_FOR_SIGNALS(spy, 1, Helper::MAX_UAL_WAIT_TIME + 1000);
+    WAIT_FOR_SIGNALS(spy, 1, Helper::MAX_UAL_WAIT_TIME + 1500);
 
     ASSERT_EQ(1, spy.count());
     QList<QVariant> arguments = spy.takeFirst();

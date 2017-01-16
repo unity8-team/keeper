@@ -109,6 +109,10 @@ protected:
     bool check_manifest_file(QVector<BackupItem> const & backup_items);
 
     bool start_dbus_monitor();
+
+    bool prepare_for_cancellation();
+
+    bool cleanup_cancellation();
 };
 
 #define EXPECT_ENV(expected, envvars, key) EXPECT_EQ(expected, get_env(envvars, key)) << "for key " << key

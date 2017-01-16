@@ -409,6 +409,8 @@ void TestHelpersBase::TearDown()
 
     // if the test passed, clean up the xdg_data_home_dir temp too
     xdg_data_home_dir.setAutoRemove(passed);
+
+    cleanup_cancellation();
 }
 
 bool TestHelpersBase::init_helper_registry(QString const& registry)
@@ -578,6 +580,14 @@ bool TestHelpersBase::cancel_first_task_at_percentage(QSignalSpy & spy, double e
     QElapsedTimer timer;
     timer.start();
     bool finished = false;
+
+    // this cancellation point is to avoid race conditions in where the helper
+    // was too fast and we didn't had the time to cancel it.
+    if (!cleanup_cancellation())
+    {
+        return false;
+    }
+
     while (!timer.hasExpired(max_timeout_msec) && !finished)
     {
         spy.wait();
@@ -828,5 +838,29 @@ bool TestHelpersBase::start_dbus_monitor()
         qWarning() << "Error, dbus-monitor should be called one time per test.";
         return false;
     }
+    return true;
+}
+
+bool TestHelpersBase::prepare_for_cancellation()
+{
+    QFile wait_file("/tmp/wait_helper_tests");
+    if (!wait_file.open(QIODevice::WriteOnly))
+    {
+        qWarning() << "Error opening wait file for helper." << wait_file.errorString();
+        return false;
+    }
+    wait_file.close();
+
+    return true;
+}
+
+bool TestHelpersBase::cleanup_cancellation()
+{
+    if (!QFile::remove("/tmp/wait_helper_tests"))
+    {
+        qWarning() << "Error removing cancellation wait file.";
+        return false;
+    }
+
     return true;
 }

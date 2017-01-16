@@ -19,5 +19,13 @@
 #   Charles Kerr <charles.kerr@canonical.com>
 #
 
+FILE_WAIT=/tmp/wait_helper_tests
+
+while [ -f $FILE_WAIT ]
+do
+        echo "File exists. Waiting..."
+        sleep 1
+done
+
 echo $PWD
 @KEEPER_UNTAR_BIN@ -a /com/canonical/keeper/helper
