@@ -36,5 +36,5 @@ namespace FileUtils
 
     bool copyDirsRecursively(QString const & source, QString const & dest);
 
-    bool removeDirRecursively(QString const & dir, bool remove_top=false);
+    bool clearDir(QString const & path);
 }

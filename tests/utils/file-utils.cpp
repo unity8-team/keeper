@@ -212,7 +212,6 @@ FileUtils::copyDirsRecursively(QString const & source, QString const & dest)
         const QString new_dest_file_path
                 = dest + QDir::separator() + file_name;
         QFileInfo new_src_file_path_info(new_src_file_path);
-        QFileInfo new_dest_file_path_info(new_dest_file_path);
 
         if (new_src_file_path_info.isDir())
         {
@@ -233,40 +232,35 @@ FileUtils::copyDirsRecursively(QString const & source, QString const & dest)
 }
 
 bool
-FileUtils::removeDirRecursively(QString const & dir_path, bool remove_top)
+FileUtils::clearDir(QString const &path)
 {
-    QDir dir(dir_path);
+    QDir dir(path);
 
-    if (dir.exists())
+    if (!dir.exists())
     {
-        auto entry_list = dir.entryInfoList(QDir::NoDotAndDotDot | QDir::System | QDir::Hidden  | QDir::AllDirs | QDir::Files, QDir::DirsFirst);
-        for(auto const & info : entry_list)
+        return false;
+    }
+    dir.setFilter(QDir::NoDotAndDotDot | QDir::Files);
+    for(auto const & dirItem : dir.entryList())
+    {
+        if(!dir.remove(dirItem))
         {
-            if (info.isDir())
-            {
-                if(!removeDirRecursively(info.absoluteFilePath(), true))
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                if(!QFile::remove(info.absoluteFilePath()))
-                {
-                    qWarning() << "Error removing file: " << info.absoluteFilePath();
-                    return false;
-                }
-            }
-        }
-        if (remove_top)
-        {
-            if(!QDir().rmdir(dir_path))
-            {
-                qWarning() << "Error removing directory: " << dir_path;
-                return false;
-            }
+            qWarning() << "Error removing directory: " << dirItem;
+            return false;
         }
     }
+
+    dir.setFilter(QDir::NoDotAndDotDot | QDir::Dirs);
+    for(auto const & dirItem : dir.entryList())
+    {
+        QDir subDir(dir.absoluteFilePath(dirItem));
+        if (!subDir.removeRecursively())
+        {
+            qWarning() << "Error removing dir " <<  subDir.absolutePath() << " recursively";
+            return false;
+        }
+    }
+
     return true;
 }
 

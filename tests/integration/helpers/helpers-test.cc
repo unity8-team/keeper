@@ -173,8 +173,8 @@ TEST_F(TestHelpers, StartFullTest)
     ASSERT_TRUE(StorageFrameworkLocalUtils::check_storage_framework_files(QStringList{temp_source_dir_1.path(), temp_source_dir_2.path()}));
 
     // now remove the contents of the xdg dirs before restoring
-    EXPECT_TRUE(FileUtils::removeDirRecursively(user_dir));
-    EXPECT_TRUE(FileUtils::removeDirRecursively(user_dir_2));
+    EXPECT_TRUE(FileUtils::clearDir(user_dir));
+    EXPECT_TRUE(FileUtils::clearDir(user_dir_2));
 
     // ask to restore that uuid
     QDBusPendingReply<void> restore_reply = user_iface->call("StartRestore", QStringList{iter_restore.key(), iter_restore_2.key()}, "");
@@ -353,8 +353,8 @@ TEST_F(TestHelpers, StartFullTestCancellingRestore)
     ASSERT_TRUE(FileUtils::compareDirectories(temp_source_dir_2.path(), user_dir_2));
 
     // now erase again and cancel
-    EXPECT_TRUE(FileUtils::removeDirRecursively(user_dir));
-    EXPECT_TRUE(FileUtils::removeDirRecursively(user_dir_2));
+    EXPECT_TRUE(FileUtils::clearDir(user_dir));
+    EXPECT_TRUE(FileUtils::clearDir(user_dir_2));
 
     // Run restore and cancel
     ASSERT_TRUE(prepare_for_cancellation());
