@@ -66,3 +66,10 @@ qt5_use_modules(
     Core
     DBus
 )
+
+install(
+  TARGETS
+    upstart-mock
+  RUNTIME DESTINATION ${CMAKE_INSTALL_FULL_PKGLIBEXECDIR}
+)
+

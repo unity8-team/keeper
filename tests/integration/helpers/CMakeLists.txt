@@ -62,6 +62,47 @@ add_test(
 )
 
 set(
+  DBUS_TEST
+  dbus-connection-test
+)
+
+add_executable(
+  ${DBUS_TEST}
+  ${interface_files}
+  dbus-connection-test.cc
+  test-helpers-base.cpp
+)
+
+set_target_properties(
+  ${DBUS_TEST}
+  PROPERTIES
+  COMPILE_FLAGS -fPIC
+  AUTOMOC TRUE
+)
+
+target_link_libraries(
+  ${DBUS_TEST}
+  ${HELPERS_TEST_DEPS_LDFLAGS}
+  ${INTEGRATION_TEST_LIBRARIES}
+  qdbus-stubs-tests
+  Qt5::DBus
+  Qt5::Test
+  Qt5::Network
+  Qt5::Core
+)
+
+add_test(
+  NAME ${DBUS_TEST}
+  COMMAND ${DBUS_TEST}
+)
+
+install(
+  TARGETS
+    ${DBUS_TEST}
+  RUNTIME DESTINATION ${CMAKE_INSTALL_FULL_PKGLIBEXECDIR}
+)
+
+set(
   FOLDER_BACKUP_EXEC
   ${KEEPER_HELPER_TEST_LOCATION}
 )
