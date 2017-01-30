@@ -35,6 +35,7 @@ class TestHelpers: public TestHelpersBase
 
 TEST_F(TestHelpers, StartDbus)
 {
+    system("ls -la /usr/share/libqtdbustest");
     auto session_str = QStringLiteral("DBUS_SESSION_BUS_ADDRESS=%1").arg(dbus_test_runner.sessionBus());
     qDebug() << session_str;
 //    g_setenv("DBUS_SYSTEM_BUS_ADDRESS", dbus_test_runner.systemBus().toStdString().c_str(), true);
