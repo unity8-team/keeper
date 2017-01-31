@@ -20,4 +20,4 @@
 #
 
 echo $PWD
-find ./ -type f -print0 | @CMAKE_INSTALL_FULL_PKGLIBEXECDIR@/keeper-tar -a /com/canonical/keeper/helper
+find ./ -type f -print0 | $SNAP@CMAKE_INSTALL_FULL_PKGLIBEXECDIR@/keeper-tar -a /com/canonical/keeper/helper
