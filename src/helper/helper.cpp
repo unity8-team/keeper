@@ -280,9 +280,12 @@ private:
         qDebug() << "Starting helper for app:" << appid_;
 
         std::vector<ubuntu::app_launch::Helper::URL> urls;
+        auto snap_dir = qgetenv("SNAP");
         for(const auto& url_string : url_strings) {
             qDebug() << "url" << url_string;
-            urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(url_string.toStdString()));
+            auto snap_url = snap_dir + url_string;
+            qDebug() << "snap url: " << snap_url;
+            urls.push_back(ubuntu::app_launch::Helper::URL::from_raw(snap_url.toStdString()));
         }
 
         auto backupType = ubuntu::app_launch::Helper::Type::from_raw(HELPER_TYPE);
