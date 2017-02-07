@@ -20,4 +20,4 @@
 #
 
 echo $PWD
-@CMAKE_INSTALL_FULL_PKGLIBEXECDIR@/keeper-untar -a /com/canonical/keeper/helper
+$SNAP@CMAKE_INSTALL_FULL_PKGLIBEXECDIR@/keeper-untar -a /com/canonical/keeper/helper
