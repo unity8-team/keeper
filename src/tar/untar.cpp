@@ -36,7 +36,14 @@ public:
         uncompress_.setStandardOutputProcess(&untar_);
         uncompress_.start("xz", QStringList{ "--decompress", "--stdout", "--force" });
 
-        untar_.start("tar", QStringList{ "-xv", "-C", path_.c_str()});
+        auto snap_dir = qgetenv("SNAP");
+        QStringList tar_params;
+        if (!snap_dir.isEmpty())
+        {
+            tar_params << "--no-same-owner";
+        }
+        tar_params << "-xv", "-C", path_.c_str();
+        untar_.start("tar", tar_params);
         untar_.setProcessChannelMode(QProcess::ForwardedChannels);
     }
 
@@ -98,7 +105,11 @@ private:
         }
         else if (proc.exitStatus() != QProcess::NormalExit)
         {
+            qWarning() << "--------";
+            qWarning() << proc.readAllStandardOutput();
+            qWarning() << proc.readAllStandardError();
             qCritical() << name << "exited abnormally";
+
             ok = false;
         }
         else if (proc.exitCode() != 0)
