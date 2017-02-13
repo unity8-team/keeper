@@ -1,3 +1,10 @@
+keeper (0.1.0+17.04.20170213.1-0ubuntu1) zesty; urgency=medium
+
+  [ Charles Kerr, Xavi Garcia, Xavi Garcia Mena ]
+  * Adds integration tests for restore and restore cancellation.
+
+ -- Xavi Garcia <xavi.garcia.mena@canonical.com>  Mon, 13 Feb 2017 08:57:47 +0000
+
 keeper (0.1.0+16.10.20160915.3-0ubuntu1) yakkety; urgency=medium
 
   * Initial release. 
