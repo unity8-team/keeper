@@ -58,4 +58,9 @@ configure_file(
   ${KEEPER_HELPER_TEST_LOCATION}
 )
 
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/folder-restore.sh.in
+  ${RESTORE_HELPER_TEST_LOCATION}
+)
+
 add_subdirectory(upstart)

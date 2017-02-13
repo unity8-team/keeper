@@ -36,7 +36,7 @@ public:
     explicit RestoreChoices(QObject *parent = nullptr);
     virtual ~RestoreChoices();
     QVector<Metadata> get_backups() const override;
-    void get_backups_async() override;
+    void get_backups_async(QString const & storage) override;
 
 private:
     QSharedPointer<StorageFrameworkClient> storage_;

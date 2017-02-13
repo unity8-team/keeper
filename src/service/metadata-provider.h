@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "client/keeper-errors.h"
 #include "helper/metadata.h"
 
 #include <QObject>
@@ -30,10 +31,10 @@ class MetadataProvider : public QObject
 public:
     virtual ~MetadataProvider() =0;
     virtual QVector<Metadata> get_backups() const =0;
-    virtual void get_backups_async() =0;
+    virtual void get_backups_async(QString const & storage) =0;
 
 Q_SIGNALS:
-    void finished();
+    void finished(keeper::Error error);
 
 protected:
     explicit MetadataProvider(QObject *parent = nullptr) : QObject(parent){};

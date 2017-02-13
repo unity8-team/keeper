@@ -272,7 +272,7 @@ endif()
 include(CTest)
 enable_testing()
 
-include(EnableCoverageReport)
+find_package(CoverageReport)
 
 add_subdirectory(data)
 add_subdirectory(src)

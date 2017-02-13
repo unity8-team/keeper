@@ -41,27 +41,39 @@ public:
 
     ~TaskManagerPrivate() = default;
 
-    bool start_backup(QList<Metadata> const& tasks)
+    bool start_backup(QList<Metadata> const& tasks, QString const & storage)
     {
         auto const now = QDateTime::currentDateTime();
-        backup_dir_name_ = now.toString(Qt::ISODate);
+        backup_dir_name_ = now.toString("yyyy-MM-ddTHH-mm-ss");
         active_manifest_.reset(new Manifest(storage_, backup_dir_name_), [](Manifest *m){m->deleteLater();});
-        return start_tasks(tasks, Mode::BACKUP);
+        return start_tasks(tasks, storage, Mode::BACKUP);
     }
 
-    bool start_restore(QList<Metadata> const& tasks)
+    bool start_restore(QList<Metadata> const& tasks, QString const & storage)
     {
         qDebug() << "Starting restore...";
-        return start_tasks(tasks, Mode::RESTORE);
+        return start_tasks(tasks, storage, Mode::RESTORE);
     }
 
     /***
      ***  State public
     ***/
 
-    QVariantDictMap get_state() const
+    keeper::Items get_converted_state_to_user_type() const
     {
-        return state_;
+        keeper::Items ret;
+        for (auto iter = state_.begin(); iter != state_.end(); ++iter)
+        {
+            keeper::Item item((*iter));
+            ret[iter.key()] = item;
+        }
+        return ret;
+    }
+
+    keeper::Items get_state() const
+    {
+        return get_converted_state_to_user_type();
+//        return state_;
     }
 
     void ask_for_uploader(quint64 n_bytes)
@@ -98,6 +110,7 @@ public:
 
     void cancel()
     {
+        qDebug() << "=============== CANCELING =======================";
         if (task_)
         {
             task_->cancel();
@@ -118,8 +131,9 @@ private:
 
     enum class Mode { IDLE, BACKUP, RESTORE };
 
-    bool start_tasks(QList<Metadata> const& tasks, Mode mode)
+    bool start_tasks(QList<Metadata> const& tasks, QString const & storage, Mode mode)
     {
+        storage_->set_storage(storage);
         bool success = true;
 
         if (!remaining_tasks_.isEmpty())
@@ -140,14 +154,14 @@ private:
 
             for(auto const& metadata : tasks)
             {
-                auto const uuid = metadata.uuid();
+                auto const uuid = metadata.get_uuid();
 
                 remaining_tasks_ << uuid;
 
                 auto& td = task_data_[uuid];
                 td.metadata = metadata;
                 td.action = QStringLiteral("queued"); // TODO i18n
-                td.error = keeper::KeeperError::OK;
+                td.error = keeper::Error::OK;
                 set_initial_task_state(td);
             }
 
@@ -170,7 +184,7 @@ private:
         }
         else
         {
-            td.error = keeper::KeeperError::MANIFEST_STORAGE_ERROR;
+            td.error = keeper::Error::MANIFEST_STORAGE;
             set_current_task_action(task_->to_string(Helper::State::FAILED));
         }
         active_manifest_.reset();
@@ -193,8 +207,8 @@ private:
             if (backup_task_ && state == Helper::State::COMPLETE && active_manifest_)
             {
                 qDebug() << "Backup task finished. The file created in storage framework is: [" << backup_task_->get_file_name() << "]";
-                td.metadata.set_property(Metadata::FILE_NAME_KEY, backup_task_->get_file_name());
-                td.metadata.set_property(Metadata::DIR_NAME_KEY, backup_dir_name_);
+                td.metadata.set_property_value(keeper::Item::FILE_NAME_KEY, backup_task_->get_file_name());
+                td.metadata.set_property_value(keeper::Item::DIR_NAME_KEY, backup_dir_name_);
                 active_manifest_->add_entry(td.metadata);
             }
             if (remaining_tasks_.size())
@@ -266,7 +280,23 @@ private:
             std::bind(&TaskManager::socket_ready, q_ptr, std::placeholders::_1)
         );
 
+        QObject::connect(task_.data(), &KeeperTask::task_socket_error,
+                    std::bind(&TaskManagerPrivate::on_task_socket_error, this, std::placeholders::_1)
+        );
+
         return task_->start();
+    }
+
+    void on_task_socket_error(keeper::Error error)
+    {
+        if (!task_)
+        {
+            qWarning() << "Error updating current task state";
+        }
+        auto& td = task_data_[current_task_];
+        td.error = error;
+        set_current_task_action(task_->to_string(Helper::State::FAILED));
+        Q_EMIT(q_ptr->socket_error(error));
     }
 
     void set_current_task(QString const& uuid)
@@ -314,7 +344,7 @@ private:
 
     void set_initial_task_state(KeeperTask::KeeperTask::TaskData& td)
     {
-        state_[td.metadata.uuid()] = KeeperTask::get_initial_state(td);
+        state_[td.metadata.get_uuid()] = KeeperTask::get_initial_state(td);
     }
 
     void notify_state_changed()
@@ -335,9 +365,9 @@ private:
         auto task_state = task_->state();
 
         // avoid sending repeated states to minimize the use of the bus
-        if (task_state != state_[td.metadata.uuid()] && !task_state.isEmpty())
+        if (task_state != state_[td.metadata.get_uuid()] && !task_state.isEmpty())
         {
-            state_[td.metadata.uuid()] = task_state;
+            state_[td.metadata.get_uuid()] = task_state;
 
             // FIXME: we don't need this to work correctly for the sprint because Marcus is polling in a loop
             // but we will need this in order for him to stop doing that
@@ -394,22 +424,22 @@ TaskManager::TaskManager(QSharedPointer<HelperRegistry> const & helper_registry,
 TaskManager::~TaskManager() = default;
 
 bool
-TaskManager::start_backup(QList<Metadata> const& tasks)
+TaskManager::start_backup(QList<Metadata> const& tasks, QString const & storage)
 {
     Q_D(TaskManager);
 
-    return d->start_backup(tasks);
+    return d->start_backup(tasks, storage);
 }
 
 bool
-TaskManager::start_restore(QList<Metadata> const& tasks)
+TaskManager::start_restore(QList<Metadata> const& tasks, QString const & storage)
 {
     Q_D(TaskManager);
 
-    return d->start_restore(tasks);
+    return d->start_restore(tasks, storage);
 }
 
-QVariantDictMap TaskManager::get_state() const
+keeper::Items TaskManager::get_state() const
 {
     Q_D(const TaskManager);
 

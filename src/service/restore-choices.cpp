@@ -42,9 +42,10 @@ RestoreChoices::get_backups() const
 }
 
 void
-RestoreChoices::get_backups_async()
+RestoreChoices::get_backups_async(QString const & storage)
 {
     backups_.clear();
+    storage_->set_storage(storage);
     connections_.connect_future(
         storage_->get_keeper_dirs(),
         std::function<void(QVector<QString> const &)>{
@@ -67,7 +68,7 @@ RestoreChoices::get_backups_async()
                                 manifests_to_read_--;
                                 if (!manifests_to_read_)
                                 {
-                                     Q_EMIT(finished());
+                                     Q_EMIT(finished(keeper::Error::OK));
                                 }
                             }}
                         );
@@ -76,8 +77,8 @@ RestoreChoices::get_backups_async()
                 }
                 else
                 {
-                    qWarning() << "We could not find and keeper backup when retrieving restore options.";
-                    Q_EMIT(finished());
+                    qWarning() << "We could not find and keeper backups directory when retrieving restore options.";
+                    Q_EMIT(finished(storage_->get_last_error()));
                 }
             }
         }

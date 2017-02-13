@@ -30,8 +30,8 @@
 TEST(MetadataClass, TestJsonSingleObject)
 {
     Metadata metadata("1234", "this is the display name");
-    metadata.set_property("prop1", "prop1-value");
-    metadata.set_property("prop2", "prop2s-value");
+    metadata.set_property_value("prop1", "prop1-value");
+    metadata.set_property_value("prop2", "prop2s-value");
 
     auto metadata_json = metadata.json();
 
@@ -44,9 +44,7 @@ TEST(MetadataClass, TestJsonSingleObject)
 
     Metadata metadata_read(doc_read.object());
 
-    EXPECT_EQ(metadata.uuid(), metadata_read.uuid());
-    EXPECT_EQ(metadata.display_name(), metadata_read.display_name());
-    EXPECT_EQ(metadata.get_public_properties(), metadata_read.get_public_properties());
+    EXPECT_EQ(metadata, metadata_read);
 }
 
 TEST(MetadataClass, TestJsonMultipleObjects)
@@ -64,8 +62,8 @@ TEST(MetadataClass, TestJsonMultipleObjects)
         auto prop_2_val = QString("%1-prop2-value").arg(i);
 
         Metadata metadata(uuid_str, display_name);
-        metadata.set_property(prop_1_key, prop_1_val);
-        metadata.set_property(prop_2_key, prop_2_val);
+        metadata.set_property_value(prop_1_key, prop_1_val);
+        metadata.set_property_value(prop_2_key, prop_2_val);
         original_metadata.push_back(metadata);
     }
 
@@ -97,8 +95,6 @@ TEST(MetadataClass, TestJsonMultipleObjects)
 
     for (auto i = 0; i < read_metadata.size(); ++i)
     {
-        EXPECT_EQ(read_metadata[i].uuid(), original_metadata[i].uuid());
-        EXPECT_EQ(read_metadata[i].display_name(), original_metadata[i].display_name());
-        EXPECT_EQ(read_metadata[i].get_public_properties(), original_metadata[i].get_public_properties());
+        EXPECT_EQ(read_metadata[i], original_metadata[i]);
     }
 }

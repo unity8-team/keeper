@@ -15,8 +15,10 @@
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 # Authors:
-#     Xavi Garcia <xavi.garcia.mena@canonical.com>
+#   Xavi Garcia <xavi.garcia.mena@canonical.com>
+#   Charles Kerr <charles.kerr@canonical.com>
 #
+
 FILE_WAIT=@WAIT_HELPER_FOR_CANCELLATION_FILE@
 
 COUNTER=0
@@ -34,6 +36,6 @@ else
         echo "Running helper..."
 fi
 
-echo $PWD >> /tmp/helper-pwd
-find ./ -type f -print0 | @KEEPER_TAR_CREATE_BIN@ -a /com/canonical/keeper/helper
-touch /tmp/simple-helper-finished
+
+echo $PWD
+@KEEPER_UNTAR_BIN@ -a /com/canonical/keeper/helper

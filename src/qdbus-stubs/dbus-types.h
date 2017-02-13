@@ -23,6 +23,7 @@
 #include <QString>
 #include <QVariantMap>
 #include <client/keeper-errors.h>
+#include "client/keeper-items.h"
 
 typedef QMap<QString, QVariantMap> QVariantDictMap;
 Q_DECLARE_METATYPE(QVariantDictMap)
@@ -36,11 +37,13 @@ namespace DBusTypes
     {
         qRegisterMetaType<QVariantDictMap>("QVariantDictMap");
         qRegisterMetaType<QStringMap>("QStringMap");
-        qRegisterMetaType<keeper::KeeperError>("keeper::KeeperError");
+        qRegisterMetaType<keeper::Error>("keeper::Error");
 
         qDBusRegisterMetaType<QVariantDictMap>();
         qDBusRegisterMetaType<QStringMap>();
-        qDBusRegisterMetaType<keeper::KeeperError>();
+        qDBusRegisterMetaType<keeper::Error>();
+
+        keeper::Items::registerMetaType();
     }
 
     constexpr const char KEEPER_SERVICE[] = "com.canonical.keeper";

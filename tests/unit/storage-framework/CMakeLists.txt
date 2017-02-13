@@ -1,7 +1,3 @@
-add_definitions(
-  -DCMAKE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
-  -DCMAKE_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}"
-)
 
 #
 # storage-framework-folders-test

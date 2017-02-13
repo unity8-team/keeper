@@ -55,10 +55,35 @@ StorageFrameworkClient::choose(QVector<sf::Account::SPtr> const& choices) const
     if (choices.empty())
     {
         qWarning() << "no storage-framework accounts to pick from";
+        last_error_ = keeper::Error::NO_REMOTE_ACCOUNTS;
     }
     else // for now just pick the first one. FIXME
     {
-        ret = choices.front();
+        for (auto& account : choices)
+        {
+            qDebug() << "Storage framework account found: [" << get_account_id(account) << "]";
+        }
+        if (storage_id_.isEmpty())
+        {
+            // FIXME use the default one, taking it from where it is defined
+            ret = choices.front();
+        }
+        else
+        {
+            for (auto& account : choices)
+            {
+                if (get_account_id(account) == storage_id_)
+                {
+                    ret = account;
+                    break;
+                }
+            }
+            if (!ret)
+            {
+                qWarning() << "Storage framework account [" << storage_id_ << "] was not found";
+                last_error_ = keeper::Error::ACCOUNT_NOT_FOUND;
+            }
+        }
     }
 
     return ret;
@@ -69,14 +94,18 @@ StorageFrameworkClient::choose(QVector<sf::Root::SPtr> const& choices) const
 {
     sf::Root::SPtr ret;
 
-    qDebug() << "choosing from" << choices.size() << "roots";
-    if (choices.empty())
+    if (last_error_ != keeper::Error::ACCOUNT_NOT_FOUND)
     {
-        qWarning() << "no storage-framework roots to pick from";
-    }
-    else // for now just pick the first one. FIXME
-    {
-        ret = choices.front();
+        qDebug() << "choosing from" << choices.size() << "roots";
+        if (choices.empty())
+        {
+            qWarning() << "no storage-framework roots to pick from";
+            last_error_ = keeper::Error::NO_REMOTE_ROOTS;
+        }
+        else // for now just pick the first one. FIXME
+        {
+            ret = choices.front();
+        }
     }
 
     return ret;
@@ -100,12 +129,24 @@ StorageFrameworkClient::add_roots_task(std::function<void(QVector<sf::Root::SPtr
         auto account = choose(accounts);
         if (account)
             connection_helper_.connect_future(account->roots(), task);
+        else
+        {
+            QVector<sf::Root::SPtr> no_accounts;
+            task(no_accounts);
+        }
     });
+}
+
+void StorageFrameworkClient::set_storage(QString const & storage)
+{
+    storage_id_ = storage;
 }
 
 QFuture<std::shared_ptr<Uploader>>
 StorageFrameworkClient::get_new_uploader(int64_t n_bytes, QString const & dir_name, QString const & file_name)
 {
+    clear_last_error();
+
     QFutureInterface<std::shared_ptr<Uploader>> fi;
 
     add_roots_task([this, fi, n_bytes, dir_name, file_name](QVector<sf::Root::SPtr> const& roots)
@@ -133,11 +174,16 @@ StorageFrameworkClient::get_new_uploader(int64_t n_bytes, QString const & dir_na
                                     [this, fi, keeper_folder](std::shared_ptr<sf::Uploader> const& sf_uploader){
                                         qDebug() << "keeper_root->create_file() finished";
                                         std::shared_ptr<Uploader> ret;
-                                        if (sf_uploader) {
+                                        if (sf_uploader)
+                                        {
                                             ret.reset(
                                                 new StorageFrameworkUploader(sf_uploader, this),
                                                 [](Uploader* u){u->deleteLater();}
                                             );
+                                        }
+                                        else
+                                        {
+                                            last_error_ = keeper::Error::CREATING_REMOTE_FILE;
                                         }
                                         QFutureInterface<decltype(ret)> qfi(fi);
                                         qfi.reportResult(ret);
@@ -150,6 +196,13 @@ StorageFrameworkClient::get_new_uploader(int64_t n_bytes, QString const & dir_na
                 }
             );
         }
+        else
+        {
+            std::shared_ptr<Uploader> ret;
+            QFutureInterface<decltype(ret)> qfi(fi);
+            qfi.reportResult(ret);
+            qfi.reportFinished();
+        }
     });
 
     return fi.future();
@@ -158,6 +211,8 @@ StorageFrameworkClient::get_new_uploader(int64_t n_bytes, QString const & dir_na
 QFuture<std::shared_ptr<Downloader>>
 StorageFrameworkClient::get_new_downloader(QString const & dir_name, QString const & file_name)
 {
+    clear_last_error();
+
     QFutureInterface<std::shared_ptr<Downloader>> fi;
 
     add_roots_task([this, fi, dir_name, file_name](QVector<sf::Root::SPtr> const& roots)
@@ -197,6 +252,10 @@ StorageFrameworkClient::get_new_downloader(QString const & dir_name, QString con
                                                                 [](Downloader* d){d->deleteLater();}
                                                             );
                                                         }
+                                                        else
+                                                        {
+                                                            last_error_ = keeper::Error::READING_REMOTE_FILE;
+                                                        }
                                                         QFutureInterface<decltype(ret)> qfi(fi);
                                                         qfi.reportResult(ret);
                                                         qfi.reportFinished();
@@ -204,6 +263,7 @@ StorageFrameworkClient::get_new_downloader(QString const & dir_name, QString con
                                                 }
                                             );
                                         } else {
+                                            last_error_ = keeper::Error::READING_REMOTE_FILE;
                                             std::shared_ptr<Downloader> ret_null;
                                             QFutureInterface<decltype(ret_null)> qfi(fi);
                                             qfi.reportResult(ret_null);
@@ -217,6 +277,13 @@ StorageFrameworkClient::get_new_downloader(QString const & dir_name, QString con
                 }
             );
         }
+        else
+        {
+            std::shared_ptr<Downloader> ret;
+            QFutureInterface<decltype(ret)> qfi(fi);
+            qfi.reportResult(ret);
+            qfi.reportFinished();
+        }
     });
 
     return fi.future();
@@ -225,6 +292,8 @@ StorageFrameworkClient::get_new_downloader(QString const & dir_name, QString con
 QFuture<QVector<QString>>
 StorageFrameworkClient::get_keeper_dirs()
 {
+    clear_last_error();
+
     QFutureInterface<QVector<QString>> fi;
 
     add_roots_task([this, fi](QVector<sf::Root::SPtr> const& roots)
@@ -262,7 +331,40 @@ StorageFrameworkClient::get_keeper_dirs()
                     }
             );
         }
+        else
+        {
+            qDebug() << "No dirs were found";
+            QVector<QString> res;
+            QFutureInterface<decltype(res)> qfi(fi);
+            qfi.reportResult(res);
+            qfi.reportFinished();
+        }
     });
+    return fi.future();
+}
+
+keeper::Error
+StorageFrameworkClient::get_last_error() const
+{
+    return last_error_;
+}
+
+QFuture<QStringList>
+StorageFrameworkClient::get_accounts()
+{
+    QFutureInterface<QStringList> fi;
+    add_accounts_task([this, fi](QVector<sf::Account::SPtr> const& accounts)
+    {
+        QFutureInterface<QStringList> qfi(fi);
+        QStringList ret_accounts;
+        for (auto& account: accounts)
+        {
+            ret_accounts << get_account_id(account);
+        }
+        qfi.reportResult(ret_accounts);
+        qfi.reportFinished();
+    });
+
     return fi.future();
 }
 
@@ -335,6 +437,7 @@ StorageFrameworkClient::get_storage_framework_folder(sf::Folder::SPtr const & ro
                         QFutureInterface<decltype(res)> qfi(fi);
                         qfi.reportResult(res);
                         qfi.reportFinished();
+                        last_error_ = keeper::Error::REMOTE_DIR_NOT_EXISTS;
                     }
                     else
                     {
@@ -343,6 +446,10 @@ StorageFrameworkClient::get_storage_framework_folder(sf::Folder::SPtr const & ro
                             root->create_folder(dir_name),
                             std::function<void(sf::Folder::SPtr const &)>{
                                 [this, fi, res, root](sf::Folder::SPtr const & folder){
+                                    if (!folder)
+                                    {
+                                        last_error_ = keeper::Error::CREATING_REMOTE_DIR;
+                                    }
                                     QFutureInterface<decltype(res)> qfi(fi);
                                     qfi.reportResult(folder);
                                     qfi.reportFinished();
@@ -420,4 +527,16 @@ StorageFrameworkClient::get_storage_framework_dirs(unity::storage::qt::client::F
     );
 
     return fi.future();
+}
+
+void
+StorageFrameworkClient::clear_last_error()
+{
+    last_error_ = keeper::Error::OK;
+}
+
+QString
+StorageFrameworkClient::get_account_id(unity::storage::qt::client::Account::SPtr const & account)
+{
+    return QStringLiteral("%1:%2").arg(account->owner_id()).arg(account->description());
 }

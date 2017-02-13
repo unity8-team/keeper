@@ -65,7 +65,7 @@ protected:
 
     void SetUp() override
     {
-        qsrand(time(nullptr));
+        qsrand(uint(time(nullptr)));
 
         n_libarchive_calls = 0;
     }
@@ -83,6 +83,10 @@ extern "C"
     int __real_archive_errno(struct archive *);
     int __real_archive_write_header(struct archive*, struct archive_entry *);
     ssize_t __real_archive_write_data(struct archive*, const void*, size_t);
+    const char * __wrap_archive_error_string(struct archive * archive);
+    int __wrap_archive_errno(struct archive * archive);
+    int __wrap_archive_write_header(struct archive * archive, struct archive_entry * entry);
+    ssize_t __wrap_archive_write_data(struct archive * archive, const void* data, size_t n_bytes);
 
     const char * __wrap_archive_error_string(struct archive * archive)
     {

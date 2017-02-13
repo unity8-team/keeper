@@ -53,8 +53,8 @@ TEST(ManifestClass, AddEntries)
         auto prop_2_val = QString("%1-prop2-value").arg(i);
 
         Metadata metadata(uuid_str, display_name);
-        metadata.set_property(prop_1_key, prop_1_val);
-        metadata.set_property(prop_2_key, prop_2_val);
+        metadata.set_property_value(prop_1_key, prop_1_val);
+        metadata.set_property_value(prop_2_key, prop_2_val);
         original_metadata.push_back(metadata);
         manifest.add_entry(metadata);
     }
@@ -65,9 +65,7 @@ TEST(ManifestClass, AddEntries)
 
     for (auto i = 0; i < original_metadata.size(); ++i)
     {
-        EXPECT_EQ(stored_metadata[i].uuid(), original_metadata[i].uuid());
-        EXPECT_EQ(stored_metadata[i].display_name(), original_metadata[i].display_name());
-        EXPECT_EQ(stored_metadata[i].get_public_properties(), original_metadata[i].get_public_properties());
+        EXPECT_EQ(stored_metadata[i], original_metadata[i]);
     }
 }
 
@@ -94,8 +92,8 @@ TEST(ManifestClass, StoreTest)
         auto prop_2_val = QString("%1-prop2-value").arg(i);
 
         Metadata metadata(uuid_str, display_name);
-        metadata.set_property(prop_1_key, prop_1_val);
-        metadata.set_property(prop_2_key, prop_2_val);
+        metadata.set_property_value(prop_1_key, prop_1_val);
+        metadata.set_property_value(prop_2_key, prop_2_val);
         original_metadata.push_back(metadata);
         manifest.add_entry(metadata);
     }
@@ -141,9 +139,7 @@ TEST(ManifestClass, StoreTest)
 
     for (auto i = 0; i < read_metadata.size(); ++i)
     {
-        EXPECT_EQ(read_metadata[i].uuid(), original_metadata[i].uuid());
-        EXPECT_EQ(read_metadata[i].display_name(), original_metadata[i].display_name());
-        EXPECT_EQ(read_metadata[i].get_public_properties(), original_metadata[i].get_public_properties());
+        EXPECT_EQ(read_metadata[i], original_metadata[i]);
     }
 
     //
@@ -167,9 +163,7 @@ TEST(ManifestClass, StoreTest)
 
     for (auto i = 0; i < metadata_with_sf.size(); ++i)
     {
-        EXPECT_EQ(metadata_with_sf[i].uuid(), original_metadata[i].uuid());
-        EXPECT_EQ(metadata_with_sf[i].display_name(), original_metadata[i].display_name());
-        EXPECT_EQ(metadata_with_sf[i].get_public_properties(), original_metadata[i].get_public_properties());
+        EXPECT_EQ(metadata_with_sf[i], original_metadata[i]);
     }
 
     g_unsetenv("XDG_DATA_HOME");

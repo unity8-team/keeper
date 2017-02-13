@@ -58,7 +58,7 @@ public:
         if (rc == -1)
         {
             qWarning() <<  QStringLiteral("Error creating socket to communicate with helper");;
-            Q_EMIT(q_ptr->error(keeper::KeeperError::HELPER_SOCKET_ERROR));
+            Q_EMIT(q_ptr->error(keeper::Error::HELPER_SOCKET));
             return;
         }
 
@@ -167,7 +167,7 @@ private:
     {
         stop_inactivity_timer();
         qWarning() << "Inactivity detected in the helper...stopping it";
-        Q_EMIT(q_ptr->error(keeper::KeeperError::HELPER_INACTIVITY_DETECTED));
+        Q_EMIT(q_ptr->error(keeper::Error::HELPER_INACTIVITY_DETECTED));
         stop();
     }
 
@@ -206,8 +206,9 @@ private:
                     else if (n < 0) {
                         read_error_ = true;
                         qDebug() << "Read error in restore helper: " << socket->errorString();
-                        Q_EMIT(q_ptr->error(keeper::KeeperError::HELPER_READ_ERROR));
+                        Q_EMIT(q_ptr->error(keeper::Error::HELPER_READ));
                         stop();
+                        check_for_done();
                         return;
                     }
                 }
@@ -225,8 +226,9 @@ private:
                     if (n < 0) {
                         write_error_ = true;
                         qWarning() << "Write error:" << write_socket_.errorString();
-                        Q_EMIT(q_ptr->error(keeper::KeeperError::HELPER_WRITE_ERROR));
+                        Q_EMIT(q_ptr->error(keeper::Error::HELPER_WRITE));
                         stop();
+                        check_for_done();
                     }
                     break;
                 }
@@ -259,7 +261,7 @@ private:
             {
                 if (n_uploaded_ > q_ptr->expected_size())
                 {
-                    Q_EMIT(q_ptr->error(keeper::KeeperError::HELPER_WRITE_ERROR));
+                    Q_EMIT(q_ptr->error(keeper::Error::HELPER_WRITE));
                 }
                 q_ptr->set_state(Helper::State::FAILED);
             }

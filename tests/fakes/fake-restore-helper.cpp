@@ -36,6 +36,8 @@
 
 constexpr int UPLOAD_BUFFER_MAX_ = 64 * 1024;
 
+namespace
+{
 void myMessageHandler(QtMsgType type, const QMessageLogContext &, const QString & msg)
 {
     QString txt;
@@ -45,10 +47,13 @@ void myMessageHandler(QtMsgType type, const QMessageLogContext &, const QString 
         break;
     case QtWarningMsg:
         txt = QString("Warning: %1").arg(msg);
-    break;
+        break;
     case QtCriticalMsg:
         txt = QString("Critical: %1").arg(msg);
-    break;
+        break;
+    case QtInfoMsg:
+           txt = QString("Info: %1").arg(msg);
+           break;
     case QtFatalMsg:
         txt = QString("Fatal: %1").arg(msg);
         abort();
@@ -58,6 +63,7 @@ void myMessageHandler(QtMsgType type, const QMessageLogContext &, const QString 
     QTextStream ts(&outFile);
     ts << txt << endl;
 }
+} // namespace
 
 int
 main(int argc, char **argv)
@@ -97,14 +103,14 @@ main(int argc, char **argv)
     qDebug() << "The file descriptor obtained is: " << fd;
 
     char buffer[UPLOAD_BUFFER_MAX_];
-    int n_bytes_read = 0;
+    size_t n_bytes_read = 0;
     QFile file(TEST_RESTORE_FILE_PATH);
     file.open(QIODevice::WriteOnly);
     for(;;)
     {
         // Read data into buffer.  We may not have enough to fill up buffer, so we
         // store how many bytes were actually read in bytes_read.
-        int bytes_read = read(fd, buffer, sizeof(buffer));
+        auto bytes_read = read(fd, buffer, sizeof(buffer));
         if (bytes_read == 0) // We're done reading from the file
         {
             qDebug() << "Returned 0 bytes read";

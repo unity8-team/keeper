@@ -34,6 +34,8 @@ UpstartJobMock::UpstartJobMock(QSharedPointer<UpstartMockAdaptor> const & upstar
 
 UpstartJobMock::~UpstartJobMock() = default;
 
+namespace
+{
 QStringList get_params_from_app_uris(QString const &app_uris)
 {
     QStringList ret;
@@ -86,6 +88,7 @@ QString get_app_id(QStringList const &env)
     }
     return QString();
 }
+} // namespace
 
 QDBusObjectPath UpstartJobMock::Start(QStringList const &env, bool wait)
 {
@@ -170,7 +173,7 @@ bool UpstartJobMock::start_process(QString const & app_id, QString const & path,
     Q_EMIT(upstart_adaptor_->EventEmitted("started", {"JOB=untrusted-helper", instance_name}));
 
     processes_[app_id] = new_process;
-    auto on_finished = [this, new_process, instance_name, app_id](int exit_code, QProcess::ExitStatus exit_status)
+    auto on_finished = [this, new_process, instance_name, app_id](int exit_code, QProcess::ExitStatus /*exit_status*/)
     {
         qDebug() << "Process finished: " << new_process->pid() << " Exit code: " << exit_code;
         auto iter = processes_.find(app_id);

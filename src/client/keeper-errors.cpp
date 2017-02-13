@@ -21,7 +21,7 @@
 
 #include <QDebug>
 
-QDBusArgument &operator<<(QDBusArgument &argument, keeper::KeeperError value)
+QDBusArgument &operator<<(QDBusArgument &argument, keeper::Error value)
 {
     argument.beginStructure();
     argument << static_cast<int>(value);
@@ -29,41 +29,41 @@ QDBusArgument &operator<<(QDBusArgument &argument, keeper::KeeperError value)
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, keeper::KeeperError &val)
+const QDBusArgument &operator>>(const QDBusArgument &argument, keeper::Error &val)
 {
     int int_val;
     argument.beginStructure();
     argument >> int_val;
-    val = static_cast<keeper::KeeperError>(int_val);
+    val = static_cast<keeper::Error>(int_val);
     argument.endStructure();
     return argument;
 }
 
 namespace keeper
 {
-KeeperError convertFromDBusVariant(const QVariant & value, bool *conversion_ok)
+Error convert_from_dbus_variant(const QVariant & value, bool *conversion_ok)
 {
     if (value.typeName() != QStringLiteral("QDBusArgument"))
     {
         qWarning() << Q_FUNC_INFO
-                   << " Error converting dbus QVariant to KeeperError, expected type is [ QDBusArgument ] and current type is: ["
+                   << " Error converting dbus QVariant to Error, expected type is [ QDBusArgument ] and current type is: ["
                    << value.typeName() << "]";
         if (conversion_ok)
             *conversion_ok = false;
-        return KeeperError(keeper::KeeperError::ERROR_UNKNOWN);
+        return Error(keeper::Error::UNKNOWN);
     }
     auto dbus_arg = value.value<QDBusArgument>();
 
     if (dbus_arg.currentSignature() != "(i)")
     {
         qWarning() << Q_FUNC_INFO
-                   << " Error converting dbus QVariant to KeeperError, expected signature is \"(i)\" and current signature is: \""
+                   << " Error converting dbus QVariant to Error, expected signature is \"(i)\" and current signature is: \""
                    << dbus_arg.currentSignature() << "\"";
         if (conversion_ok)
             *conversion_ok = false;
-        return KeeperError(keeper::KeeperError::ERROR_UNKNOWN);
+        return Error(keeper::Error::UNKNOWN);
     }
-    KeeperError ret;
+    Error ret;
     dbus_arg >> ret;
 
     if (conversion_ok)
