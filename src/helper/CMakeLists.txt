@@ -45,7 +45,7 @@ add_definitions(
 
 include(FindPkgConfig)
 pkg_check_modules(BACKUP_HELPER_DEPENDENCIES REQUIRED
-  ubuntu-app-launch-2
+  ubuntu-app-launch-3
   properties-cpp
 )
 

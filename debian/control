@@ -9,7 +9,7 @@ Build-Depends: cmake,
 # for building the code:
                libarchive-dev (>= 3.1.2),
                libproperties-cpp-dev,
-               libubuntu-app-launch2-dev (>= 0.9),
+               libubuntu-app-launch3-dev,
                storage-framework-client-dev,
                libclick-0.4-dev,
                uuid-dev,
