@@ -1,3 +1,9 @@
+keeper (0.1.0+17.04.20170217-0ubuntu1) zesty; urgency=medium
+
+  * Handle ubuntu-app-launch API change
+
+ -- Ken VanDine <ken.vandine@canonical.com>  Fri, 17 Feb 2017 13:38:25 +0000
+
 keeper (0.1.0+17.04.20170213.1-0ubuntu1) zesty; urgency=medium
 
   [ Charles Kerr, Xavi Garcia, Xavi Garcia Mena ]
