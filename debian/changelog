@@ -1,9 +1,9 @@
-keeper (0.1.1-0ubuntu1) UNRELEASED; urgency=medium
+keeper (0.1.1+17.04.20170227.1-0ubuntu1) zesty; urgency=medium
 
   [ Ken Vandine ]
   * Update to handle the API/ABI break in ubuntu-app-launch.
 
- -- Rodney Dawes <rodney.dawes@canonical.com>  Mon, 27 Feb 2017 13:46:45 -0500
+ -- Rodney Dawes <rodney.dawes@canonical.com>  Mon, 27 Feb 2017 20:00:06 +0000
 
 keeper (0.1.0+17.04.20170213.1-0ubuntu1) zesty; urgency=medium
 
