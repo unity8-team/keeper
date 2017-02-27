@@ -1,3 +1,10 @@
+keeper (0.1.1-0ubuntu1) UNRELEASED; urgency=medium
+
+  [ Ken Vandine ]
+  * Update to handle the API/ABI break in ubuntu-app-launch.
+
+ -- Rodney Dawes <rodney.dawes@canonical.com>  Mon, 27 Feb 2017 13:46:45 -0500
+
 keeper (0.1.0+17.04.20170213.1-0ubuntu1) zesty; urgency=medium
 
   [ Charles Kerr, Xavi Garcia, Xavi Garcia Mena ]
