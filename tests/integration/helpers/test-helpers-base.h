@@ -25,9 +25,9 @@
 #include "DBusPropertiesInterface.h"
 #include "qdbus-stubs/keeper_user_interface.h"
 
-#include "tests/fakes/fake-backup-helper.h"
 #include "tests/utils/file-utils.h"
 #include "tests/utils/xdg-user-dirs-sandbox.h"
+#include "tests/utils/storage-framework-local.h"
 #include "../../../src/service/app-const.h"
 
 #include <libqtdbustest/DBusTestRunner.h>
@@ -61,6 +61,13 @@ constexpr char const UNTRUSTED_HELPER_PATH[] = "/com/test/untrusted/helper";
     ASSERT_EQ(signalsExpected, signalSpy.size());\
 }
 
+struct BackupItem
+{
+    QString display_name;
+    QString type;
+    QString uuid;
+};
+
 class TestHelpersBase : public ::testing::Test
 {
 public:
@@ -85,25 +92,27 @@ protected:
 
     bool init_helper_registry(QString const& registry);
 
-    int check_storage_framework_nb_files();
-
-    bool check_storage_framework_files(QStringList const & source_dirs, bool compression=false);
-
-    bool compare_tar_content (QString const & tar_path, QString const & source_dir, bool compression);
-
-    bool extract_tar_contents(QString const & tar_path, QString const & destination, bool compression=false);
-
-    QFileInfoList get_storage_framework_files();
-
     bool wait_for_all_tasks_have_action_state(QStringList const & uuids, QString const & action_state, QSharedPointer<DBusInterfaceKeeperUser> const & keeper_user_iface, int max_timeout_msec = 15000);
 
-    bool check_task_has_action_state(QVariantDictMap const & state, QString const & uuid, QString const & action_state);
+    bool check_task_has_action_state(keeper::Items const & state, QString const & uuid, QString const & action_state);
+
+    bool get_task_value_now(QString const & uuid, QSharedPointer<DBusInterfaceKeeperUser> const & keeper_user_iface, keeper::Item & value) const;
 
     bool capture_and_check_state_until_all_tasks_complete(QSignalSpy & spy, QStringList const & uuids, QString const & action_state, int max_timeout_msec = 15000);
 
-    QString get_uuid_for_xdg_folder_path(QString const &path, QVariantDictMap const & choices) const;
+    bool cancel_first_task_at_percentage(QSignalSpy & spy, double expected_percentage, QSharedPointer<DBusInterfaceKeeperUser> const & user_iface, int max_timeout_msec = 15000);
+
+    QString get_uuid_for_xdg_folder_path(QString const &path, keeper::Items const & choices) const;
+    QString get_type_for_xdg_folder_path(QString const &path, keeper::Items const & choices) const;
+    QString get_display_name_for_xdg_folder_path(QString const &path, keeper::Items const & choices) const;
+
+    bool check_manifest_file(QVector<BackupItem> const & backup_items);
 
     bool start_dbus_monitor();
+
+    bool prepare_for_cancellation();
+
+    bool cleanup_cancellation();
 };
 
 #define EXPECT_ENV(expected, envvars, key) EXPECT_EQ(expected, get_env(envvars, key)) << "for key " << key

@@ -38,7 +38,7 @@ class KeeperTarCreateFixture: public KeeperDBusMockFixture
     {
         parent::SetUp();
 
-        qsrand(time(nullptr));
+        qsrand(static_cast<uint>(time(nullptr)));
     }
 
     void TearDown() override
@@ -63,7 +63,7 @@ TEST_F(KeeperTarCreateFixture, BackupRun)
         // tell keeper that's a backup choice
         const auto uuid = add_backup_choice(QMap<QString,QVariant>{
             { KEY_NAME, QDir(in.path()).dirName() },
-            { KEY_TYPE, QStringLiteral("folder") },
+            { KEY_TYPE, keeper::Item::FOLDER_VALUE },
             { KEY_SUBTYPE, in.path() },
             { KEY_HELPER, QString::fromUtf8(KTC_INVOKE) }
         });
@@ -108,7 +108,7 @@ TEST_F(KeeperTarCreateFixture, BadArgNoBus)
     // tell keeper that's a backup choice
     const auto uuid = add_backup_choice(QMap<QString,QVariant>{
         { KEY_NAME, QDir(in.path()).dirName() },
-        { KEY_TYPE, QStringLiteral("folder") },
+        { KEY_TYPE, keeper::Item::FOLDER_VALUE },
         { KEY_SUBTYPE, in.path() },
         { KEY_HELPER, QString::fromUtf8(KTC_INVOKE_NOBUS) }
     });
@@ -139,7 +139,7 @@ TEST_F(KeeperTarCreateFixture, BadArgNoFiles)
     // tell keeper that's a backup choice
     const auto uuid = add_backup_choice(QMap<QString,QVariant>{
         { KEY_NAME, QDir(in.path()).dirName() },
-        { KEY_TYPE, QStringLiteral("folder") },
+        { KEY_TYPE, keeper::Item::FOLDER_VALUE },
         { KEY_SUBTYPE, in.path() },
         { KEY_HELPER, QString::fromUtf8(KTC_INVOKE_NOFILES) }
     });
@@ -170,7 +170,7 @@ TEST_F(KeeperTarCreateFixture, KeeperHelperStartBackupFailure)
     // tell keeper that's a backup choice
     const auto uuid = add_backup_choice(QMap<QString,QVariant>{
         { KEY_NAME, QDir(in.path()).dirName() },
-        { KEY_TYPE, QStringLiteral("folder") },
+        { KEY_TYPE, keeper::Item::FOLDER_VALUE },
         { KEY_SUBTYPE, in.path() },
         { KEY_HELPER, QString::fromUtf8(KTC_INVOKE) }
     });

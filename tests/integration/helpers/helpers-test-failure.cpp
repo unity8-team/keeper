@@ -19,6 +19,8 @@
  *     Charles Kerr <charles.kerr@canonical.com>
  */
 #include "test-helpers-base.h"
+#include "tests/utils/storage-framework-local.h"
+#include "tests/fakes/fake-backup-helper.h"
 
 class TestHelpers: public TestHelpersBase
 {
@@ -26,6 +28,9 @@ class TestHelpers: public TestHelpersBase
 
     void SetUp() override
     {
+        // avoid unused warning
+        (void)FAKE_BACKUP_HELPER_PAYLOAD;
+
         super::SetUp();
         init_helper_registry(HELPER_REGISTRY);
     }
@@ -47,7 +52,7 @@ TEST_F(TestHelpers, BackupHelperWritesTooMuch)
     ASSERT_TRUE(user_iface->isValid()) << qPrintable(dbus_test_runner.sessionConnection().lastError().message());
 
     // ask for a list of backup choices
-    QDBusReply<QVariantDictMap> choices = user_iface->call("GetBackupChoices");
+    QDBusReply<keeper::Items> choices = user_iface->call("GetBackupChoices");
     EXPECT_TRUE(choices.isValid()) << qPrintable(choices.error().message());
 
     auto user_option = QStringLiteral("XDG_MUSIC_DIR");
@@ -78,7 +83,7 @@ TEST_F(TestHelpers, BackupHelperWritesTooMuch)
     QSignalSpy spy(properties_interface.data(),&DBusPropertiesInterface::PropertiesChanged);
 
     // Now we know the music folder uuid, let's start the backup for it.
-    QDBusReply<void> backup_reply = user_iface->call("StartBackup", QStringList{user_folder_uuid});
+    QDBusReply<void> backup_reply = user_iface->call("StartBackup", QStringList{user_folder_uuid}, "");
     ASSERT_TRUE(backup_reply.isValid()) << qPrintable(dbus_test_runner.sessionConnection().lastError().message());
 
     // waits until all tasks are complete, recording PropertiesChanged signals
@@ -89,19 +94,26 @@ TEST_F(TestHelpers, BackupHelperWritesTooMuch)
     // this one uses pooling so it should just call Get once
     EXPECT_TRUE(wait_for_all_tasks_have_action_state({user_folder_uuid}, "failed", user_iface));
 
+    keeper::Item item_value;
+    EXPECT_TRUE(get_task_value_now(user_folder_uuid, user_iface, item_value));
+    bool conversion_ok;
+    auto keeper_error = item_value.get_error(&conversion_ok);
+    EXPECT_TRUE(conversion_ok);
+    EXPECT_EQ(keeper::Error::HELPER_WRITE, keeper_error);
+
     // check that the content of the file is the expected
-    EXPECT_EQ(0, check_storage_framework_nb_files());
+    EXPECT_EQ(0, StorageFrameworkLocalUtils::check_storage_framework_nb_files());
 
     // check that the state is failed
-    QVariantDictMap state = user_iface->state();
+    auto state = user_iface->state();
 
     // check that the state has the uuid
-    QVariantDictMap::const_iterator iter = state.find(user_folder_uuid);
+    auto iter = state.find(user_folder_uuid);
     EXPECT_TRUE(iter != state.end());
     auto state_values = state[user_folder_uuid];
 
-    EXPECT_EQ(std::string{"failed"}, state_values["action"].toString().toStdString());
-    EXPECT_EQ(std::string{"Music"}, state_values["display-name"].toString().toStdString());
+    EXPECT_EQ("failed", state_values.get_status());
+    EXPECT_EQ("Music", state_values.get_display_name());
     // sent 1 byte more than the expected, so percentage has to be greater than 1.0
-    EXPECT_GT(state_values["percent-done"].toFloat(), 1.0);
+    EXPECT_LT(1.0, state_values.get_percent_done());
 }

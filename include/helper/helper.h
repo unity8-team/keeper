@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <client/keeper-errors.h>
 #include <util/attributes.h>
 
 #include <QObject>
@@ -64,11 +65,12 @@ public:
     virtual void start(QStringList const& urls);
     virtual void stop();
 
-    static constexpr int MAX_UAL_WAIT_TIME = 5000;
+    static constexpr int MAX_UAL_WAIT_TIME = 10000;
 
 Q_SIGNALS:
     void state_changed(Helper::State);
     void percent_done_changed(float);
+    void error(keeper::Error error);
 
 protected:
     Helper(QString const & appid, const clock_func& clock=default_clock, QObject *parent=nullptr);

@@ -20,8 +20,10 @@
 
 #pragma once
 
+#include "client/keeper-errors.h"
 #include "util/connection-helper.h"
 #include "storage-framework/uploader.h"
+#include "storage-framework/downloader.h"
 
 #include <unity/storage/qt/client/client-api.h>
 
@@ -38,12 +40,19 @@ class StorageFrameworkClient final: public QObject
 
 public:
 
-    Q_DISABLE_COPY(StorageFrameworkClient)
-    StorageFrameworkClient(QObject *parent = nullptr);
+    explicit StorageFrameworkClient(QObject *parent = nullptr);
     virtual ~StorageFrameworkClient();
 
-    QFuture<std::shared_ptr<Uploader>> get_new_uploader(int64_t n_bytes);
+    Q_DISABLE_COPY(StorageFrameworkClient)
 
+    void set_storage(QString const & storage);
+    QFuture<std::shared_ptr<Uploader>> get_new_uploader(int64_t n_bytes, QString const & dir_name, QString const & file_name);
+    QFuture<std::shared_ptr<Downloader>> get_new_downloader(QString const & dir_name, QString const & file_name);
+    QFuture<QVector<QString>> get_keeper_dirs();
+    keeper::Error get_last_error() const;
+    QFuture<QStringList> get_accounts();
+
+    static QString const KEEPER_FOLDER;
 private:
 
     void add_accounts_task(std::function<void(QVector<unity::storage::qt::client::Account::SPtr> const&)> task);
@@ -52,6 +61,17 @@ private:
     unity::storage::qt::client::Account::SPtr choose(QVector<unity::storage::qt::client::Account::SPtr> const& choices) const;
     unity::storage::qt::client::Root::SPtr choose(QVector<unity::storage::qt::client::Root::SPtr> const& choices) const;
 
+    QFuture<unity::storage::qt::client::Folder::SPtr> get_keeper_folder(unity::storage::qt::client::Folder::SPtr const & root, QString const & dir_name, bool create_if_not_exists);
+    QFuture<unity::storage::qt::client::Folder::SPtr> get_storage_framework_folder(unity::storage::qt::client::Folder::SPtr const & root, QString const & dir_name, bool create_if_not_exists);
+    QFuture<unity::storage::qt::client::File::SPtr> get_storage_framework_file(unity::storage::qt::client::Folder::SPtr const & root, QString const & file_name);
+    QFuture<QVector<QString>> get_storage_framework_dirs(unity::storage::qt::client::Folder::SPtr const & root);
+
+    void clear_last_error();
+
+    static QString get_account_id(unity::storage::qt::client::Account::SPtr const & account);
+
     unity::storage::qt::client::Runtime::SPtr runtime_;
     ConnectionHelper connection_helper_;
+    QString storage_id_ = "";
+    mutable keeper::Error last_error_ = keeper::Error::OK;
 };

@@ -33,75 +33,67 @@ KeeperUser::KeeperUser(Keeper* keeper)
 
 KeeperUser::~KeeperUser() =default;
 
-namespace
-{
-    QVariantMap strings_to_variants(const QMap<QString,QString>& strings)
-    {
-        QVariantMap variants;
-
-        for (auto it=strings.begin(), end=strings.end(); it!=end; ++it)
-            variants.insert(it.key(), QVariant::fromValue(it.value()));
-
-        return variants;
-    }
-
-    QVariantDictMap choices_to_variant_dict_map(const QVector<Metadata>& choices)
-    {
-        QVariantDictMap ret;
-
-        for (auto const& metadata : choices)
-            ret.insert(metadata.uuid(), strings_to_variants(metadata.get_public_properties()));
-
-        return ret;
-    }
-}
-
-QVariantDictMap
+keeper::Items
 KeeperUser::GetBackupChoices()
 {
-    return choices_to_variant_dict_map(keeper_.get_backup_choices());
+    auto bus = connection();
+    auto& msg = message();
+    return keeper_.get_backup_choices_var_dict_map(bus, msg);
 }
 
 void
-KeeperUser::StartBackup (const QStringList& keys)
+KeeperUser::StartBackup (const QStringList& keys, QString const & storage)
 {
     Q_ASSERT(calledFromDBus());
 
-    auto const unhandled = keeper_.start_tasks(keys);
-
-    if (!unhandled.empty())
-    {
-        QString text = QStringLiteral("unhandled uuids:");
-        for (auto const& uuid : unhandled)
-            text += ' ' + uuid;
-        connection().send(message().createErrorReply(QDBusError::InvalidArgs, text));
-    }
+    auto bus = connection();
+    auto& msg = message();
+    keeper_.start_tasks(keys, storage, bus, msg);
 }
 
 void
 KeeperUser::Cancel()
 {
-    // FIXME: writeme
-
-    qDebug() << "hello world";
+    keeper_.cancel();
 }
 
-QVariantDictMap
-KeeperUser::GetRestoreChoices()
+keeper::Items
+KeeperUser::GetRestoreChoices(QString const & storage)
 {
-    return choices_to_variant_dict_map(keeper_.get_restore_choices());
+    Q_ASSERT(calledFromDBus());
+
+    auto bus = connection();
+    auto& msg = message();
+    return keeper_.get_restore_choices(storage, bus, msg);
 }
 
 void
-KeeperUser::StartRestore (const QStringList& keys)
+KeeperUser::StartRestore (const QStringList& keys, QString const & storage)
 {
-    // FIXME: writeme
+    Q_ASSERT(calledFromDBus());
 
-    qDebug() << keys;
+    auto bus = connection();
+    auto& msg = message();
+    // if we start a restore right after a backup the uuid
+    // will be found as a backup uuid.
+    // Just clear the backup cache to avoid that.
+    keeper_.invalidate_choices_cache();
+    keeper_.start_tasks(keys, storage, bus, msg);
 }
 
-QVariantDictMap
+keeper::Items
 KeeperUser::get_state() const
 {
     return keeper_.get_state();
+}
+
+QStringList
+KeeperUser::GetStorageAccounts()
+{
+    Q_ASSERT(calledFromDBus());
+
+    auto bus = connection();
+    auto& msg = message();
+
+    return keeper_.get_storage_accounts(bus, msg);
 }

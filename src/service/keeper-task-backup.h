@@ -29,7 +29,7 @@ class KeeperTaskBackup : public KeeperTask
     Q_DECLARE_PRIVATE(KeeperTaskBackup)
 public:
 
-    KeeperTaskBackup(TaskData const & task_data,
+    KeeperTaskBackup(TaskData & task_data,
                QSharedPointer<HelperRegistry> const & helper_registry,
                QSharedPointer<StorageFrameworkClient> const & storage,
                QObject *parent = nullptr);
@@ -37,7 +37,9 @@ public:
 
     Q_DISABLE_COPY(KeeperTaskBackup)
 
-    void ask_for_uploader(quint64 n_bytes);
+    void ask_for_uploader(quint64 n_bytes, QString const & dir_name);
+
+    QString get_file_name() const;
 
 protected:
     QStringList get_helper_urls() const override;

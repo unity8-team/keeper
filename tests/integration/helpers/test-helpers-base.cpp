@@ -20,6 +20,9 @@
  */
 #include "test-helpers-base.h"
 
+#include "service/manifest.h"
+#include "storage-framework/storage_framework_client.h"
+
 #include <sys/types.h>
 #include <signal.h>
 
@@ -30,9 +33,17 @@ using namespace QtDBusMock;
 /// State helpers
 //
 
+namespace
+{
+
+bool double_equals(double a, double b, double epsilon = 0.0001)
+{
+    return std::abs(a - b) < epsilon;
+}
+
 bool qvariant_to_map(QVariant const& variant, QVariantMap& map)
 {
-    if (variant.type() == QMetaType::QVariantMap)
+    if (variant.type() == QVariant::Map)
     {
         map = variant.toMap();
         return true;
@@ -42,7 +53,7 @@ bool qvariant_to_map(QVariant const& variant, QVariantMap& map)
     return false;
 }
 
-bool qdbus_argument_to_variant_dict_map(QVariant const& variant, QVariantDictMap& map)
+bool qdbus_argument_to_keeper_items_map(QVariant const& variant, keeper::Items& map)
 {
     if (variant.canConvert<QDBusArgument>())
     {
@@ -54,7 +65,7 @@ bool qdbus_argument_to_variant_dict_map(QVariant const& variant, QVariantDictMap
         }
         else
         {
-            qWarning() << Q_FUNC_INFO << ": Could not convert variant to QVariantDictMap. Variant received has type " << value.currentType();
+            qWarning() << Q_FUNC_INFO << ": Could not convert variant to keeper::Items. Variant received has type " << value.currentSignature();
         }
     }
     else
@@ -64,7 +75,7 @@ bool qdbus_argument_to_variant_dict_map(QVariant const& variant, QVariantDictMap
     return false;
 }
 
-bool get_property_qvariant_dict_map(QString const & property, QVariant const &variant, QVariantDictMap & map)
+bool get_property_qvariant_keeper_items_map(QString const & property, QVariant const &variant, keeper::Items & map)
 {
     QVariantMap properties_map;
     if (!qvariant_to_map(variant, properties_map))
@@ -80,7 +91,7 @@ bool get_property_qvariant_dict_map(QString const & property, QVariant const &va
         return false;
     }
 
-    if(!qdbus_argument_to_variant_dict_map((*iter), map))
+    if(!qdbus_argument_to_keeper_items_map((*iter), map))
     {
         qWarning() << Q_FUNC_INFO << ": Error converting property [" << property << "] to QVariantDictMap";
         return false;
@@ -137,6 +148,31 @@ bool analyze_task_percentage_values(QString const & uuid, QList<QVariantMap> con
             return false;
         }
         previous_percentage = percentage_double;
+
+        // check the percentages for completed and queued states
+        QVariant action;
+        if (!get_task_property(keeper::Item::STATUS_KEY, (*iter), action))
+        {
+            qWarning() << Q_FUNC_INFO << ": Action was not found for task: " << uuid;
+            return false;
+        }
+        auto current_action = action.toString();
+        if (current_action == "queued")
+        {
+            if (!double_equals(percentage_double, 0.0))
+            {
+                qWarning() << Q_FUNC_INFO << ": Percentage for queue state is not 0.0 for task: " << uuid;
+                return false;
+            }
+        }
+        else if (current_action == "complete")
+        {
+            if (!double_equals(percentage_double, 1.0))
+            {
+                qWarning() << Q_FUNC_INFO << ": Percentage for complete state is not 1.0 for task: " << uuid;
+                return false;
+            }
+        }
     }
     return true;
 }
@@ -151,15 +187,19 @@ bool check_valid_action_state_step(QString const &previous, QString const &curre
     {
         return previous == "saving" || previous == "queued";
     }
+    else if (current == "restoring")
+    {
+        return previous == "restoring" || previous == "queued";
+    }
     else if (current == "finishing")
     {
-        return previous == "finishing" || previous == "saving";
+        return previous == "finishing" || previous == "saving" || previous == "restoring";
     }
     else if (current == "complete")
     {
         // we may pass from "saving" to "complete" if we don't have enough time
         // to emit the "finishing" state change
-        return previous == "complete" || previous == "finishing" || previous == "saving";
+        return previous == "complete" || previous == "finishing" || previous == "saving" || previous == "restoring";
     }
     else if (current == "failed")
     {
@@ -180,13 +220,22 @@ bool analyze_task_action_values(QString const & uuid, QList<QVariantMap> const &
     for (auto iter = recorded_values.begin(); iter != recorded_values.end(); ++iter)
     {
         QVariant action;
-        if (!get_task_property("action", (*iter), action))
+        if (!get_task_property(keeper::Item::STATUS_KEY, (*iter), action))
         {
             qWarning() << Q_FUNC_INFO << ": Action was not found for task: " << uuid;
             return false;
         }
         auto current_action = action.toString();
 
+        if (previous_action == "none")
+        {
+            // check that the very first state is queued
+            if (action.toString() != "queued")
+            {
+                qWarning() << Q_FUNC_INFO << ": Bad initial state. Expecting [queued] and found: [" << action.toString() << "]";
+                return false;
+            }
+        }
         if (!check_valid_action_state_step(previous_action, action.toString()))
         {
             qWarning() << Q_FUNC_INFO << ": Bad action state step: previous state=" << previous_action << ", current=" << action.toString();
@@ -204,7 +253,7 @@ bool analyze_task_display_name_values(QString const & uuid, QList<QVariantMap> c
     for (auto iter = recorded_values.begin(); iter != recorded_values.end(); ++iter)
     {
         QVariant name;
-        if (!get_task_property("display-name", (*iter), name))
+        if (!get_task_property(keeper::Item::DISPLAY_NAME_KEY, (*iter), name))
         {
             qWarning() << Q_FUNC_INFO << ": display-name was not found for task: " << uuid;
             return false;
@@ -257,6 +306,7 @@ bool verify_signal_interface_and_invalidated_properties(QVariant const &interfac
     }
     return true;
 }
+} // namespace
 
 ///
 ///
@@ -277,6 +327,22 @@ void TestHelpersBase::start_tasks()
                                         KEEPER_SERVICE_BIN,
                                         QStringList()));
         keeper_service->start(dbus_test_runner.sessionConnection());
+
+        auto on_finished = [](int exit_code, QProcess::ExitStatus exit_status)
+        {
+            qDebug() << "Keeper process finished: Exit code: " << exit_code;
+            if (exit_status == QProcess::CrashExit)
+            {
+                qDebug() << "************** KEEPER SERVICE CRASHED ******************";
+            }
+
+
+        };
+
+        QObject::connect(&keeper_service->underlyingProcess(),
+                        static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
+                        on_finished);
+
     }
     catch (std::exception const& e)
     {
@@ -311,6 +377,7 @@ void TestHelpersBase::start_tasks()
 void TestHelpersBase::SetUp()
 {
     Helper::registerMetaTypes();
+    DBusTypes::registerMetaTypes();
 
     g_setenv("XDG_DATA_DIRS", CMAKE_SOURCE_DIR, true);
     g_setenv("XDG_CACHE_HOME", CMAKE_SOURCE_DIR "/libertine-data", true);
@@ -320,6 +387,8 @@ void TestHelpersBase::SetUp()
 
     g_setenv("DBUS_SYSTEM_BUS_ADDRESS", dbus_test_runner.systemBus().toStdString().c_str(), true);
     g_setenv("DBUS_SESSION_BUS_ADDRESS", dbus_test_runner.sessionBus().toStdString().c_str(), true);
+
+    cleanup_cancellation();
 
     dbus_test_runner.startServices();
 }
@@ -342,6 +411,8 @@ void TestHelpersBase::TearDown()
 
     // if the test passed, clean up the xdg_data_home_dir temp too
     xdg_data_home_dir.setAutoRemove(passed);
+
+    cleanup_cancellation();
 }
 
 bool TestHelpersBase::init_helper_registry(QString const& registry)
@@ -359,116 +430,6 @@ bool TestHelpersBase::init_helper_registry(QString const& registry)
     );
 
     return copied;
-}
-
-bool TestHelpersBase::check_storage_framework_files(QStringList const & source_dirs, bool compression)
-{
-    bool success {true};
-
-    auto const backups = get_storage_framework_files();
-
-    for (auto const& source : source_dirs)
-    {
-        bool backup_found {false};
-
-        for (auto const& backup : backups)
-        {
-            auto const backup_filename = backup.absoluteFilePath();
-            if ((backup_found = compare_tar_content (backup_filename, source, compression)))
-            {
-                qDebug() << Q_FUNC_INFO << "source" << source << "has match" << backup_filename;
-                break;
-            }
-        }
-
-        if (!backup_found)
-        {
-            qWarning() << Q_FUNC_INFO << "source" << source << "has no matching backup";
-            success = false;
-        }
-    }
-
-    return success;
-}
-
-bool TestHelpersBase::compare_tar_content (QString const & tar_path, QString const & sourceDir, bool compression)
-{
-    QTemporaryDir temp_dir;
-
-    qDebug() << "Comparing tar content for dir:" << sourceDir << "with tar:" << tar_path;
-
-    QFileInfo check_file(tar_path);
-    if (!check_file.exists())
-    {
-        qWarning() << "File:" << tar_path << "does not exist";
-        return false;
-    }
-    if (!check_file.isFile())
-    {
-        qWarning() << "Item:" << tar_path << "is not a file";
-        return false;
-    }
-    if (!temp_dir.isValid())
-    {
-        qWarning() << "Temporary directory:" << temp_dir.path() << "is not valid";
-        return false;
-    }
-
-    if( !extract_tar_contents(tar_path, temp_dir.path()))
-    {
-        return false;
-    }
-    return FileUtils::compareDirectories(sourceDir, temp_dir.path());
-}
-
-bool TestHelpersBase::extract_tar_contents(QString const & tar_path, QString const & destination, bool compression)
-{
-    QProcess tar_process;
-    QString tar_params = compression ? QString("-xzf") : QString("-xf");
-    qDebug() << "Starting the process...";
-    QString tar_cmd = QString("tar -C %1 %2 %3").arg(destination).arg(tar_params).arg(tar_path);
-    system(tar_cmd.toStdString().c_str());
-    return true;
-}
-
-namespace
-{
-    bool find_storage_framework_dir(QDir & dir)
-    {
-        auto path = QStandardPaths::locate(QStandardPaths::GenericDataLocation,
-                                           "storage-framework",
-                                           QStandardPaths::LocateDirectory);
-
-        if (path.isEmpty())
-        {
-            qWarning() << "ERROR: unable to find storage-framework directory";
-            return false;
-        }
-        qDebug() << "storage framework directory is" << path;
-        dir = QDir(path);
-
-        return true;
-    }
-}
-
-QFileInfoList
-TestHelpersBase::get_storage_framework_files()
-{
-    QDir sf_dir;
-
-    return find_storage_framework_dir(sf_dir)
-        ? sf_dir.entryInfoList(QStringList{}, QDir::Files)
-        : QFileInfoList{};
-}
-
-int TestHelpersBase::check_storage_framework_nb_files()
-{
-    QDir sf_dir;
-    auto exists = find_storage_framework_dir(sf_dir);
-
-    return exists
-        ? sf_dir.entryInfoList(QDir::Files).size()
-        : -1;
 }
 
 bool TestHelpersBase::wait_for_all_tasks_have_action_state(QStringList const & uuids, QString const & action_state, QSharedPointer<DBusInterfaceKeeperUser> const & keeper_user_iface, int max_timeout_msec)
@@ -493,17 +454,32 @@ bool TestHelpersBase::wait_for_all_tasks_have_action_state(QStringList const & u
     return finished;
 }
 
-bool TestHelpersBase::check_task_has_action_state(QVariantDictMap const & state, QString const & uuid, QString const & action_state)
+bool TestHelpersBase::get_task_value_now(QString const & uuid, QSharedPointer<DBusInterfaceKeeperUser> const & keeper_user_iface, keeper::Item & value) const
+{
+    auto state = keeper_user_iface->state();
+    auto iter = state.find(uuid);
+    if (iter == state.end())
+    {
+        qWarning() << "Task " << uuid << " was not found in State";
+        return false;
+    }
+    value = (*iter);
+
+    return true;
+}
+
+bool TestHelpersBase::check_task_has_action_state(keeper::Items const & state, QString const & uuid, QString const & action_state)
 {
     auto iter = state.find(uuid);
     if (iter == state.end())
         return false;
 
-    auto iter_props = (*iter).find("action");
-    if (iter_props == (*iter).end())
+    bool valid_status;
+    auto status = (*iter).get_status(&valid_status);
+    if (!valid_status)
         return false;
 
-    return (*iter_props).toString() == action_state;
+    return status == action_state;
 }
 
 bool TestHelpersBase::capture_and_check_state_until_all_tasks_complete(QSignalSpy & spy, QStringList const & uuids, QString const & action_state, int max_timeout_msec)
@@ -541,8 +517,8 @@ bool TestHelpersBase::capture_and_check_state_until_all_tasks_complete(QSignalSp
             {
                 return false;
             }
-            QVariantDictMap keeper_state;
-            if (!get_property_qvariant_dict_map("State", arguments.at(1), keeper_state))
+            keeper::Items keeper_state;
+            if (!get_property_qvariant_keeper_items_map("State", arguments.at(1), keeper_state))
             {
                 return false;
             }
@@ -564,7 +540,7 @@ bool TestHelpersBase::capture_and_check_state_until_all_tasks_complete(QSignalSp
                 qDebug() << "State for uuid: " << iter.key() << " : " << task_state;
 
                 QVariant action;
-                if (get_task_property("action", task_state, action))
+                if (get_task_property(keeper::Item::STATUS_KEY, task_state, action))
                 {
                     if (action.type() != QVariant::String)
                     {
@@ -598,12 +574,108 @@ bool TestHelpersBase::capture_and_check_state_until_all_tasks_complete(QSignalSp
     return analyze_tasks_values(uuids_state);
 }
 
-QString TestHelpersBase::get_uuid_for_xdg_folder_path(QString const &path, QVariantDictMap const & choices) const
+bool TestHelpersBase::cancel_first_task_at_percentage(QSignalSpy & spy, double expected_percentage, QSharedPointer<DBusInterfaceKeeperUser> const & user_iface, int max_timeout_msec)
+{
+    QMap<QString, QList<QVariantMap>> uuids_state;
+    QMap<QString, QString> uuids_current_state;
+
+    QElapsedTimer timer;
+    timer.start();
+    bool finished = false;
+
+    // this cancellation point is to avoid race conditions in where the helper
+    // was too fast and we didn't had the time to cancel it.
+    if (!cleanup_cancellation())
+    {
+        return false;
+    }
+
+    while (!timer.hasExpired(max_timeout_msec) && !finished)
+    {
+        spy.wait();
+
+        qDebug() << "PropertiesChanged SIGNALS RECEIVED FOR CANCEL:  " << spy.count();
+        while (spy.count())
+        {
+            auto arguments = spy.takeFirst();
+
+            if (arguments.size() != 3)
+            {
+                qWarning() << "Bad number of arguments in PropertiesChanged signal";
+                return false;
+            }
+
+            // verify interface and invalidated_properties arguments
+            if(!verify_signal_interface_and_invalidated_properties(arguments.at(0), arguments.at(2), DBusTypes::KEEPER_USER_INTERFACE, "State"))
+            {
+                return false;
+            }
+            keeper::Items keeper_state;
+            if (!get_property_qvariant_keeper_items_map("State", arguments.at(1), keeper_state))
+            {
+                return false;
+            }
+            for (auto iter = keeper_state.begin(); iter != keeper_state.end(); ++iter )
+            {
+                QVariantMap task_state;
+                if (!qvariant_to_map((*iter), task_state))
+                {
+                    qWarning() << "Error converting second argument in PropertiesChanged signal to QVariantMap for uuid: " << iter.key();
+                    return false;
+                }
+                qDebug() << "State for uuid: " << iter.key() << " : " << task_state;
+
+                QVariant action;
+                if (get_task_property(keeper::Item::STATUS_KEY, task_state, action))
+                {
+                    if (action.type() != QVariant::String)
+                    {
+                        qWarning() << "Property [action] is not a string";
+                        return false;
+                    }
+                    if ( action.toString() == "saving" || action.toString() == "restoring")
+                    {
+                        // the helper is saving data... check for the percentage
+                        QVariant percentage;
+                        if (!get_task_property(keeper::Item::PERCENT_DONE_KEY, task_state, percentage))
+                        {
+                            qWarning() << Q_FUNC_INFO << ": Percentage was not found for task: " << iter.key();
+                            return false;
+                        }
+                        bool ok_double;
+                        auto percentage_double = percentage.toDouble(&ok_double);
+                        if (!ok_double)
+                        {
+                            qWarning() << Q_FUNC_INFO << ": Error converting percent-done to double for uuid: " << iter.key() << ". State: " << (*iter);
+                            return false;
+                        }
+                        if (percentage_double >= expected_percentage)
+                        {
+                            qDebug() << "CANCELLING ******************************";
+                            // found... cancel keeper
+                            QDBusReply<void> backup_reply = user_iface->call("Cancel");
+                            if (!backup_reply.isValid())
+                            {
+                                qWarning() << "Error calling Cancel in the dbus user interface: " << backup_reply.error().message();
+                                return false;
+                            }
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    qWarning() << Q_FUNC_INFO << ":Error no task was not found or the expected percentage was not reached";
+    return false;
+}
+
+QString TestHelpersBase::get_uuid_for_xdg_folder_path(QString const &path, keeper::Items const & choices) const
 {
     for(auto iter = choices.begin(); iter != choices.end(); ++iter)
     {
         const auto& values = iter.value();
-        auto iter_values = values.find("subtype");
+        auto iter_values = values.find(Metadata::SUBTYPE_KEY);
         if (iter_values != values.end())
         {
             if (iter_values.value().toString() == path)
@@ -615,6 +687,137 @@ QString TestHelpersBase::get_uuid_for_xdg_folder_path(QString const &path, QVari
     }
 
     return QString();
+}
+
+QString TestHelpersBase::get_type_for_xdg_folder_path(QString const &path, keeper::Items const & choices) const
+{
+    for(auto iter = choices.begin(); iter != choices.end(); ++iter)
+    {
+        const auto& values = iter.value();
+        auto iter_values = values.find(Metadata::SUBTYPE_KEY);
+        if (iter_values != values.end())
+        {
+            if (iter_values.value().toString() == path)
+            {
+                // got it
+                qDebug() << "iter_values: " << values;
+                auto iter_type = values.find(Metadata::TYPE_KEY);
+                if (iter_type != values.end())
+                {
+                    return iter_type.value().toString();
+                }
+            }
+        }
+    }
+
+    return QString();
+}
+
+QString TestHelpersBase::get_display_name_for_xdg_folder_path(QString const &path, keeper::Items const & choices) const
+{
+    for(auto iter = choices.begin(); iter != choices.end(); ++iter)
+    {
+        const auto& values = iter.value();
+        auto iter_values = values.find(Metadata::SUBTYPE_KEY);
+        if (iter_values != values.end())
+        {
+            if (iter_values.value().toString() == path)
+            {
+                // got it
+                auto iter_display_name = values.find(Metadata::DISPLAY_NAME_KEY);
+                if (iter_display_name != values.end())
+                {
+                    return iter_display_name.value().toString();
+                }
+            }
+        }
+    }
+
+    return QString();
+}
+
+bool TestHelpersBase::check_manifest_file(QVector<BackupItem> const & backup_items)
+{
+    auto dir_name = StorageFrameworkLocalUtils::get_storage_framework_dir_name();
+    if (dir_name.isEmpty())
+    {
+        qWarning() << "ERROR: could not find storage framework dir name";
+        return false;
+    }
+
+    QSharedPointer<StorageFrameworkClient> sf_client(new StorageFrameworkClient, [](StorageFrameworkClient* sf){sf->deleteLater();});
+    Manifest manifest_read(sf_client, dir_name);
+    QSignalSpy spy_read(&manifest_read, &Manifest::finished);
+
+    manifest_read.read();
+
+    // wait for the manifest to be read
+    spy_read.wait();
+
+    if (!spy_read.count())
+    {
+        qWarning() << "Failed reading manifest file";
+        sf_client.reset();
+        return false;
+    }
+
+    auto arguments = spy_read.takeFirst();
+    if (!arguments.at(0).toBool())
+    {
+        qWarning() << "Manifest::read returned no success reading the manifest file";
+    }
+
+    auto metadata_with_sf = manifest_read.get_entries();
+
+    if (metadata_with_sf.size() != backup_items.size())
+    {
+        qWarning() << "We found: [" << metadata_with_sf.size() << "] items in the manifest file. [" << backup_items.size() << "] expected.";
+        return false;
+    }
+
+    for (auto const & backup_item : backup_items)
+    {
+        bool item_found = false;
+        for (auto const & metadata : metadata_with_sf)
+        {
+            if (metadata.get_uuid() == backup_item.uuid)
+            {
+                item_found = true;
+                if (metadata.get_display_name() != backup_item.display_name)
+                {
+                    qWarning() << "Display name for backup item: " << backup_item.uuid << " does not match.";
+                    qWarning() << "Expected: [" << backup_item.display_name << "], Found: [" << metadata.get_display_name() << "]";
+                    return false;
+                }
+                if (!metadata.has_property(keeper::Item::TYPE_KEY))
+                {
+                    qWarning() << "Property " << keeper::Item::TYPE_KEY << " was not found in the manifest file for item: " << backup_item.uuid;
+                    return false;
+                }
+                auto prop_value = metadata.get_type();
+
+                if (prop_value != backup_item.type)
+                {
+                    qWarning() << "Type for backup item: " << backup_item.uuid << " does not match.";
+                    qWarning() << "Expected: [" << backup_item.type << "], Found: [" << prop_value << "]";
+                    return false;
+                }
+
+                if (!metadata.has_property(Metadata::FILE_NAME_KEY))
+                {
+                    qWarning() << "Property " << Metadata::FILE_NAME_KEY << " was not found in the manifest file for item: " << backup_item.uuid;
+                    return false;
+                }
+            }
+        }
+        if (!item_found)
+        {
+            qWarning() << "Item with uuid: " << backup_item.uuid << " was not found in the manifest file";
+            return false;
+        }
+    }
+
+    return true;
 }
 
 bool TestHelpersBase::start_dbus_monitor()
@@ -637,5 +840,30 @@ bool TestHelpersBase::start_dbus_monitor()
         qWarning() << "Error, dbus-monitor should be called one time per test.";
         return false;
     }
+    return true;
+}
+
+bool TestHelpersBase::prepare_for_cancellation()
+{
+    QFile wait_file(WAIT_HELPER_FOR_CANCELLATION_FILE);
+    if (!wait_file.open(QIODevice::WriteOnly))
+    {
+        qWarning() << "Error opening wait file for helper." << wait_file.errorString();
+        return false;
+    }
+    wait_file.close();
+
+    return true;
+}
+
+bool TestHelpersBase::cleanup_cancellation()
+{
+    QFile remove_file(WAIT_HELPER_FOR_CANCELLATION_FILE);
+    if (!remove_file.remove())
+    {
+        qWarning() << "Error removing cancellation wait file: " << remove_file.errorString();
+        return false;
+    }
+
     return true;
 }

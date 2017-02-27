@@ -39,6 +39,8 @@ public:
 
     QStringList get_backup_helper_urls(Metadata const& metadata) override;
 
+    QStringList get_restore_helper_urls(Metadata const& metadata) override;
+
 private:
     class Impl;
     friend class Impl;

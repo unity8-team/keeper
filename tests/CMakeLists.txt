@@ -20,13 +20,20 @@ set(
 )
 
 set(
+    RESTORE_HELPER
+    fake-restore-helper
+)
+
+set(
     BACKUP_HELPER_FAILURE
     fake-backup-helper-failure
 )
 
-set(KEEPER_TAR_CREATE_BIN ${CMAKE_BINARY_DIR}/src/tar/keeper-tar-create)
+set(KEEPER_TAR_CREATE_BIN ${CMAKE_BINARY_DIR}/src/tar/keeper-tar)
+set(KEEPER_UNTAR_BIN ${CMAKE_BINARY_DIR}/src/tar/keeper-untar)
 set(KEEPER_HELPER_TEST_LOCATION ${CMAKE_BINARY_DIR}/tests/fakes/helpers-test.sh)
 set(BACKUP_HELPER_FAILURE_LOCATION ${CMAKE_BINARY_DIR}/tests/fakes/${BACKUP_HELPER_FAILURE})
+set(RESTORE_HELPER_TEST_LOCATION ${CMAKE_BINARY_DIR}/tests/fakes/folder-restore.sh)
 
 add_definitions(
   -DCMAKE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
@@ -36,6 +43,7 @@ add_definitions(
   -DKEEPER_TAR_CREATE_BIN="${KEEPER_TAR_CREATE_BIN}"
   -DUPSTART_MOCK_BIN="${CMAKE_BINARY_DIR}/tests/fakes/upstart/upstart-mock"
   -DTEST_INACTIVE_HELPER="${CMAKE_SOURCE_DIR}/tests/fakes/inactive_helper.sh"
+  -DWAIT_HELPER_FOR_CANCELLATION_FILE="/tmp/wait_helper_tests"
 )
 
 set(SERVICE_TEMPLATE_FILE "${CMAKE_CURRENT_SOURCE_DIR}/com_canonical_keeper.py")

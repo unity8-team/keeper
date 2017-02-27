@@ -38,11 +38,12 @@ QString
 create_dummy_string()
 {
     // NB we want to exercise long filenames, but this cutoff length is arbitrary
-    static constexpr int MAX_BASENAME_LEN {200};
+    //static constexpr int MAX_BASENAME_LEN {200};
+    static constexpr int MAX_BASENAME_LEN {10};
     auto const filename_len = std::max(10, qrand() % MAX_BASENAME_LEN);
     QString str;
     for (int i=0; i<filename_len; ++i)
-        str += ('a' + char(qrand() % ('z'-'a')));
+        str += char(('a' + char(qrand() % ('z'-'a'))));
     return str;
 }
 
@@ -66,9 +67,9 @@ create_dummy_file(QDir const& dir, qint64 filesize)
     qint64 left = filesize;
     while(left > 0)
     {
-        int this_step = std::min(max_step, left);
-        for(int i=0; i<this_step; ++i)
-            buf[i] = 'a' + char(qrand() % ('z'-'a'));
+        qint64 this_step = std::min(max_step, left);
+        for(auto i=0; i<this_step; ++i)
+            buf[i] = char('a' + char(qrand() % ('z'-'a')));
         if (f.write(buf, this_step) < this_step)
         {
             qWarning() << "Error writing to temporary file:" << f.errorString();
@@ -184,6 +185,86 @@ FileUtils::getFilesRecursively(QString const & dirPath)
 }
 
 bool
+FileUtils::copyDirsRecursively(QString const & source, QString const & dest)
+{
+    QFileInfo src_file_info(source);
+    QFileInfo dest_file_info(dest);
+
+    if (!src_file_info.isDir())
+    {
+        qWarning() << "Error copying directory " << source << ". It is not a directory";
+        return false;
+    }
+    if (!dest_file_info.exists())
+    {
+        if (!QDir().mkdir(dest))
+        {
+            qWarning() << "Error creating destination directory: " << dest;
+            return false;
+        }
+    }
+    QDir source_dir(source);
+    QStringList file_names = source_dir.entryList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System);
+    for (const auto &file_name : file_names)
+    {
+        const QString new_src_file_path
+                = source + QDir::separator() + file_name;
+        const QString new_dest_file_path
+                = dest + QDir::separator() + file_name;
+        QFileInfo new_src_file_path_info(new_src_file_path);
+
+        if (new_src_file_path_info.isDir())
+        {
+            if (!copyDirsRecursively(new_src_file_path, new_dest_file_path))
+                return false;
+        }
+        else
+        {
+            if (!QFile::copy(new_src_file_path, new_dest_file_path))
+            {
+                qWarning() << "Error copying file " << new_src_file_path << " to " << new_dest_file_path;
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+bool
+FileUtils::clearDir(QString const &path)
+{
+    QDir dir(path);
+
+    if (!dir.exists())
+    {
+        return false;
+    }
+    dir.setFilter(QDir::NoDotAndDotDot | QDir::Files);
+    for(auto const & dirItem : dir.entryList())
+    {
+        if(!dir.remove(dirItem))
+        {
+            qWarning() << "Error removing directory: " << dirItem;
+            return false;
+        }
+    }
+
+    dir.setFilter(QDir::NoDotAndDotDot | QDir::Dirs);
+    for(auto const & dirItem : dir.entryList())
+    {
+        QDir subDir(dir.absoluteFilePath(dirItem));
+        if (!subDir.removeRecursively())
+        {
+            qWarning() << "Error removing dir " <<  subDir.absolutePath() << " recursively";
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool
 FileUtils::compareFiles(QString const & filePath1, QString const & filePath2)
 {
     QFileInfo info1(filePath1);
@@ -199,7 +280,7 @@ FileUtils::compareFiles(QString const & filePath1, QString const & filePath2)
         return false;
     }
     auto checksum1 = calculate_checksum(filePath1, QCryptographicHash::Md5);
-    auto checksum2 = calculate_checksum(filePath1, QCryptographicHash::Md5);
+    auto checksum2 = calculate_checksum(filePath2, QCryptographicHash::Md5);
     if (checksum1 != checksum2)
     {
         qWarning() << "Checksum for file:" << filePath1 << "differ";
@@ -250,6 +331,7 @@ FileUtils::compareDirectories(QString const & dir1Path, QString const & dir2Path
             {
                 qWarning() << Q_FUNC_INFO << "files" << abs1 << "and" << abs2 << "are not equal";
                 directories_identical = false;
+                break;
             }
         }
     }

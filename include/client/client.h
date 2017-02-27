@@ -19,10 +19,13 @@
 
 #pragma once
 
+#include "keeper-errors.h"
+
 #include <QObject>
 #include <QScopedPointer>
 #include <QStringList>
 #include <QVariant>
+#include "keeper-items.h"
 
 struct KeeperClientPrivate;
 
@@ -53,20 +56,31 @@ public:
 
     Q_INVOKABLE QString getBackupName(QString uuid);
     Q_INVOKABLE void enableBackup(QString uuid, bool enabled);
-    Q_INVOKABLE void startBackup();
+    Q_INVOKABLE void startBackup(QString const & storage);
+
+    Q_INVOKABLE void enableRestore(QString uuid, bool enabled);
+    Q_INVOKABLE void startRestore(QString const & storage);
+
+    Q_INVOKABLE void cancel();
 
 // C++
 public:
-    QMap<QString, QVariantMap> getBackupChoices() const;
-    void startBackup(QStringList const& uuids) const;
+    keeper::Items getBackupChoices(keeper::Error & error) const;
+    keeper::Items getRestoreChoices(QString const & storage, keeper::Error & error) const;
+    void startBackup(QStringList const& uuids, QString const & storage) const;
+    void startRestore(QStringList const& uuids, QString const & storage) const;
 
-    QMap<QString, QVariantMap> getState() const;
+    keeper::Items getState() const;
+    QStringList getStorageAccounts() const;
 
 Q_SIGNALS:
     void statusChanged();
     void progressChanged();
     void readyToBackupChanged();
     void backupBusyChanged();
+
+    void taskStatusChanged(QString const & displayName, QString const & status, double percentage, keeper::Error error);
+    void finished();
 
 private Q_SLOTS:
     void stateUpdated();

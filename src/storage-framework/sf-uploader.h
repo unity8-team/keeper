@@ -36,10 +36,13 @@ public:
                              QObject * parent = nullptr);
     std::shared_ptr<QLocalSocket> socket() override;
     void commit() override;
+    QString file_name() const override;
 
 private:
 
     std::shared_ptr<unity::storage::qt::client::Uploader> const uploader_;
 
     ConnectionHelper connections_;
+
+    QString file_name_after_commit_;
 };

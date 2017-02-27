@@ -70,7 +70,6 @@ public:
                 signal,
                 [this, receiver, tag](FunctionArgs... args){
                     receiver(args...);
-                    qDebug() << "erasing tag" << tag;
                     connections_.erase(tag);
                 }
             ),
@@ -86,8 +85,15 @@ public:
     {
         auto watcher = new QFutureWatcher<ResultType>{};
 
-        std::function<void()> on_finished = [watcher, callme](){callme(watcher->result());};
-        std::function<void()> closure = [watcher](){qDebug() << "calling watcher->deleteLater"; watcher->deleteLater();};
+        std::function<void()> on_finished = [watcher, callme](){
+            try {
+                callme(watcher->result());
+            } catch(std::exception& e) {
+                qWarning() << "future threw error:" << e.what();
+                callme(ResultType{});
+            }
+        };
+        std::function<void()> closure = [watcher](){ watcher->deleteLater();};
 
         connect_oneshot(watcher,
                         &std::remove_reference<decltype(*watcher)>::type::finished,
@@ -110,7 +116,6 @@ private:
         connections_[tag] = std::shared_ptr<QMetaObject::Connection>(
             new QMetaObject::Connection(connection),
             [closure, tag](QMetaObject::Connection* c){
-                qDebug() << "deleting connection" << c << "for tag" << tag;
                 QObject::disconnect(*c);
                 delete c;
                 closure();

@@ -62,8 +62,8 @@ public:
         int rc = socketpair(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0, fds);
         if (rc == -1)
         {
-            // TODO throw exception.
-            qWarning() << "BackupHelperPrivate: error creating socket pair to communicate with helper ";
+            qWarning() <<  QStringLiteral("Error creating socket to communicate with helper");;
+            Q_EMIT(q_ptr->error(keeper::Error::HELPER_SOCKET));
             return;
         }
 
@@ -139,9 +139,14 @@ public:
                     &Uploader::commit_finished,
                     std::function<void(bool)>{[this](bool success){
                         qDebug() << "Commit finished";
-                        uploader_.reset();
                         if (!success)
+                        {
                             write_error_ = true;
+                            Q_EMIT(q_ptr->error(keeper::Error::COMMITTING_DATA));
+                        }
+                        else
+                            uploader_committed_file_name_ = uploader_->file_name();
+                        uploader_.reset();
                         check_for_done();
                     }}
                 );
@@ -162,12 +167,18 @@ public:
         check_for_done();
     }
 
+    QString get_uploader_committed_file_name() const
+    {
+        return uploader_committed_file_name_;
+    }
+
 private:
 
     void on_inactivity_detected()
     {
         stop_inactivity_timer();
         qWarning() << "Inactivity detected in the helper...stopping it";
+        Q_EMIT(q_ptr->error(keeper::Error::HELPER_INACTIVITY_DETECTED));
         stop();
     }
 
@@ -180,7 +191,6 @@ private:
     {
         n_uploaded_ += n;
         q_ptr->record_data_transferred(n);
-        qDebug("n_read %zu n_uploaded %zu (newly uploaded %zu)", size_t(n_read_), size_t(n_uploaded_), size_t(n));
         process_more();
         check_for_done();
     }
@@ -201,10 +211,10 @@ private:
                 if (n > 0) {
                     n_read_ += n;
                     upload_buffer_.append(readbuf, int(n));
-                    qDebug("upload_buffer_.size() is %zu after reading %zu from helper", size_t(upload_buffer_.size()), size_t(n));
                 }
                 else if (n < 0) {
                     read_error_ = true;
+                    Q_EMIT(q_ptr->error(keeper::Error::HELPER_READ));
                     stop();
                     return;
                 }
@@ -214,13 +224,13 @@ private:
             const auto n = socket->write(upload_buffer_);
             if (n > 0) {
                 upload_buffer_.remove(0, int(n));
-                qDebug("upload_buffer_.size() is %zu after writing %zu to cloud", size_t(upload_buffer_.size()), size_t(n));
                 continue;
             }
             else {
                 if (n < 0) {
                     write_error_ = true;
                     qWarning() << "Write error:" << socket->errorString();
+                    Q_EMIT(q_ptr->error(keeper::Error::HELPER_WRITE));
                     stop();
                 }
                 break;
@@ -251,6 +261,10 @@ private:
         {
             if (!q_ptr->is_helper_running())
             {
+                if (n_uploaded_ > q_ptr->expected_size())
+                {
+                    Q_EMIT(q_ptr->error(keeper::Error::HELPER_WRITE));
+                }
                 q_ptr->set_state(Helper::State::FAILED);
             }
         }
@@ -289,6 +303,7 @@ private:
     bool write_error_ = false;
     bool cancelled_ = false;
     ConnectionHelper connections_;
+    QString uploader_committed_file_name_;
 };
 
 /***
@@ -352,14 +367,21 @@ BackupHelper::set_state(Helper::State state)
 {
     Q_D(BackupHelper);
 
-    qDebug() << Q_FUNC_INFO;
-    d->on_state_changed(state);
     Helper::set_state(state);
+    d->on_state_changed(state);
 }
 
 void BackupHelper::on_helper_finished()
 {
     Q_D(BackupHelper);
+
     Helper::on_helper_finished();
     d->on_helper_finished();
+}
+
+QString BackupHelper::get_uploader_committed_file_name() const
+{
+    Q_D(const BackupHelper);
+
+    return d->get_uploader_committed_file_name();
 }

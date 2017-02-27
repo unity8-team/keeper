@@ -30,6 +30,15 @@ target_link_libraries(
 )
 
 add_executable(
+    ${RESTORE_HELPER}
+    fake-restore-helper.cpp
+)
+target_link_libraries(
+    ${RESTORE_HELPER}
+    ${LINK_LIBS}
+)
+
+add_executable(
     ${BACKUP_HELPER_FAILURE}
     fake-backup-helper.cpp
 )
@@ -47,6 +56,11 @@ target_link_libraries(
 configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/helper-test.sh.in
   ${KEEPER_HELPER_TEST_LOCATION}
+)
+
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/folder-restore.sh.in
+  ${RESTORE_HELPER_TEST_LOCATION}
 )
 
 add_subdirectory(upstart)

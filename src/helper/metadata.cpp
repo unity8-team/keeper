@@ -19,63 +19,58 @@
 
 #include "helper/metadata.h"
 
+#include <QDebug>
+#include <QJsonArray>
+#include <QJsonDocument>
+
 ///
 ///
 
-// Metadata keys
-const QString Metadata::TYPE_KEY = QStringLiteral("type");
-const QString Metadata::SUBTYPE_KEY = QStringLiteral("subtype");
-const QString Metadata::NAME_KEY = QStringLiteral("name");
-const QString Metadata::PACKAGE_KEY = QStringLiteral("package");
-const QString Metadata::TITLE_KEY = QStringLiteral("title");
-const QString Metadata::VERSION_KEY = QStringLiteral("version");
-
-// Metadata values
-const QString Metadata::FOLDER_VALUE = QStringLiteral("folder");
-const QString Metadata::SYSTEM_DATA_VALUE = QStringLiteral("system-data");
-const QString Metadata::APPLICATION_VALUE = QStringLiteral("application");
+// JSON Keys
+namespace
+{
+    constexpr const char PROPERTIES_KEY[]   = "properties";
+}
 
 ///
 ///
 
 Metadata::Metadata()
-    : uuid_()
-    , display_name_()
-    , properties_()
+    : keeper::Item()
 {
+}
+
+Metadata::Metadata(QJsonObject const & json)
+    : keeper::Item()
+{
+    auto properties = json[PROPERTIES_KEY].toObject();
+    for (auto const & key : properties.keys())
+    {
+        this->insert(key, properties[key].toString());
+    }
 }
 
 Metadata::Metadata(QString const& uuid, QString const& display_name)
-    : uuid_(uuid)
-    , display_name_(display_name)
-    , properties_()
+    : keeper::Item()
 {
+    this->insert(keeper::Item::UUID_KEY, uuid);
+    this->insert(keeper::Item::DISPLAY_NAME_KEY, display_name);
 }
 
-bool
-Metadata::get_property(QString const& property_name, QString& setme) const
+QJsonObject
+Metadata::json() const
 {
-    auto it = properties_.constFind(property_name);
-    const bool found = it != properties_.end();
+    QJsonArray json_properties;
+    QJsonObject properties_obj;
+    for (auto iter = this->begin(); iter != this->end(); ++iter)
+    {
+        properties_obj[iter.key()] = (*iter).toString();
+    }
 
-    if (found)
-        setme = it.value();
+    QJsonObject ret
+    {
+        { PROPERTIES_KEY, properties_obj }
+    };
 
-    return found;
-}
-
-void
-Metadata::set_property(QString const& property_name, QString const& value)
-{
-    properties_.insert(property_name, value);
-}
-
-QMap<QString,QString>
-Metadata::get_public_properties() const
-{
-    // they're all public so far...
-    auto ret = properties_;
-    ret.insert(QStringLiteral("uuid"), uuid_);
-    ret.insert(QStringLiteral("display-name"), display_name_);
     return ret;
 }

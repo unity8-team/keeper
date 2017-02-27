@@ -22,34 +22,100 @@
 #include <client/client.h>
 
 #include <qdbus-stubs/keeper_user_interface.h>
+#include <qdbus-stubs/DBusPropertiesInterface.h>
+#include <qdbus-stubs/dbus-types.h>
 
 struct KeeperClientPrivate final
 {
     Q_DISABLE_COPY(KeeperClientPrivate)
 
-    KeeperClientPrivate(QObject* parent)
+    enum class TasksMode { IDLE_MODE, BACKUP_MODE, RESTORE_MODE };
+
+    explicit KeeperClientPrivate(QObject* /* parent */)
         : userIface(new DBusInterfaceKeeperUser(
                           DBusTypes::KEEPER_SERVICE,
                           DBusTypes::KEEPER_USER_PATH,
                           QDBusConnection::sessionBus()
-                          )),
-        status(""),
-        progress(0),
-        readyToBackup(false),
-        backupBusy(false),
-        stateTimer(parent)
+                          ))
+        , propertiesIface(new DBusPropertiesInterface(
+                           DBusTypes::KEEPER_SERVICE,
+                           DBusTypes::KEEPER_USER_PATH,
+                           QDBusConnection::sessionBus()
+                         ))
     {
     }
 
     ~KeeperClientPrivate() = default;
 
+    struct TaskStatus
+    {
+        QString status;
+        double percentage;
+    };
+
+    static bool stateIsFinal(QString const & stateString)
+    {
+        return (stateString == "complete" || stateString == "cancelled" || stateString == "failed");
+    }
+
+    bool checkAllTasksFinished(keeper::Items const & state) const
+    {
+        bool ret = true;
+        for (auto iter = state.begin(); ret && (iter != state.end()); ++iter)
+        {
+            auto statusString = (*iter).get_status();
+            ret = stateIsFinal(statusString);
+        }
+        return ret;
+    }
+
+    static keeper::Items getValue(QDBusMessage const & message, keeper::Error & error)
+    {
+        if (message.errorMessage().isEmpty())
+        {
+            if (message.arguments().count() != 1)
+            {
+                error = keeper::Error::UNKNOWN;
+                return keeper::Items();
+            }
+
+            auto value = message.arguments().at(0);
+            if (value.typeName() != QStringLiteral("QDBusArgument"))
+            {
+                error = keeper::Error::UNKNOWN;
+                return keeper::Items();
+            }
+            auto dbus_arg = value.value<QDBusArgument>();
+            error = keeper::Error::OK;
+            keeper::Items ret;
+            dbus_arg >> ret;
+            return ret;
+        }
+        if (message.arguments().count() != 2)
+        {
+            error = keeper::Error::UNKNOWN;
+            return keeper::Items();
+        }
+
+        // pick up the error
+        bool valid;
+        error = keeper::convert_from_dbus_variant(message.arguments().at(1), &valid);
+        if (!valid)
+        {
+            error = keeper::Error::UNKNOWN;
+        }
+        return keeper::Items();
+    }
+
     QScopedPointer<DBusInterfaceKeeperUser> userIface;
+    QScopedPointer<DBusPropertiesInterface> propertiesIface;
     QString status;
-    QMap<QString, QVariantMap> backups;
-    double progress;
-    bool readyToBackup;
-    bool backupBusy;
-    QTimer stateTimer;
+    keeper::Items backups;
+    double progress = 0;
+    bool readyToBackup = false;
+    bool backupBusy = false;
+    QMap<QString, TaskStatus> taskStatus;
+    TasksMode mode = TasksMode::IDLE_MODE;
 };
 
 KeeperClient::KeeperClient(QObject* parent) :
@@ -60,13 +126,15 @@ KeeperClient::KeeperClient(QObject* parent) :
 
     // Store backups list locally with an additional "enabled" pair to keep track enabled states
     // TODO: We should be listening to a backupChoicesChanged signal to keep this list updated
-    d->backups = getBackupChoices();
+    keeper::Error error;
+    d->backups = getBackupChoices(error);
+
     for(auto iter = d->backups.begin(); iter != d->backups.end(); ++iter)
     {
         iter.value()["enabled"] = false;
     }
 
-    connect(&d->stateTimer, &QTimer::timeout, this, &KeeperClient::stateUpdated);
+    connect(d->propertiesIface.data(), &DBusPropertiesInterface::PropertiesChanged, this, &KeeperClient::stateUpdated);
 }
 
 KeeperClient::~KeeperClient() = default;
@@ -77,7 +145,7 @@ QStringList KeeperClient::backupUuids()
     for(auto iter = d->backups.begin(); iter != d->backups.end(); ++iter)
     {
         // TODO: We currently only support "folder" type backups
-        if (iter.value().value("type").toString() == "folder")
+        if (iter.value().get_type() == keeper::Item::FOLDER_VALUE)
         {
             returnList.append(iter.key());
         }
@@ -120,17 +188,19 @@ void KeeperClient::enableBackup(QString uuid, bool enabled)
         }
     }
 
+    d->taskStatus[uuid] = KeeperClientPrivate::TaskStatus{"", 0.0};
+
     Q_EMIT readyToBackupChanged();
 }
 
-void KeeperClient::startBackup()
+void KeeperClient::enableRestore(QString uuid, bool enabled)
 {
-    // TODO: Instead of polling for state, we should be listening to a stateChanged signal
-    if (!d->stateTimer.isActive())
-    {
-        d->stateTimer.start(200);
-    }
+    // Until we re-design the client we treat restores as backups
+    enableBackup(uuid, enabled);
+}
 
+void KeeperClient::startBackup(QString const & storage)
+{
     // Determine which backups are enabled, and start only those
     QStringList backupList;
     for(auto iter = d->backups.begin(); iter != d->backups.end(); ++iter)
@@ -143,8 +213,9 @@ void KeeperClient::startBackup()
 
     if (!backupList.empty())
     {
-        startBackup(backupList);
+        startBackup(backupList, storage);
 
+        d->mode = KeeperClientPrivate::TasksMode::BACKUP_MODE;
         d->status = "Preparing Backup...";
         Q_EMIT statusChanged();
         d->backupBusy = true;
@@ -152,27 +223,60 @@ void KeeperClient::startBackup()
     }
 }
 
-QString KeeperClient::getBackupName(QString uuid)
+void KeeperClient::startRestore(QString const & storage)
 {
-    return d->backups.value(uuid).value("display-name").toString();
-}
-
-QMap<QString, QVariantMap> KeeperClient::getBackupChoices() const
-{
-    QDBusReply<QMap<QString, QVariantMap>> choices = d->userIface->call("GetBackupChoices");
-
-    if (!choices.isValid())
+    // Determine which restores are enabled, and start only those
+    QStringList restoreList;
+    for(auto iter = d->backups.begin(); iter != d->backups.end(); ++iter)
     {
-        qWarning() << "Error getting backup choices:" << choices.error().message();
-        return QMap<QString, QVariantMap>();
+        if (iter.value().value("enabled").toBool())
+        {
+            restoreList.append(iter.key());
+        }
     }
 
-    return choices.value();
+    if (!restoreList.empty())
+    {
+        startRestore(restoreList, storage);
+
+        d->mode = KeeperClientPrivate::TasksMode::RESTORE_MODE;
+        d->status = "Preparing Restore...";
+        Q_EMIT statusChanged();
+        d->backupBusy = true;
+        Q_EMIT backupBusyChanged();
+    }
 }
 
-void KeeperClient::startBackup(const QStringList& uuids) const
+void KeeperClient::cancel()
 {
-    QDBusReply<void> backupReply = d->userIface->call("StartBackup", uuids);
+    QDBusReply<void> cancelReply = d->userIface->call("Cancel");
+
+    if (!cancelReply.isValid())
+    {
+        qWarning() << "Error canceling" << cancelReply.error().message();
+    }
+}
+
+QString KeeperClient::getBackupName(QString uuid)
+{
+    return d->backups.value(uuid).get_display_name();
+}
+
+keeper::Items KeeperClient::getBackupChoices(keeper::Error & error) const
+{
+    QDBusMessage choices = d->userIface->call("GetBackupChoices");
+    return KeeperClientPrivate::getValue(choices, error);
+}
+
+keeper::Items KeeperClient::getRestoreChoices(QString const & storage, keeper::Error & error) const
+{
+    QDBusMessage choices = d->userIface->call("GetRestoreChoices", storage);
+    return KeeperClientPrivate::getValue(choices, error);
+}
+
+void KeeperClient::startBackup(const QStringList& uuids, QString const & storage) const
+{
+    QDBusReply<void> backupReply = d->userIface->call("StartBackup", uuids, storage);
 
     if (!backupReply.isValid())
     {
@@ -180,9 +284,32 @@ void KeeperClient::startBackup(const QStringList& uuids) const
     }
 }
 
-QMap<QString, QVariantMap> KeeperClient::getState() const
+void KeeperClient::startRestore(const QStringList& uuids, QString const & storage) const
+{
+    QDBusReply<void> backupReply = d->userIface->call("StartRestore", uuids, storage);
+
+    if (!backupReply.isValid())
+    {
+        qWarning() << "Error starting restore:" << backupReply.error().message();
+    }
+}
+
+keeper::Items KeeperClient::getState() const
 {
     return d->userIface->state();
+}
+
+QStringList KeeperClient::getStorageAccounts() const
+{
+     QDBusPendingReply<QStringList> accountsReply = d->userIface->call("GetStorageAccounts");
+
+     accountsReply.waitForFinished();
+     if (!accountsReply.isValid())
+     {
+         qWarning() << "Error retrieving storage accounts:" << accountsReply.error().message();
+     }
+
+     return accountsReply.value();
 }
 
 void KeeperClient::stateUpdated()
@@ -191,40 +318,76 @@ void KeeperClient::stateUpdated()
 
     if (!states.empty())
     {
-        // Calculate current total progress
-        // TODO: May be better to monitor each backup's progress separately instead of total
-        //       to avoid irregular jumps in progress between larger and smaller backups
+        for (auto const & uuid : d->taskStatus.keys())
+        {
+            auto iter_state = states.find(uuid);
+            if (iter_state == states.end())
+            {
+                qWarning() << "State for uuid: " << uuid << " was not found";
+            }
+            keeper::Item keeper_item((*iter_state));
+            auto progress = keeper_item.get_percent_done();
+            auto status = keeper_item.get_status();
+            auto keeper_error = keeper_item.get_error();
+
+            auto current_state = d->taskStatus[uuid];
+            if (current_state.status != status || current_state.percentage < progress)
+            {
+                d->taskStatus[uuid].status = status;
+                d->taskStatus[uuid].percentage = progress;
+                Q_EMIT(taskStatusChanged(keeper_item.get_display_name(), status, progress, keeper_error));
+            }
+        }
+
         double totalProgress = 0;
         for (auto const& state : states)
         {
-            totalProgress += state.value("percent-done").toDouble();
+            keeper::Item keeper_item(state);
+            totalProgress += keeper_item.get_percent_done();
         }
 
         d->progress = totalProgress / states.count();
         Q_EMIT progressChanged();
 
+        auto allTasksFinished = d->checkAllTasksFinished(states);
         // Update backup status
+        QString statusString;
+        if (d->mode == KeeperClientPrivate::TasksMode::BACKUP_MODE)
+        {
+            statusString = QStringLiteral("Backup");
+        }
+        else if (d->mode == KeeperClientPrivate::TasksMode::RESTORE_MODE)
+        {
+            statusString = QStringLiteral("Restore");
+        }
         if (d->progress > 0 && d->progress < 1)
         {
-            d->status = "Backup In Progress...";
+            d->status = statusString + QStringLiteral(" In Progress...");
             Q_EMIT statusChanged();
 
             d->backupBusy = true;
             Q_EMIT backupBusyChanged();
         }
-        else if (d->progress >= 1)
+        else if (d->progress >= 1 && !allTasksFinished)
         {
-            d->status = "Backup Complete";
+            d->status = statusString + QStringLiteral(" Finishing...");
+            Q_EMIT statusChanged();
+
+            d->backupBusy = true;
+            Q_EMIT backupBusyChanged();
+        }
+        else if (allTasksFinished)
+        {
+            d->status = statusString + QStringLiteral(" Complete");
             Q_EMIT statusChanged();
 
             d->backupBusy = false;
             Q_EMIT backupBusyChanged();
+        }
 
-            // Stop state timer
-            if (d->stateTimer.isActive())
-            {
-                d->stateTimer.stop();
-            }
+        if (d->checkAllTasksFinished(states))
+        {
+            Q_EMIT(finished());
         }
     }
 }

@@ -27,6 +27,9 @@ set(
 add_subdirectory(helper)
 add_subdirectory(metadata-providers)
 add_subdirectory(tar)
+add_subdirectory(storage-framework)
+add_subdirectory(metadata)
+add_subdirectory(manifest)
 
 set(
   COVERAGE_TEST_TARGETS

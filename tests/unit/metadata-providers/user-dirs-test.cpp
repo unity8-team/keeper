@@ -25,6 +25,7 @@
 
 #include <QDebug>
 #include <QString>
+#include <QSignalSpy>
 
 #include <cstdio>
 #include <memory>
@@ -66,29 +67,35 @@ private:
 TEST_F(UserDirsProviderTest, UserDirs)
 {
     BackupChoices tmp;
+
+    QSignalSpy spy(&tmp, &MetadataProvider::finished);
+    tmp.get_backups_async();
+
+    if (!spy.count())
+    {
+        EXPECT_TRUE(spy.wait());
+    }
+    EXPECT_EQ(spy.count(), 1);
     const auto choices = tmp.get_backups();
 
     // confirm that choices has the advertised public properties
-    const auto type_str = QStringLiteral("type");
     for(const auto& choice : choices)
     {
-        ASSERT_FALSE(choice.uuid().isEmpty());
-        ASSERT_FALSE(choice.display_name().isEmpty());
-        QString value;
-        ASSERT_TRUE(choice.get_property(type_str, value));
+        ASSERT_FALSE(choice.get_uuid().isEmpty());
+        ASSERT_FALSE(choice.get_display_name().isEmpty());
+        ASSERT_TRUE(choice.has_property(keeper::Item::TYPE_KEY));
     }
 
     // confirm that we have a system-data choice
     int i, n;
     for(i=0, n=choices.size(); i<n; ++i) {
-        QString value;
-        if (choices[i].get_property(type_str, value) && (value == QStringLiteral("system-data")))
+        auto value = choices[i].get_type();
+        if (value == keeper::Item::SYSTEM_DATA_VALUE)
             break;
     }
     ASSERT_TRUE(i != n);
     auto system_data = choices[i];
-    QString value;
-    EXPECT_TRUE(system_data.get_property(type_str, value));
+    EXPECT_TRUE(system_data.has_property(keeper::Item::TYPE_KEY));
 
     // confirm that we have user-dir choices
     std::set<QString> expected_user_dir_display_names = {
@@ -99,9 +106,9 @@ TEST_F(UserDirsProviderTest, UserDirs)
     };
     std::set<QString> user_dir_display_names;
     for (const auto& choice : choices) {
-        QString value;
-        if (choice.get_property(type_str, value) && (value == QStringLiteral("folder")))
-            user_dir_display_names.insert(choice.display_name());
+        auto value = choice.get_type();
+        if (value == keeper::Item::FOLDER_VALUE)
+            user_dir_display_names.insert(choice.get_display_name());
     }
     EXPECT_EQ(expected_user_dir_display_names, user_dir_display_names);
 }

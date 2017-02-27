@@ -20,10 +20,12 @@
 #pragma once
 
 #include "service/metadata-provider.h"
+#include "util/connection-helper.h"
 
-#include <unity/storage/qt/client/client-api.h>
-
+#include <QSharedPointer>
 #include <QVector>
+
+class StorageFrameworkClient;
 
 /**
  * A MetadataProvider that lists the backups that can be restored
@@ -31,10 +33,13 @@
 class RestoreChoices: public MetadataProvider
 {
 public:
-    RestoreChoices();
+    explicit RestoreChoices(QObject *parent = nullptr);
     virtual ~RestoreChoices();
     QVector<Metadata> get_backups() const override;
+    void get_backups_async(QString const & storage) override;
 
 private:
-    unity::storage::qt::client::Runtime::SPtr runtime_;
+    QSharedPointer<StorageFrameworkClient> storage_;
+    ConnectionHelper connections_;
+    int manifests_to_read_ = 0;
 };

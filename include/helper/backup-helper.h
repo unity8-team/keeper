@@ -53,6 +53,7 @@ public:
     int get_helper_socket() const;
     QString to_string(Helper::State state) const override;
     void set_state(State) override;
+    QString get_uploader_committed_file_name() const;
 protected:
     void on_helper_finished() override;
 

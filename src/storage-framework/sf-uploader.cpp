@@ -45,11 +45,21 @@ StorageFrameworkUploader::commit()
     connections_.connect_future(
         uploader_->finish_upload(),
         std::function<void(std::shared_ptr<unity::storage::qt::client::File> const&)>{
-            [this](std::shared_ptr<unity::storage::qt::client::File> const& /*file*/){
-                bool success = true; // FIXME
+            [this](std::shared_ptr<unity::storage::qt::client::File> const& file){
+                auto const success = bool(file);
                 qDebug() << "commit finished with" << success;
+                if (success)
+                {
+                    file_name_after_commit_ = file->name();
+                }
                 Q_EMIT(commit_finished(success));
             }
         }
     );
+}
+
+QString
+StorageFrameworkUploader::file_name() const
+{
+    return file_name_after_commit_;
 }

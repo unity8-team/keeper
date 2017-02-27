@@ -41,7 +41,7 @@ protected:
 
     void SetUp() override
     {
-        qsrand(time(nullptr));
+        qsrand(uint(time(nullptr)));
     }
 
     void TearDown() override

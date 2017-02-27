@@ -30,6 +30,7 @@ public:
     Q_DISABLE_COPY(HelperRegistry)
 
     virtual QStringList get_backup_helper_urls(Metadata const& task) =0;
+    virtual QStringList get_restore_helper_urls(Metadata const& task) =0;
 
 protected:
     HelperRegistry() =default;

@@ -75,7 +75,6 @@ public:
     uint32_t
     speed_bytes_per_second(uint64_t now, unsigned int interval_msec=HISTORY_MSEC) const
     {
-qDebug() << "now" << now << "cache_time" << cache_time << "interval_msec" << interval_msec;
         if (cache_time != now)
         {
             auto i = newest;
@@ -88,22 +87,18 @@ qDebug() << "now" << now << "cache_time" << cache_time << "interval_msec" << int
                     break;
 
                 bytes += transfers[i].size;
-qDebug() << "i" << i << "transfers[i] .date" << transfers[i].date << ".size" << transfers[i].size << "sum" << bytes;
 
                 if (--i == -1) {
                     i = HISTORY_SIZE - 1; // circular history
-qDebug() << "circular history";
                 }
 
                 if (i == newest) {
-qDebug() << "i" << i << "transfers[i] .date" << transfers[i].date << ".size" << transfers[i].size << "sum" << bytes;
                     break; // we've come all the way around
                 }
             }
 
             cache_val = uint32_t((bytes * 1000u) / interval_msec);
             cache_time = now;
-qDebug() << "cache_val" << cache_val << "cache_time" << cache_time;
         }
 
         return cache_val;
@@ -170,7 +165,10 @@ public:
         {
             qDebug() << "changing state of helper" << static_cast<void*>(this) << "from" << q_ptr->to_string(state_) << "to" << q_ptr->to_string(state);
             state_ = state;
-            q_ptr->state_changed(state);
+            QMetaObject::invokeMethod(q_ptr,
+                                      "state_changed",
+                                      Qt::QueuedConnection,
+                                      Q_ARG(Helper::State, state));
         }
     }
 
@@ -337,7 +335,6 @@ private:
 
         if (is_noteworthy)
         {
-            qDebug() << "emitting percent-done-changed" << percent_done_;
             Q_EMIT(q_ptr->percent_done_changed(percent_done_));
             last_notified_percent_done_ = percent_done_;
         }
@@ -356,7 +353,8 @@ private:
 
     void on_max_time_waiting_for_ual_started()
     {
-        qDebug() << "Max time reached waiting for UAL to start";
+        qWarning() << "Maximum time reached waiting for the helper to start.";
+        Q_EMIT(q_ptr->error(keeper::Error::HELPER_START_TIMEOUT));
         q_ptr->set_state(Helper::State::FAILED);
         stop_wait_for_ual_timer();
     }

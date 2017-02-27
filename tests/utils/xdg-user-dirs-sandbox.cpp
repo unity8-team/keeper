@@ -64,7 +64,7 @@ XdgUserDirsSandbox::init()
     const auto config_dirname = QStringLiteral(".config");
     top.mkdir(config_dirname);
     auto config_dir = QDir(top.absoluteFilePath(config_dirname));
-    static constexpr char * const xdg_config_key {"XDG_CONFIG_HOME"};
+    static constexpr char const xdg_config_key[]{"XDG_CONFIG_HOME"};
     qputenv(xdg_config_key, config_dir.path().toUtf8());
 
     const auto dirs_filename = QStringLiteral("user-dirs.dirs");

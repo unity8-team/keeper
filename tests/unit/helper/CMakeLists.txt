@@ -1,8 +1,3 @@
-add_definitions(
-  -DCMAKE_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
-  -DCMAKE_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}"
-)
-
 #
 # speed-test
 #
@@ -28,6 +23,7 @@ set_target_properties(
 target_link_libraries(
   ${SPEED_TEST}
   ${UNIT_TEST_LIBRARIES}
+  storage-framework
   Qt5::Core
   Qt5::DBus
   Qt5::Test

@@ -19,42 +19,21 @@
 
 #pragma once
 
+#include "client/keeper-items.h"
+#include <QJsonObject>
 #include <QMap>
 #include <QString>
 
 /**
- * Information about a backup
+ * Information about a backup or restore item
  */
-class Metadata
+class Metadata : public keeper::Item
 {
 public:
 
     Metadata();
+    explicit Metadata(QJsonObject const & json_object);
     Metadata(QString const& uuid, QString const& display_name);
 
-    // metadata keys
-    static QString const TYPE_KEY;
-    static QString const SUBTYPE_KEY;
-    static QString const NAME_KEY;
-    static QString const PACKAGE_KEY;
-    static QString const TITLE_KEY;
-    static QString const VERSION_KEY;
-
-    // metadata values
-    static QString const FOLDER_VALUE;
-    static QString const SYSTEM_DATA_VALUE;
-    static QString const APPLICATION_VALUE;
-
-    QString uuid() const { return uuid_; }
-    QString display_name() const { return display_name_; }
-    bool get_property(QString const& property_name, QString& setme_value) const;
-    void set_property(QString const& property_name, QString const& value);
-
-    QMap<QString,QString> get_public_properties() const;
-
-private:
-
-    QString uuid_;
-    QString display_name_;
-    QMap<QString,QString> properties_{};
+    QJsonObject json() const;
 };

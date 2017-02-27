@@ -67,6 +67,7 @@ set_source_files_properties(
   ${user_xml}
   PROPERTIES
   CLASSNAME DBusInterfaceKeeperUser
+  INCLUDE "client/keeper-items.h"
 )
 
 qt5_add_dbus_interface(
@@ -84,6 +85,23 @@ qt5_add_dbus_adaptor(
   KeeperUserAdaptor
 )
 
+set(
+  properties_xml
+  "org.freedesktop.DBus.Properties.xml"
+)
+
+set_source_files_properties(
+  "${properties_xml}"
+  PROPERTIES
+  NO_NAMESPACE YES
+  CLASSNAME DBusPropertiesInterface
+)
+
+qt5_add_dbus_interface(
+  interface_files
+  ${properties_xml}
+  DBusPropertiesInterface
+)
 #
 #
 
@@ -101,5 +119,5 @@ add_library(
 
 target_link_libraries(
   ${STUBS_LIB}
-  backup-helper
+  keeper-errors-lib
 )

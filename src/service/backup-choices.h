@@ -27,7 +27,8 @@
 class BackupChoices: public MetadataProvider
 {
 public:
-    BackupChoices();
+    explicit BackupChoices(QObject *parent = nullptr);
     virtual ~BackupChoices();
     QVector<Metadata> get_backups() const override;
+    void get_backups_async(QString const & storage = "") override;
 };

@@ -15,6 +15,9 @@ set(SERVICE_LIB_SOURCES
   task-manager.cpp
   keeper-task.cpp
   keeper-task-backup.cpp
+  keeper-task-restore.cpp
+  manifest.cpp
+  metadata-provider.h
 )
 add_library(
   ${SERVICE_LIB}
@@ -46,6 +49,7 @@ set(
   storage-framework
   util
   qdbus-stubs
+  keeper-errors-lib
 )
 
 target_link_libraries(

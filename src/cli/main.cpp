@@ -17,9 +17,12 @@
  *     Charles Kerr <charles.kerr@canonical.com>
  *     Xavi Garcia <xavi.garcia.mena@canonical.com>
  */
+#include "command-line.h"
+#include "command-line-client.h"
 
 #include <dbus-types.h>
 #include <util/logging.h>
+#include "util/unix-signal-handler.h"
 
 #include <keeper_user_interface.h>
 
@@ -29,6 +32,8 @@
 #include <libintl.h>
 #include <cstdlib>
 #include <ctime>
+#include <iostream>
+
 
 int
 main(int argc, char **argv)
@@ -37,8 +42,13 @@ main(int argc, char **argv)
 
     QCoreApplication app(argc, argv);
     DBusTypes::registerMetaTypes();
-//    Variant::registerMetaTypes();
     std::srand(unsigned(std::time(nullptr)));
+
+    util::UnixSignalHandler handler([]{
+        CommandLineClient client;
+        client.run_cancel();
+    });
+    handler.setupUnixSignalHandlers();
 
     // boilerplate locale
     bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
@@ -46,51 +56,35 @@ main(int argc, char **argv)
     bindtextdomain(GETTEXT_PACKAGE, LOCALE_DIR);
     textdomain(GETTEXT_PACKAGE);
 
-    if (argc == 2 && QString("--print-address") == argv[1])
+    QCoreApplication::setApplicationName("keeper");
+    QCoreApplication::setApplicationVersion("1.0");
+
+    CommandLineParser parser;
+    CommandLineClient client;
+    CommandLineParser::CommandArgs cmd_args;
+    if (parser.parse(QCoreApplication::arguments(), app, cmd_args))
     {
-        qDebug() << QDBusConnection::sessionBus().baseService();
-    }
-
-    qDebug() << "Argc =" << argc;
-    if (argc == 2 && QString("--use-uuids") == argv[1])
-    {
-        QScopedPointer<DBusInterfaceKeeperUser> user_iface(new DBusInterfaceKeeperUser(
-                                                                DBusTypes::KEEPER_SERVICE,
-                                                                DBusTypes::KEEPER_USER_PATH,
-                                                                QDBusConnection::sessionBus()
-                                                            ) );
-        QDBusReply<QVariantDictMap> choices = user_iface->call("GetBackupChoices");
-        if (!choices.isValid())
+        switch(cmd_args.cmd)
         {
-            qWarning() << "Error getting backup choices:" << choices.error().message();
-        }
-
-        QStringList uuids;
-        auto choices_values = choices.value();
-        for(auto iter = choices_values.begin(); iter != choices_values.end(); ++iter)
-        {
-            const auto& values = iter.value();
-            auto iter_values = values.find("type");
-            if (iter_values != values.end())
-            {
-                if (iter_values.value().toString() == "folder")
-                {
-                    qDebug() << "Adding uuid" << iter.key() << "with type:" << "folder";
-                    uuids << iter.key();
-                }
-            }
-        }
-
-        QDBusReply<void> backup_reply = user_iface->call("StartBackup", uuids);
-
-        if (!backup_reply.isValid())
-        {
-            qWarning() << "Error starting backup:" << backup_reply.error().message();
-        }
-    }
-    else
-    {
-        qWarning() << "FIXME";
+            case CommandLineParser::Command::LIST_LOCAL_SECTIONS:
+                client.run_list_sections(false);
+                exit(0);
+                break;
+            case CommandLineParser::Command::LIST_STORAGE_ACCOUNTS:
+                client.run_list_storage_accounts();
+                exit(0);
+                break;
+            case CommandLineParser::Command::LIST_REMOTE_SECTIONS:
+                client.run_list_sections(true, cmd_args.storage);
+                exit(0);
+                break;
+            case CommandLineParser::Command::BACKUP:
+                client.run_backup(cmd_args.sections, cmd_args.storage);
+                break;
+            case CommandLineParser::Command::RESTORE:
+                client.run_restore(cmd_args.sections, cmd_args.storage);
+                break;
+        };
     }
 
 

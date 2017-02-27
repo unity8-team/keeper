@@ -52,16 +52,30 @@ public:
 
     virtual ~Keeper();
 
-    QVector<Metadata> get_backup_choices();
-    QVector<Metadata> get_restore_choices();
+    keeper::Items get_backup_choices_var_dict_map(QDBusConnection bus, QDBusMessage const & msg);
+    keeper::Items get_restore_choices(QString const & storage, QDBusConnection bus, QDBusMessage const & msg);
 
     QDBusUnixFileDescriptor StartBackup(QDBusConnection,
                                         QDBusMessage const & message,
                                         quint64 nbytes);
 
-    QStringList start_tasks(QStringList const & uuids);
 
-    QVariantDictMap get_state() const;
+    QDBusUnixFileDescriptor StartRestore(QDBusConnection,
+                                        QDBusMessage const & message);
+
+    void start_tasks(QStringList const & uuids,
+                     QString const & storage,
+                     QDBusConnection bus,
+                     QDBusMessage const & msg);
+
+    keeper::Items get_state() const;
+
+    void cancel();
+
+    void invalidate_choices_cache();
+
+    QStringList get_storage_accounts(QDBusConnection,
+                                     QDBusMessage const & message);
 
 private:
     QScopedPointer<KeeperPrivate> const d_ptr;

@@ -19,106 +19,68 @@
 
 #include "service/restore-choices.h"
 
-#include <unity/storage/common.h>
-#include <unity/storage/qt/client/client-api.h>
+#include "service/manifest.h"
+#include "storage-framework/storage_framework_client.h"
 
 #include <QDebug>
-#include <QFuture>
-#include <QtConcurrentRun>
 
 using namespace unity::storage::qt::client;
 
-namespace
-{
 
-#if 0 // WE NEED TO FIX THIS AFTER LANDING AND WHEN WE IMPLEMENT RESTORE,
-      // It get's blocked at the result()...
-// FIXME: move to a common file so it can be used by restore-choices and storage_framework_client
-Item::SPtr get_backups_folder_sync(const Account::SPtr& account)
-{
-    Item::SPtr ret;
-
-    // find the root
-    // FIXME: returns a container of containers -- do we need to walk them?
-    auto roots = account->roots().results();
-    if (roots.isEmpty() || roots.front().isEmpty())
-    {
-        qDebug() << "storage-framework unable to find roots";
-        return ret;
-    }
-    auto root = roots.front().front();
-    qDebug() << "id:" << root->native_identity();
-    qDebug() << "time:" << root->last_modified_time();
-
-    // look for an Ubuntu Backups subfolder
-    // FIXME: i18n?
-    const auto backup_dir_name = QStringLiteral("Ubuntu Backups");
-    try
-    {
-        auto results = root->lookup(backup_dir_name).results();
-        if (!results.empty())
-            ret = results.front().front();
-    }
-    catch(const std::exception& e)
-    {
-        qDebug() << backup_dir_name << "lookup returned" << e.what() << "so trying to create";
-
-        auto results = root->create_folder(backup_dir_name).results();
-        if (!results.isEmpty())
-        {
-            qDebug() << backup_dir_name << "created";
-            ret = results.front();
-        }
-    }
-
-    return ret;
-}
-
-QFuture<Item::SPtr> get_backups_folder(const Account::SPtr& account)
-{
-    return QtConcurrent::run([account]{return get_backups_folder_sync(account);});
-}
-#endif
-
-} // namespace
-
-
-
-RestoreChoices::RestoreChoices()
-    : runtime_(Runtime::create())
+RestoreChoices::RestoreChoices(QObject *parent)
+    : MetadataProvider(parent)
+    , storage_(new StorageFrameworkClient)
 {
 }
 
-RestoreChoices::~RestoreChoices() =default;
+RestoreChoices::~RestoreChoices() = default;
 
 QVector<Metadata>
 RestoreChoices::get_backups() const
 {
-    QVector<Metadata> ret;
+    return backups_;
+}
 
-    // FIXME: blocking
-#if 0 // WE NEED TO FIX THIS AFTER LANDING AND WHEN WE IMPLEMENT RESTORE,
-      // It get's blocked at the result()...
-    auto accounts = runtime_->accounts().result();
-
-    // FIXME: blocking
-    auto tops = get_backups_folder(accounts.front()).results();
-    qDebug() << "tops.results().size()" << tops.size();
-
-    if (!tops.empty())
-    {
-        auto top = tops.front();
-        qDebug() << "top id:" << top->native_identity();
-        qDebug() << "top time:" << top->last_modified_time();
-    }
-
-    // TODO: walk the directory's children
-
-    // TODO: look for a manifest.json in each child subdirectory
-
-    // TODO: parse the manifest.json
-
-    // TODO: how to do this in a nonblocking way but work with the QDBus Adaptor?
-#endif
-    return ret;
+void
+RestoreChoices::get_backups_async(QString const & storage)
+{
+    backups_.clear();
+    storage_->set_storage(storage);
+    connections_.connect_future(
+        storage_->get_keeper_dirs(),
+        std::function<void(QVector<QString> const &)>{
+            [this](QVector<QString> const & dirs){
+                if (dirs.size() > 0)
+                {
+                    manifests_to_read_ = dirs.size();
+                    for (auto i = 0; i < dirs.size(); ++i)
+                    {
+                        QSharedPointer<Manifest> manifest(new Manifest(storage_, dirs.at(i)), [](Manifest *m){m->deleteLater();});
+                        connections_.connect_oneshot(
+                            manifest.data(),
+                            &Manifest::finished,
+                            std::function<void(bool)>{[this, dirs, manifest, i](bool success){
+                                qDebug() << "Finished reading manifest in dir: " << dirs.at(i) << " success =" << success;
+                                if (success)
+                                {
+                                    this->backups_ += manifest->get_entries();
+                                }
+                                manifests_to_read_--;
+                                if (!manifests_to_read_)
+                                {
+                                     Q_EMIT(finished(keeper::Error::OK));
+                                }
+                            }}
+                        );
+                        manifest->read();
+                    }
+                }
+                else
+                {
+                    qWarning() << "We could not find and keeper backups directory when retrieving restore options.";
+                    Q_EMIT(finished(storage_->get_last_error()));
+                }
+            }
+        }
+    );
 }
